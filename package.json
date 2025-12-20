@@ -9,9 +9,26 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.51",
+    "@auth/supabase-adapter": "^1.11.1",
+    "@supabase/supabase-js": "^2.89.0",
+    "@types/uuid": "^10.0.0",
+    "ai": "^5.0.116",
+    "dotenv": "^17.2.3",
+    "lucide-react": "^0.562.0",
+    "marked": "^17.0.1",
     "next": "16.1.0",
+    "next-auth": "^5.0.0-beta.30",
+    "puppeteer": "^24.34.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "stripe": "^20.1.0",
+    "twilio": "^5.11.1",
+    "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

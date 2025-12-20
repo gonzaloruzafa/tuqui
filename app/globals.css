@@ -1,26 +1,239 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Scrollbar styling - Light theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Bot message styles - Light theme */
+.bot-message {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.bot-message h1, .bot-message h2, .bot-message h3, .bot-message h4 {
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  color: #111827;
+}
+
+.bot-message h1 { font-size: 1.5em; }
+.bot-message h2 { font-size: 1.25em; }
+.bot-message h3 { font-size: 1.125em; }
+.bot-message h4 { font-size: 1em; }
+
+.bot-message ul, .bot-message ol {
+  margin: 0.75em 0;
+  padding-left: 1.5em;
+  list-style-position: outside;
+}
+
+.bot-message ul {
+  list-style-type: disc;
+}
+
+.bot-message ol {
+  list-style-type: decimal;
+}
+
+.bot-message li {
+  margin: 0.4em 0;
+  line-height: 1.7;
+  color: #111827;
+}
+
+.bot-message li::marker {
+  color: #6b7280;
+}
+
+.bot-message strong, .bot-message b {
+  font-weight: 600;
+  color: #111827;
+}
+
+.bot-message em, .bot-message i {
+  font-style: italic;
+}
+
+.bot-message p {
+  margin: 0.75em 0;
+  line-height: 1.7;
+  color: #111827;
+}
+
+.bot-message p:first-child {
+  margin-top: 0;
+}
+
+.bot-message p:last-child {
+  margin-bottom: 0;
+}
+
+.bot-message a {
+  color: #667eea;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bot-message a:hover {
+  color: #5a67d8;
+}
+
+.bot-message code {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.875em;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: #374151;
+}
+
+.bot-message pre {
+  background: #1e1e1e;
+  padding: 1em;
+  border-radius: 0.75em;
+  overflow-x: auto;
+  margin: 1em 0;
+  border: 1px solid #e5e7eb;
+}
+
+.bot-message pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875em;
+  line-height: 1.5;
+  color: #e5e7eb;
+}
+
+.bot-message hr {
+  margin: 1.5em 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+.bot-message blockquote {
+  border-left: 3px solid #667eea;
+  margin: 1em 0;
+  padding-left: 1em;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.bot-message table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  table-layout: auto;
+  font-size: 0.9em;
+}
+
+.bot-message th, .bot-message td {
+  border: 1px solid #e5e7eb;
+  padding: 0.6em 0.8em;
+  text-align: left;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 300px;
+}
+
+.bot-message th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.bot-message td {
+  color: #374151;
+  line-height: 1.5;
+}
+
+/* Alineación de columnas según contenido */
+.bot-message td:nth-child(1) {
+  text-align: left;
+  font-weight: 500;
+}
+
+/* Columnas numéricas - derecha */
+.bot-message td:nth-child(2),
+.bot-message td:nth-child(3),
+.bot-message td:nth-child(4) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  white-space: nowrap;
+}
+
+/* Encabezados de columnas numéricas */
+.bot-message th:nth-child(2),
+.bot-message th:nth-child(3),
+.bot-message th:nth-child(4) {
+  text-align: right;
+}
+
+/* Primera columna más ancha para nombres/descripciones */
+.bot-message td:first-child,
+.bot-message th:first-child {
+  min-width: 200px;
+}
+
+/* Responsive: en mobile, hacer la tabla scrollable */
+@media (max-width: 768px) {
+  .bot-message table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .bot-message td,
+  .bot-message th {
+    white-space: nowrap;
+    max-width: none;
+  }
+}
+
+/* Animation for loading dots */
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
 }
