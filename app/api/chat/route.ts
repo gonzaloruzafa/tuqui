@@ -4,8 +4,7 @@ import { searchDocuments } from '@/lib/rag/search'
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { streamText, convertToCoreMessages } from 'ai'
-import { z } from 'zod'
+import { streamText } from 'ai'
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -72,7 +71,10 @@ export async function POST(req: Request) {
         const result = streamText({
             model: google('gemini-2.0-flash'),
             system: systemSystem,
-            messages: convertToCoreMessages(messages),
+            messages: messages.map((m: any) => ({
+                role: m.role as 'user' | 'assistant' | 'system',
+                content: m.content
+            })),
             tools,
             onFinish: async (event) => {
                 // 6. Async Billing Tracking (After processing)

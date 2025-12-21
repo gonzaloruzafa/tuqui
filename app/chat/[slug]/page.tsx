@@ -317,7 +317,7 @@ export default function ChatPage() {
                             className="w-full bg-white border border-gray-200 rounded-2xl pl-4 pr-12 py-3 resize-none focus:outline-none focus:border-adhoc-violet focus:ring-1 focus:ring-adhoc-violet transition-all"
                             rows={1}
                         />
-                        <button onClick={handleSend} disabled={isLoading || !input.trim()} className="absolute right-2 bottom-2 p-2 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 transition-colors disabled:opacity-50">
+                        <button onClick={handleSend} disabled={isLoading || !input.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 transition-colors disabled:opacity-50">
                             <Send className="w-4 h-4" />
                         </button>
                     </div>
