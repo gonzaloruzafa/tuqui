@@ -90,7 +90,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating prometeo task:', error);
-      return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Failed to create task: ${error.message || 'Unknown error'}`,
+        details: error
+      }, { status: 500 });
     }
 
     return NextResponse.json({ task: data });

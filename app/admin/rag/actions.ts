@@ -6,38 +6,77 @@ import { revalidatePath } from 'next/cache'
 import { chunkDocument } from '@/lib/rag/chunker'
 import { generateEmbeddings } from '@/lib/rag/embeddings'
 
+// Clean text: remove null bytes and invalid unicode
+function cleanText(text: string): string {
+    return text
+        // Remove null bytes
+        .replace(/\u0000/g, '')
+        // Remove other control characters except newline/tab
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        // Normalize whitespace
+        .replace(/\s+/g, ' ')
+        .trim()
+}
+
 // Simple PDF text extraction without canvas dependencies
 async function extractPdfText(buffer: Buffer): Promise<string> {
+    // First try: Use pdfjs-dist directly (no canvas needed for text)
     try {
-        // Use require for pdf-parse to avoid ESM issues
-        const pdfParse = require('pdf-parse')
+        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
         
-        // Custom page render to avoid canvas issues
-        const options = {
-            pagerender: function(pageData: any) {
-                return pageData.getTextContent().then(function(textContent: any) {
-                    let text = ''
-                    for (const item of textContent.items) {
-                        text += (item as any).str + ' '
-                    }
-                    return text
-                })
-            }
+        // Disable worker to avoid issues
+        pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+        
+        const uint8Array = new Uint8Array(buffer)
+        const pdf = await pdfjsLib.getDocument({ 
+            data: uint8Array,
+            useSystemFonts: true,
+            disableFontFace: true
+        }).promise
+        
+        let fullText = ''
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i)
+            const textContent = await page.getTextContent()
+            const pageText = textContent.items
+                .map((item: any) => item.str)
+                .join(' ')
+            fullText += pageText + '\n'
         }
         
-        const data = await pdfParse(buffer, options)
-        return data.text
-    } catch (e) {
-        console.error('[RAG] pdf-parse error, trying fallback:', e)
-        // Fallback: basic text extraction from PDF buffer
-        const text = buffer.toString('utf-8')
-        // Extract readable text between stream markers
-        const matches = text.match(/\(([^)]+)\)/g)
-        if (matches && matches.length > 10) {
-            return matches.map(m => m.slice(1, -1)).join(' ')
-        }
-        throw new Error('Could not extract text from PDF')
+        return cleanText(fullText)
+    } catch (e: any) {
+        console.error('[RAG] pdfjs-dist error:', e.message)
     }
+    
+    // Fallback: try pdf-parse
+    try {
+        const pdfParse = require('pdf-parse')
+        const data = await pdfParse(buffer)
+        return cleanText(data.text)
+    } catch (e: any) {
+        console.error('[RAG] pdf-parse error:', e.message)
+    }
+    
+    // Last resort: raw text extraction from PDF buffer
+    try {
+        const text = buffer.toString('latin1')
+        const textMatches: string[] = []
+        
+        // Pattern: Text in parentheses
+        const parenMatches = text.match(/\(([^)]{2,100})\)/g)
+        if (parenMatches) {
+            textMatches.push(...parenMatches.map(m => m.slice(1, -1)))
+        }
+        
+        if (textMatches.length > 20) {
+            return cleanText(textMatches.join(' '))
+        }
+    } catch (fallbackError) {
+        console.error('[RAG] Fallback failed:', fallbackError)
+    }
+    
+    throw new Error('Could not extract text from PDF. Try converting to .txt first.')
 }
 
 export async function uploadDocument(formData: FormData) {
@@ -59,10 +98,12 @@ export async function uploadDocument(formData: FormData) {
             content = await extractPdfText(buffer)
         } else {
             content = await file.text()
+            // Clean text files too
+            content = cleanText(content)
         }
-    } catch (e) {
-        console.error('[RAG] Error reading file:', e)
-        return { error: 'Error reading file. For PDFs, try converting to text first.' }
+    } catch (e: any) {
+        console.error('[RAG] Error reading file:', e.message)
+        return { error: `Error reading file: ${e.message}` }
     }
 
     if (!content || content.trim().length < 50) {

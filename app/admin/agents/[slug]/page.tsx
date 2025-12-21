@@ -1,10 +1,12 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Bot, FileText, Wrench, Brain } from 'lucide-react'
+import { ArrowLeft, Bot, FileText, Wrench, Brain } from 'lucide-react'
 import { getTenantClient } from '@/lib/supabase/tenant'
 import { revalidatePath } from 'next/cache'
 import { Switch } from '@/components/ui/Switch'
+import { SaveButton } from '@/components/ui/SaveButton'
+import { DocumentSelector } from '@/components/ui/DocumentSelector'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 
@@ -181,21 +183,10 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
 
                             <div className="pt-2">
                                 <h3 className="text-sm font-medium text-gray-700 mb-3">Documentos Disponibles</h3>
-                                <div className="border border-gray-200 rounded-lg max-h-60 overflow-y-auto divide-y divide-gray-100">
-                                    {allDocs.map((doc: any) => (
-                                        <label key={doc.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                name="doc_ids"
-                                                value={doc.id}
-                                                defaultChecked={agent.linkedDocIds.has(doc.id)}
-                                                className="w-4 h-4 text-adhoc-violet rounded border-gray-300 focus:ring-adhoc-violet"
-                                            />
-                                            <span className="text-sm text-gray-700 truncate">{(doc.metadata as any)?.filename || doc.id}</span>
-                                        </label>
-                                    ))}
-                                    {allDocs.length === 0 && <div className="p-4 text-center text-sm text-gray-400">No hay documentos cargados.</div>}
-                                </div>
+                                <DocumentSelector 
+                                    documents={allDocs} 
+                                    selectedIds={agent.linkedDocIds}
+                                />
                             </div>
                         </div>
                     </div>
@@ -223,10 +214,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                     </div>
 
                     <div className="flex justify-end pt-4 pb-20">
-                        <button type="submit" className="flex items-center gap-2 bg-adhoc-violet hover:bg-adhoc-violet/90 text-white font-medium px-8 py-3 rounded-lg transition-colors shadow-lg shadow-adhoc-violet/20">
-                            <Save className="w-5 h-5" />
-                            Guardar Cambios
-                        </button>
+                        <SaveButton />
                     </div>
 
                 </form>
