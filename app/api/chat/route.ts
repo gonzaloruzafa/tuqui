@@ -20,11 +20,22 @@ export async function POST(req: Request) {
         return new Response('Unauthorized', { status: 401 })
     }
 
-    const { agentSlug, messages, sessionId } = await req.json()
+    let body: any
+    try {
+        body = await req.json()
+    } catch (e) {
+        console.error('Failed to parse request body:', e)
+        return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
+    }
+
+    const { agentSlug, messages, sessionId } = body
     const tenantId = session.tenant.id
+
+    console.log('[Chat] Request:', { agentSlug, sessionId, messagesCount: messages?.length })
 
     // Validate messages
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        console.error('[Chat] Invalid messages:', messages)
         return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 })
     }
 
@@ -54,6 +65,8 @@ export async function POST(req: Request) {
 
         // 4. Tools
         const tools = await getToolsForAgent(tenantId, agent.tools || [])
+
+        console.log('[Chat] About to call streamText with messages:', JSON.stringify(messages))
 
         // 5. Generate Stream
         const result = streamText({

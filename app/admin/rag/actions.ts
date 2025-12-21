@@ -8,24 +8,23 @@ import { generateEmbeddings } from '@/lib/rag/embeddings'
 
 // Simple PDF text extraction without canvas dependencies
 async function extractPdfText(buffer: Buffer): Promise<string> {
-    // Use pdf-parse with render option disabled to avoid canvas
-    const pdfParse = (await import('pdf-parse')).default
-    
-    // Custom page render to avoid canvas issues
-    const options = {
-        // Return raw text without rendering
-        pagerender: function(pageData: any) {
-            return pageData.getTextContent().then(function(textContent: any) {
-                let text = ''
-                for (const item of textContent.items) {
-                    text += (item as any).str + ' '
-                }
-                return text
-            })
-        }
-    }
-    
     try {
+        // Use require for pdf-parse to avoid ESM issues
+        const pdfParse = require('pdf-parse')
+        
+        // Custom page render to avoid canvas issues
+        const options = {
+            pagerender: function(pageData: any) {
+                return pageData.getTextContent().then(function(textContent: any) {
+                    let text = ''
+                    for (const item of textContent.items) {
+                        text += (item as any).str + ' '
+                    }
+                    return text
+                })
+            }
+        }
+        
         const data = await pdfParse(buffer, options)
         return data.text
     } catch (e) {
@@ -34,7 +33,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
         const text = buffer.toString('utf-8')
         // Extract readable text between stream markers
         const matches = text.match(/\(([^)]+)\)/g)
-        if (matches) {
+        if (matches && matches.length > 10) {
             return matches.map(m => m.slice(1, -1)).join(' ')
         }
         throw new Error('Could not extract text from PDF')
@@ -74,12 +73,11 @@ export async function uploadDocument(formData: FormData) {
 
     const db = await getTenantClient(session.tenant.id)
 
-    // 2. Insert document (as global - no agent_id)
+    // 2. Insert document (no agent_id = available to all agents)
     const { data: doc, error: docError } = await db.from('documents').insert({
         title: file.name,
         content: content,
         source_type: 'upload',
-        is_global: true,
         metadata: { 
             filename: file.name, 
             type: file.type, 
