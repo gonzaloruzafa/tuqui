@@ -28,12 +28,10 @@ export const authConfig = {
             if (session.user?.email) {
                 // Fetch tenant info
                 const { getTenantForUser, isUserAdmin } = await import("@/lib/supabase/tenant")
-                const tenants = await getTenantForUser(session.user.email)
+                const tenant = await getTenantForUser(session.user.email)
 
-                // Strategy: For now, pick the first tenant. 
-                // In future, we might let user switch tenants if they belong to multiple.
-                if (tenants && tenants.length > 0) {
-                    session.tenant = tenants[0]
+                if (tenant) {
+                    session.tenant = tenant
                     session.isAdmin = await isUserAdmin(session.user.email)
                 }
             }

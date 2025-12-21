@@ -3,9 +3,13 @@ import { getAgentBySlug } from '@/lib/agents/service'
 import { searchDocuments } from '@/lib/rag/search'
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText, convertToCoreMessages } from 'ai'
 import { z } from 'zod'
+
+const google = createGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY
+})
 
 export const maxDuration = 60 // Allow longer timeout for tools
 
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
 
         // 5. Generate Stream
         const result = streamText({
-            model: google('gemini-2.5-flash'),
+            model: google('gemini-2.0-flash'),
             system: systemSystem,
             messages: convertToCoreMessages(messages),
             tools,
@@ -56,7 +60,7 @@ export async function POST(req: Request) {
                 try {
                     const { usage } = event
                     if (usage) {
-                        await trackUsage(tenantId, session.user.email, usage.totalTokens)
+                        await trackUsage(tenantId, session.user.email!, usage.totalTokens || 0)
                     }
                 } catch (e) {
                     console.error('Failed to track usage', e)
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
             }
         })
 
-        return result.toDataStreamResponse()
+        return (result as any).toDataStreamResponse()
 
     } catch (error: any) {
         console.error('Chat error:', error)

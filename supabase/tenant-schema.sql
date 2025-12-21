@@ -69,6 +69,7 @@ create table if not exists document_chunks (
 create index on document_chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100);
 
 -- Buscador RAG
+-- Buscador RAG (Actualizado con Logic Strict)
 create or replace function match_documents(
   query_embedding vector(768),
   match_agent_id uuid,
@@ -80,18 +81,77 @@ returns table (
   content text,
   similarity float
 )
-language sql stable
+language plpgsql
 as $$
+declare
+  v_strict boolean;
+begin
+  -- Check if agent is set to strict mode
+  select rag_strict into v_strict from agents where id = match_agent_id;
+
+  return query
   select
     document_chunks.id,
     document_chunks.content,
     1 - (document_chunks.embedding <=> query_embedding) as similarity
   from document_chunks
-  where document_chunks.agent_id = match_agent_id
-    and 1 - (document_chunks.embedding <=> query_embedding) > match_threshold
+  join documents on documents.id = document_chunks.document_id
+  where 1 - (document_chunks.embedding <=> query_embedding) > match_threshold
+  and (
+    -- If strict is FALSE (default), usually we search everything? 
+    -- User said "option to consult only inside that source". 
+    -- Implies usually it searches broadly? Or usually it searches "Assigned + Shared"?
+    -- Let's assume Global search if not strict.
+    (v_strict is not true)
+    OR
+    (
+        v_strict = true AND (
+            documents.agent_id = match_agent_id
+            OR
+            exists (select 1 from agent_documents where agent_id = match_agent_id and document_id = documents.id)
+        )
+    )
+  )
   order by document_chunks.embedding <=> query_embedding
   limit match_count;
+end;
 $$;
+
+
+-- ===========================================
+-- NEW TABLES FOR CONFIGURATION
+-- ===========================================
+
+-- Company Settings
+create table if not exists company_info (
+    id uuid default gen_random_uuid() primary key,
+    name text,
+    industry text,
+    description text,
+    tone_of_voice text,
+    website text,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Agent Documents Link
+create table if not exists agent_documents (
+    agent_id uuid references agents(id) on delete cascade,
+    document_id uuid references documents(id) on delete cascade,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    primary key (agent_id, document_id)
+);
+
+-- Agent Extensions
+alter table agents add column if not exists rag_strict boolean default false;
+alter table agents add column if not exists tools text[] default '{}';
+
+-- Enable RLS
+alter table company_info enable row level security;
+create policy "Enable access for tenant" on company_info for all using (true) with check (true);
+
+alter table agent_documents enable row level security;
+create policy "Enable access for tenant" on agent_documents for all using (true) with check (true);
 
 
 -- ===========================================

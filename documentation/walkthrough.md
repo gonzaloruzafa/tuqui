@@ -14,10 +14,19 @@ Se ha completado la implementación de "Tuqui Agents Alpha", una plataforma mult
     *   **Odoo**: Cliente JSON-RPC multi-tenant.
     *   **MercadoLibre**: Scraping tools (Search, Prices, Details).
     *   **Executor**: Sistema centralizado de ejecución de tools.
-6.  **Billing**: Límites de uso por usuario y tracking de tokens.
-7.  **Prometeo**: Runner para notificaciones push programadas.
-8.  **WhatsApp**: Webhook de Twilio para interacción vía chat.
-9.  **Frontend**: Dashboard y Chat UI replicados y modernizados.
+6.  **Panel de Administración (/admin)**:
+    *   **Dashboard Central**: Acceso rápido a todos los módulos.
+    *   **Gestión de Usuarios**: Invitar y eliminar miembros del equipo.
+    *   **Editor de Agentes**: Configuración avanzada de Prompt de Sistema, activación de RAG (con modo estricto), selección de documentos específicos y habilitación de Tools.
+    *   **Configuración de Empresa**: Definición de identidad, industria y tono de voz (global para agentes).
+    *   **Integraciones (Tools)**: Habilitar/Deshabilitar conectores (Odoo, MercadoLibre, WhatsApp).
+    *   **Base de Conocimiento (RAG)**: Gestión de documentos indexados.
+7.  **Billing y Uso**:
+    *   **Límites de Uso**: Control de tokens por usuario/tenant.
+    *   **Tracking de Tokens**: Monitoreo del consumo de tokens.
+8.  **Prometeo**: Runner para notificaciones push programadas.
+9.  **WhatsApp**: Webhook de Twilio para interacción vía chat.
+10. **Frontend**: Dashboard y Chat UI replicados y modernizados.
 
 ## Verificación Manual
 

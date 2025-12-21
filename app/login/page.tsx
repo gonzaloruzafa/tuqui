@@ -6,9 +6,9 @@ export default function LoginPage() {
             <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
                 <div className="text-center">
                     <img
-                        src="/adhoc-logo.png"
+                        src="/adhoc-logo.svg"
                         alt="Adhoc"
-                        className="h-12 mx-auto mb-6"
+                        className="h-12 w-auto mx-auto mb-6 object-contain"
                     />
                     <h2 className="mt-6 text-3xl font-bold text-gray-900">
                         Tuqui Agents
@@ -29,7 +29,7 @@ export default function LoginPage() {
                             type="submit"
                             className="w-full flex justify-center items-center gap-3 px-4 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-adhoc-violet transition-all"
                         >
-                            <svg className="h-5 w-5" viewBox="0 0 24 24">
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" width="20" height="20">
                                 <path
                                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                                     fill="#4285F4"

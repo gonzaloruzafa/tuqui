@@ -7,6 +7,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
     title: 'Tuqui Agents Alpha',
     description: 'AI Agents Platform',
+    icons: {
+        icon: '/favicon.png',
+        shortcut: '/favicon.png',
+        apple: '/favicon.png',
+    },
 }
 
 export default function RootLayout({
@@ -16,7 +21,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="es">
-            <body className={inter.className}>{children}</body>
+            <body className={inter.className} suppressHydrationWarning>{children}</body>
         </html>
     )
 }
