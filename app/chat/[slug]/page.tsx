@@ -39,7 +39,7 @@ export default function ChatPage() {
     const agentSlug = params.slug as string
     const sessionIdParam = searchParams.get('session')
 
-    const [agent, setAgent] = useState<any>(null)
+    const [agent, setAgent] = useState<any>(undefined) // undefined = loading, null = not found
     const [messages, setMessages] = useState<any[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -52,9 +52,15 @@ export default function ChatPage() {
     // Load Agent
     useEffect(() => {
         fetch(`/api/agents?slug=${agentSlug}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Agent not found')
+                return res.json()
+            })
             .then(data => setAgent(data))
-            .catch(err => console.error(err))
+            .catch(err => {
+                console.error(err)
+                setAgent(null)
+            })
     }, [agentSlug])
 
     // Load Sessions
@@ -167,6 +173,34 @@ export default function ChatPage() {
     }
 
     if (!agent) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-adhoc-violet" /></div>
+
+    // Loading state
+    if (agent === undefined) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-adhoc-violet" />
+                    <span className="text-gray-500">Cargando agente...</span>
+                </div>
+            </div>
+        )
+    }
+
+    // Agent not found
+    if (agent === null) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-4 text-center">
+                    <Bot className="w-16 h-16 text-gray-300" />
+                    <h2 className="text-xl font-medium text-gray-700">Agente no encontrado</h2>
+                    <p className="text-gray-500">El agente "{agentSlug}" no existe o no está disponible.</p>
+                    <Link href="/" className="mt-4 px-4 py-2 bg-adhoc-violet text-white rounded-lg hover:bg-adhoc-violet/90 transition-colors">
+                        Volver al inicio
+                    </Link>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="h-screen flex bg-white overflow-hidden relative font-sans">

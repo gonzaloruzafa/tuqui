@@ -1,12 +1,18 @@
 import { getOdooClient } from './odoo/client'
 import { meliTools } from './mercadolibre/tools'
+import { tavilySearchTool } from './tavily'
 import { tool } from 'ai'
 import { z } from 'zod'
 
 export async function getToolsForAgent(tenantId: string, agentTools: string[]) {
     const tools: Record<string, any> = {}
 
-    // 1. Odoo Tools
+    // 1. Tavily Web Search
+    if (agentTools.includes('web_search') || agentTools.includes('tavily')) {
+        tools.web_search = tavilySearchTool
+    }
+
+    // 2. Odoo Tools
     if (agentTools.some(t => t.startsWith('odoo_'))) {
         try {
             const odoo = await getOdooClient(tenantId)

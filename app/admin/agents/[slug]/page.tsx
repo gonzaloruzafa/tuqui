@@ -17,7 +17,11 @@ async function getAgentDetails(tenantId: string, slug: string) {
     const { data: linkedDocs } = await db.from('agent_documents').select('document_id').eq('agent_id', agent.id)
     const linkedDocIds = new Set(linkedDocs?.map((d: any) => d.document_id) || [])
 
-    return { ...agent, linkedDocIds }
+    // Get tools from agent_tools table
+    const { data: agentTools } = await db.from('agent_tools').select('tool_slug').eq('agent_id', agent.id).eq('enabled', true)
+    const tools = agentTools?.map((t: any) => t.tool_slug) || []
+
+    return { ...agent, linkedDocIds, tools }
 }
 
 async function getAllDocs(tenantId: string) {
@@ -32,10 +36,9 @@ async function updateAgent(formData: FormData) {
     const name = formData.get('name') as string
     const systemPrompt = formData.get('system_prompt') as string
     const ragEnabled = formData.get('rag_enabled') === 'on'
-    const ragStrict = formData.get('rag_strict') === 'on'
     const isActive = formData.get('is_active') === 'on'
 
-    // Tools handling (multi-value) -> Next.js formData.getAll needed but server action argument is FormData
+    // Tools handling (multi-value)
     const tools = formData.getAll('tools') as string[]
 
     // Docs handling
@@ -50,15 +53,28 @@ async function updateAgent(formData: FormData) {
     const { data: agent } = await db.from('agents').select('id').eq('slug', slug).single()
     if (!agent) return
 
-    // Update Agent Main Fields
+    // Update Agent Main Fields (without tools column - use agent_tools table)
     await db.from('agents').update({
         name: name,
         system_prompt: systemPrompt,
         rag_enabled: ragEnabled,
-        rag_strict: ragStrict,
-        is_active: isActive,
-        tools: tools
+        is_active: isActive
     }).eq('id', agent.id)
+
+    // Update Agent Tools (Resync)
+    // 1. Delete all current tools
+    await db.from('agent_tools').delete().eq('agent_id', agent.id)
+
+    // 2. Insert new ones
+    if (tools.length > 0) {
+        await db.from('agent_tools').insert(
+            tools.map(toolSlug => ({
+                agent_id: agent.id,
+                tool_slug: toolSlug,
+                enabled: true
+            }))
+        )
+    }
 
     // Update Document Links (Resync)
     // 1. Delete all current links
@@ -92,7 +108,13 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
     const allDocs = await getAllDocs(session.tenant!.id)
 
     // Tools hardcoded for alpha available choices
-    const AVAILABLE_TOOLS = ['odoo', 'mercadolibre']
+    const AVAILABLE_TOOLS = [
+        { slug: 'web_search', label: 'Búsqueda Web (Tavily)' },
+        { slug: 'odoo_search', label: 'Odoo - Búsqueda' },
+        { slug: 'odoo_analyze', label: 'Odoo - Análisis' },
+        { slug: 'meli_search', label: 'MercadoLibre - Búsqueda' },
+        { slug: 'meli_price_analysis', label: 'MercadoLibre - Análisis de Precios' }
+    ]
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
@@ -157,7 +179,6 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                         <div className="p-6 space-y-6">
                             <div className="flex gap-8">
                                 <Switch name="rag_enabled" defaultChecked={agent.rag_enabled} label="Habilitar RAG" />
-                                <Switch name="rag_strict" defaultChecked={agent.rag_strict} label="Modo Estricto (Solo Docs)" />
                             </div>
 
                             <div className="pt-2">
@@ -190,12 +211,12 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                         <div className="p-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {AVAILABLE_TOOLS.map(tool => (
-                                    <div key={tool} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div key={tool.slug} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
                                         <Switch
                                             name="tools"
-                                            value={tool}
-                                            defaultChecked={agent.tools?.includes(tool)}
-                                            label={tool.charAt(0).toUpperCase() + tool.slice(1)}
+                                            value={tool.slug}
+                                            defaultChecked={agent.tools?.includes(tool.slug)}
+                                            label={tool.label}
                                         />
                                     </div>
                                 ))}

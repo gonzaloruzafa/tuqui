@@ -1,9 +1,15 @@
 import puppeteer from 'puppeteer-extra'
-import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import type { Browser, Page } from 'puppeteer'
 import { MELI_SITES } from './schema'
 
-puppeteer.use(StealthPlugin())
+// StealthPlugin has compatibility issues in this environment
+// Using vanilla puppeteer-extra for now
+try {
+    const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+    puppeteer.use(StealthPlugin())
+} catch (e) {
+    console.warn('[MeliBrowser] StealthPlugin not available, using vanilla puppeteer')
+}
 
 export interface ProductResult {
     title: string
