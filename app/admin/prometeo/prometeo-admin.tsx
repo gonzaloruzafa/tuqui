@@ -2,21 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Clock, 
-  Play, 
-  Pause, 
-  Trash2, 
-  Plus, 
-  RefreshCw,
-  Bell,
-  Calendar,
-  Bot,
-  Mail,
-  AlertCircle,
-  AlertTriangle,
-  Info,
-  Zap,
-  Eye
+  Clock, Play, Pause, Trash2, Plus, RefreshCw, Bell, Calendar, Bot, Mail,
+  AlertCircle, AlertTriangle, Info, Zap, Eye, X
 } from 'lucide-react';
 
 type TaskType = 'scheduled' | 'conditional';
@@ -61,17 +48,15 @@ export default function PrometeoAdmin({ tenantId }: Props) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
     try {
-      const tasksRes = await fetch('/api/prometeo/tasks');
-      if (!tasksRes.ok) {
-        const err = await tasksRes.json();
-        throw new Error(err.error || 'Error al cargar tareas');
+      const [tasksRes, agentsRes] = await Promise.all([
+        fetch('/api/prometeo/tasks'),
+        fetch('/api/agents')
+      ]);
+      if (tasksRes.ok) {
+        const tasksData = await tasksRes.json();
+        setTasks(tasksData.tasks || []);
       }
-      const tasksData = await tasksRes.json();
-      setTasks(tasksData.tasks || []);
-
-      const agentsRes = await fetch('/api/agents');
       if (agentsRes.ok) {
         const agentsData = await agentsRes.json();
         setAgents(agentsData || []);
@@ -83,131 +68,99 @@ export default function PrometeoAdmin({ tenantId }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const toggleTask = async (taskId: string, isActive: boolean) => {
     try {
-      const res = await fetch(`/api/prometeo/tasks/${taskId}`, {
+      await fetch(`/api/prometeo/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !isActive }),
       });
-      
-      if (!res.ok) throw new Error('Error al actualizar tarea');
-      
-      setTasks(tasks.map(t => 
-        t.id === taskId ? { ...t, is_active: !isActive } : t
-      ));
+      setTasks(tasks.map(t => t.id === taskId ? { ...t, is_active: !isActive } : t));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+      console.error('Error toggling task:', err);
     }
   };
 
   const deleteTask = async (taskId: string) => {
     if (!confirm('¿Eliminar esta tarea?')) return;
-    
     try {
-      const res = await fetch(`/api/prometeo/tasks/${taskId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!res.ok) throw new Error('Error al eliminar tarea');
-      
+      await fetch(`/api/prometeo/tasks/${taskId}`, { method: 'DELETE' });
       setTasks(tasks.filter(t => t.id !== taskId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+      console.error('Error deleting task:', err);
     }
   };
 
   const runTaskNow = async (taskId: string) => {
     try {
-      const res = await fetch(`/api/prometeo/tasks/${taskId}/run`, {
-        method: 'POST',
-      });
-      
-      if (!res.ok) throw new Error('Error al ejecutar tarea');
-      
-      const result = await res.json();
-      alert(`Tarea ejecutada: ${result.message || 'OK'}`);
-      fetchData();
+      const res = await fetch(`/api/prometeo/tasks/${taskId}/run`, { method: 'POST' });
+      if (res.ok) {
+        alert('Tarea ejecutada. Revisa las notificaciones.');
+        fetchData();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+      console.error('Error running task:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 animate-spin text-purple-600" />
       </div>
     );
   }
 
   return (
-    <div className="text-gray-100">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Clock className="w-8 h-8 text-purple-500" />
-              <div>
-                <h1 className="text-2xl font-bold">Prometeo</h1>
-                <p className="text-sm text-gray-400">Tareas Programadas y Alertas</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={fetchData}
-                className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700"
-                title="Refrescar"
-              >
-                <RefreshCw className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Nueva Tarea
-              </button>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Prometeo</h1>
+          <p className="text-gray-500 mt-1">Tareas programadas y alertas condicionales</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={fetchData}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Actualizar"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nueva Tarea
+          </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500" />
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300">
-              ×
-            </button>
-          </div>
-        )}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
 
+      {/* Tasks List */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {tasks.length === 0 ? (
-          <div className="text-center py-16">
-            <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-400 mb-2">
-              No hay tareas configuradas
-            </h2>
-            <p className="text-gray-500 mb-6">
-              Crea tareas programadas o alertas condicionales
-            </p>
+          <div className="p-12 text-center">
+            <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay tareas configuradas</h3>
+            <p className="text-gray-500 mb-4">Crea tareas programadas o alertas condicionales</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
               Crear Primera Tarea
             </button>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="divide-y divide-gray-100">
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -221,155 +174,117 @@ export default function PrometeoAdmin({ tenantId }: Props) {
         )}
       </div>
 
-      {/* Create Modal */}
       {showCreateModal && (
         <CreateTaskModal
           agents={agents}
           onClose={() => setShowCreateModal(false)}
-          onCreated={() => {
-            setShowCreateModal(false);
-            fetchData();
-          }}
+          onCreated={() => { setShowCreateModal(false); fetchData(); }}
         />
       )}
     </div>
   );
 }
 
-function TaskCard({ 
-  task, 
-  onToggle, 
-  onDelete, 
-  onRunNow 
-}: { 
-  task: PrometeoTask;
-  onToggle: () => void;
-  onDelete: () => void;
-  onRunNow: () => void;
+function TaskCard({ task, onToggle, onDelete, onRunNow }: { 
+  task: PrometeoTask; onToggle: () => void; onDelete: () => void; onRunNow: () => void;
 }) {
   const isConditional = task.task_type === 'conditional';
   
   const priorityStyles = {
-    info: { color: 'text-blue-400', bg: 'bg-blue-900/30', border: 'border-blue-600' },
-    warning: { color: 'text-yellow-400', bg: 'bg-yellow-900/30', border: 'border-yellow-600' },
-    critical: { color: 'text-red-400', bg: 'bg-red-900/30', border: 'border-red-600' },
+    info: { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+    warning: { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+    critical: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
   };
   
   const PriorityIcon = task.priority === 'critical' ? AlertCircle 
-    : task.priority === 'warning' ? AlertTriangle 
-    : Info;
+    : task.priority === 'warning' ? AlertTriangle : Info;
   
   const styles = priorityStyles[task.priority || 'info'];
 
   return (
-    <div className={`p-5 rounded-lg border-l-4 ${styles.border} ${
-      task.is_active 
-        ? 'bg-gray-800 border border-gray-700' 
-        : 'bg-gray-800/50 border border-gray-700/50 opacity-60'
-    }`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <Bot className="w-5 h-5 text-purple-400" />
-            <h3 className="font-semibold">{task.agent_name || 'Agente'}</h3>
+    <div className={`p-5 ${!task.is_active ? 'opacity-60' : ''}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {/* Header */}
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <Bot className="w-5 h-5 text-purple-600" />
+            <span className="font-semibold text-gray-900">{task.agent_name || 'Agente'}</span>
             
-            {/* Task Type Badge */}
             <span className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
-              isConditional 
-                ? 'bg-orange-900/50 text-orange-400' 
-                : 'bg-purple-900/50 text-purple-400'
+              isConditional ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'
             }`}>
               {isConditional ? <Zap className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
               {isConditional ? 'Condicional' : 'Programada'}
             </span>
             
-            {/* Priority Badge */}
             <span className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${styles.bg} ${styles.color}`}>
               <PriorityIcon className="w-3 h-3" />
               {task.priority === 'critical' ? 'Crítica' : task.priority === 'warning' ? 'Advertencia' : 'Info'}
             </span>
             
-            {/* Status Badge */}
             <span className={`px-2 py-0.5 rounded text-xs ${
-              task.is_active 
-                ? 'bg-green-900/50 text-green-400' 
-                : 'bg-gray-700 text-gray-400'
+              task.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
             }`}>
               {task.is_active ? 'Activa' : 'Pausada'}
             </span>
           </div>
-          
-          {/* Condition (for conditional tasks) */}
+
+          {/* Content */}
           {isConditional && task.condition && (
-            <div className="mb-2 p-2 bg-orange-900/20 border border-orange-800/50 rounded text-sm">
-              <span className="text-orange-400 font-medium">Condición:</span>
-              <span className="text-gray-300 ml-2">{task.condition}</span>
+            <div className="mb-2 p-2 bg-orange-50 border border-orange-100 rounded-lg">
+              <p className="text-sm text-orange-800">
+                <strong>Condición:</strong> {task.condition}
+              </p>
             </div>
           )}
           
-          <p className="text-gray-300 mb-3">{task.prompt}</p>
+          <p className="text-sm text-gray-600 mb-2 line-clamp-2">{task.prompt}</p>
           
-          <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              <span>{isConditional ? `Verifica: ${task.check_interval || '*/15 * * * *'}` : task.schedule}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>Próxima: {new Date(task.next_run).toLocaleString()}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {task.notification_type === 'in_app' ? (
-                <Eye className="w-4 h-4" />
-              ) : task.notification_type === 'push' || task.notification_type === 'all' ? (
-                <Bell className="w-4 h-4" />
-              ) : (
-                <Mail className="w-4 h-4" />
-              )}
-              <span>{task.recipients.length} destinatarios</span>
-            </div>
+          <div className="flex items-center gap-4 text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {isConditional 
+                ? `Verificar: ${task.check_interval || '*/15 * * * *'}`
+                : `Cron: ${task.schedule}`
+              }
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Próx: {new Date(task.next_run).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+            </span>
+            <span className="flex items-center gap-1">
+              <Mail className="w-3 h-3" />
+              {task.recipients?.length || 0} destinatarios
+            </span>
           </div>
-          
-          {task.last_run && (
-            <p className="mt-2 text-xs text-gray-500">
-              Última ejecución: {new Date(task.last_run).toLocaleString()}
-              {task.last_result && (
-                <span className={`ml-2 ${
-                  task.last_result === 'success' ? 'text-green-500' : 
-                  task.last_result === 'skipped' ? 'text-yellow-500' : 'text-red-500'
-                }`}>
-                  ({task.last_result})
-                </span>
-              )}
-            </p>
-          )}
         </div>
-        
-        <div className="flex items-center gap-2 ml-4">
+
+        {/* Actions */}
+        <div className="flex items-center gap-1">
           <button
             onClick={onRunNow}
-            className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 rounded"
+            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
             title="Ejecutar ahora"
           >
-            <Play className="w-5 h-5" />
+            <Play className="w-4 h-4" />
           </button>
           <button
             onClick={onToggle}
-            className={`p-2 rounded ${
+            className={`p-2 rounded-lg transition-colors ${
               task.is_active 
-                ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/30' 
-                : 'text-green-400 hover:text-green-300 hover:bg-green-900/30'
+                ? 'text-gray-400 hover:text-amber-600 hover:bg-amber-50' 
+                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
             }`}
             title={task.is_active ? 'Pausar' : 'Activar'}
           >
-            {task.is_active ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            {task.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           <button
             onClick={onDelete}
-            className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded"
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             title="Eliminar"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -377,259 +292,203 @@ function TaskCard({
   );
 }
 
-function CreateTaskModal({ 
-  agents, 
-  onClose, 
-  onCreated 
-}: { 
-  agents: Agent[];
-  onClose: () => void;
-  onCreated: () => void;
+function CreateTaskModal({ agents, onClose, onCreated }: {
+  agents: Agent[]; onClose: () => void; onCreated: () => void;
 }) {
-  const [formData, setFormData] = useState({
-    agent_id: '',
-    task_type: 'scheduled' as TaskType,
-    prompt: '',
-    condition: '',
-    schedule: '0 9 * * *',
-    check_interval: '*/15 * * * *',
-    priority: 'info' as Priority,
-    notification_type: 'in_app' as NotificationType,
-    recipients: '',
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const schedulePresets = [
-    { label: 'Cada hora', value: '0 * * * *' },
-    { label: 'Diario 9am', value: '0 9 * * *' },
-    { label: 'Diario 6pm', value: '0 18 * * *' },
-    { label: 'Lun-Vie 9am', value: '0 9 * * 1-5' },
-    { label: 'Lunes 9am', value: '0 9 * * 1' },
-  ];
-
-  const checkIntervalPresets = [
-    { label: 'Cada 15 min', value: '*/15 * * * *' },
-    { label: 'Cada hora', value: '0 * * * *' },
-    { label: 'Cada 4 horas', value: '0 */4 * * *' },
-    { label: 'Una vez al día', value: '0 9 * * *' },
-  ];
+  const [taskType, setTaskType] = useState<TaskType>('scheduled');
+  const [agentId, setAgentId] = useState('');
+  const [prompt, setPrompt] = useState('');
+  const [schedule, setSchedule] = useState('0 9 * * 1-5');
+  const [condition, setCondition] = useState('');
+  const [checkInterval, setCheckInterval] = useState('*/15 * * * *');
+  const [priority, setPriority] = useState<Priority>('info');
+  const [notificationType, setNotificationType] = useState<NotificationType>('in_app');
+  const [recipients, setRecipients] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setError(null);
+    setError('');
+    setSubmitting(true);
 
     try {
-      const payload: any = {
-        agent_id: formData.agent_id,
-        task_type: formData.task_type,
-        prompt: formData.prompt,
-        priority: formData.priority,
-        notification_type: formData.notification_type,
-        recipients: formData.recipients.split(',').map(r => r.trim()).filter(Boolean),
-      };
-
-      if (formData.task_type === 'scheduled') {
-        payload.schedule = formData.schedule;
-      } else {
-        payload.condition = formData.condition;
-        payload.check_interval = formData.check_interval;
-        payload.schedule = formData.check_interval; // Use check_interval as schedule for next_run calc
-      }
-
       const res = await fetch('/api/prometeo/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          agent_id: agentId,
+          prompt,
+          task_type: taskType,
+          schedule: taskType === 'scheduled' ? schedule : null,
+          condition: taskType === 'conditional' ? condition : null,
+          check_interval: taskType === 'conditional' ? checkInterval : null,
+          priority,
+          notification_type: notificationType,
+          recipients: recipients.split(',').map(r => r.trim()).filter(Boolean),
+        }),
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Error al crear tarea');
+        const data = await res.json();
+        throw new Error(data.error || 'Error al crear tarea');
       }
 
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold">Nueva Tarea</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      
+      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Nueva Tarea Prometeo</h2>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {error && (
-            <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-300 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
             </div>
           )}
 
-          {/* Agent Selection */}
+          {/* Agent */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Agente
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Agente</label>
             <select
-              value={formData.agent_id}
-              onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               required
             >
               <option value="">Seleccionar agente...</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name}
-                </option>
+              {agents.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </select>
           </div>
 
           {/* Task Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Tipo de Tarea
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Tarea</label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, task_type: 'scheduled' })}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  formData.task_type === 'scheduled'
-                    ? 'border-purple-500 bg-purple-900/30'
-                    : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                onClick={() => setTaskType('scheduled')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  taskType === 'scheduled'
+                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="w-4 h-4 text-purple-400" />
-                  <span className="font-medium">Programada</span>
-                </div>
-                <p className="text-xs text-gray-400">
-                  Se ejecuta en horarios fijos
-                </p>
+                <Clock className="w-5 h-5 mb-1" />
+                <div className="font-medium">Programada</div>
+                <div className="text-xs text-gray-500">Se ejecuta en horarios fijos</div>
               </button>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, task_type: 'conditional' })}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  formData.task_type === 'conditional'
-                    ? 'border-orange-500 bg-orange-900/30'
-                    : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                onClick={() => setTaskType('conditional')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  taskType === 'conditional'
+                    ? 'border-orange-500 bg-orange-50 text-orange-700'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <Zap className="w-4 h-4 text-orange-400" />
-                  <span className="font-medium">Condicional</span>
-                </div>
-                <p className="text-xs text-gray-400">
-                  Alerta si se cumple condición
-                </p>
+                <Zap className="w-5 h-5 mb-1" />
+                <div className="font-medium">Condicional</div>
+                <div className="text-xs text-gray-500">Alerta si se cumple condición</div>
               </button>
             </div>
           </div>
 
-          {/* Conditional: Condition */}
-          {formData.task_type === 'conditional' && (
+          {/* Scheduled: Cron */}
+          {taskType === 'scheduled' && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Condición (en lenguaje natural)
-              </label>
-              <textarea
-                value={formData.condition}
-                onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                rows={2}
-                placeholder="Ej: Las ventas del día son menores a $100.000"
-                required={formData.task_type === 'conditional'}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Horario (Cron)</label>
+              <input
+                type="text"
+                value={schedule}
+                onChange={(e) => setSchedule(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                placeholder="0 9 * * 1-5"
+                required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                El agente evaluará esta condición y solo notificará si se cumple
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Ej: 0 9 * * 1-5 = Lunes a viernes a las 9am</p>
             </div>
+          )}
+
+          {/* Conditional: Condition */}
+          {taskType === 'conditional' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Condición (lenguaje natural)</label>
+                <textarea
+                  value={condition}
+                  onChange={(e) => setCondition(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  rows={2}
+                  placeholder="Las ventas del día son menores a $100.000"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">El agente evaluará esta condición y solo notificará si se cumple</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Verificar cada</label>
+                <select
+                  value={checkInterval}
+                  onChange={(e) => setCheckInterval(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="*/15 * * * *">Cada 15 minutos</option>
+                  <option value="0 * * * *">Cada hora</option>
+                  <option value="0 */4 * * *">Cada 4 horas</option>
+                  <option value="0 9 * * *">Una vez al día (9am)</option>
+                </select>
+              </div>
+            </>
           )}
 
           {/* Prompt */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              {formData.task_type === 'conditional' ? 'Contexto adicional' : 'Prompt / Instrucción'}
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contexto / Instrucciones</label>
             <textarea
-              value={formData.prompt}
-              onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              rows={2}
-              placeholder={formData.task_type === 'conditional' 
-                ? 'Ej: Consultar ventas desde Odoo del día de hoy'
-                : 'Ej: Genera un resumen de ventas del día anterior'}
-              required
-            />
-          </div>
-
-          {/* Schedule / Check Interval */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              {formData.task_type === 'conditional' ? 'Verificar cada' : 'Programación (Cron)'}
-            </label>
-            <div className="flex gap-2 mb-2 flex-wrap">
-              {(formData.task_type === 'conditional' ? checkIntervalPresets : schedulePresets).map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => setFormData({ 
-                    ...formData, 
-                    [formData.task_type === 'conditional' ? 'check_interval' : 'schedule']: preset.value 
-                  })}
-                  className={`px-2 py-1 text-xs rounded ${
-                    (formData.task_type === 'conditional' ? formData.check_interval : formData.schedule) === preset.value
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-            <input
-              type="text"
-              value={formData.task_type === 'conditional' ? formData.check_interval : formData.schedule}
-              onChange={(e) => setFormData({ 
-                ...formData, 
-                [formData.task_type === 'conditional' ? 'check_interval' : 'schedule']: e.target.value 
-              })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              rows={3}
+              placeholder="Genera un resumen de las ventas del día..."
               required
             />
           </div>
 
           {/* Priority */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Prioridad
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Prioridad</label>
             <div className="flex gap-2">
-              {[
-                { value: 'info', label: 'Info', icon: Info, color: 'blue' },
-                { value: 'warning', label: 'Advertencia', icon: AlertTriangle, color: 'yellow' },
-                { value: 'critical', label: 'Crítica', icon: AlertCircle, color: 'red' },
-              ].map((p) => (
+              {(['info', 'warning', 'critical'] as Priority[]).map(p => (
                 <button
-                  key={p.value}
+                  key={p}
                   type="button"
-                  onClick={() => setFormData({ ...formData, priority: p.value as Priority })}
-                  className={`flex-1 p-2 rounded-lg border-2 flex items-center justify-center gap-2 transition-all ${
-                    formData.priority === p.value
-                      ? `border-${p.color}-500 bg-${p.color}-900/30 text-${p.color}-400`
-                      : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
+                  onClick={() => setPriority(p)}
+                  className={`flex-1 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                    priority === p
+                      ? p === 'critical' ? 'border-red-500 bg-red-50 text-red-700'
+                        : p === 'warning' ? 'border-amber-500 bg-amber-50 text-amber-700'
+                        : 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
-                  <p.icon className="w-4 h-4" />
-                  <span className="text-sm">{p.label}</span>
+                  {p === 'critical' ? 'Crítica' : p === 'warning' ? 'Advertencia' : 'Info'}
                 </button>
               ))}
             </div>
@@ -637,28 +496,25 @@ function CreateTaskModal({
 
           {/* Notification Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Notificar por
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Notificar por</label>
             <div className="flex flex-wrap gap-2">
               {[
-                { value: 'in_app', label: 'In-App', icon: Eye },
-                { value: 'push', label: 'Push', icon: Bell },
-                { value: 'email', label: 'Email', icon: Mail },
-                { value: 'all', label: 'Todos', icon: Bell },
-              ].map((n) => (
+                { value: 'in_app', label: 'In-App' },
+                { value: 'push', label: 'Push' },
+                { value: 'email', label: 'Email' },
+                { value: 'all', label: 'Todos' },
+              ].map(opt => (
                 <button
-                  key={n.value}
+                  key={opt.value}
                   type="button"
-                  onClick={() => setFormData({ ...formData, notification_type: n.value as NotificationType })}
-                  className={`px-3 py-2 rounded-lg border flex items-center gap-2 transition-all ${
-                    formData.notification_type === n.value
-                      ? 'border-purple-500 bg-purple-900/30 text-purple-400'
-                      : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
+                  onClick={() => setNotificationType(opt.value as NotificationType)}
+                  className={`px-3 py-1.5 border rounded-lg text-sm transition-colors ${
+                    notificationType === opt.value
+                      ? 'border-purple-500 bg-purple-50 text-purple-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
-                  <n.icon className="w-4 h-4" />
-                  <span className="text-sm">{n.label}</span>
+                  {opt.label}
                 </button>
               ))}
             </div>
@@ -666,34 +522,33 @@ function CreateTaskModal({
 
           {/* Recipients */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Destinatarios (emails separados por coma)
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Destinatarios</label>
             <input
               type="text"
-              value={formData.recipients}
-              onChange={(e) => setFormData({ ...formData, recipients: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="user@example.com, otro@example.com"
+              value={recipients}
+              onChange={(e) => setRecipients(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="email1@example.com, email2@example.com"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">Separar emails con coma</p>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-300 hover:text-white"
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50"
+              disabled={submitting}
+              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {saving ? 'Creando...' : 'Crear Tarea'}
+              {submitting ? 'Creando...' : 'Crear Tarea'}
             </button>
           </div>
         </form>
