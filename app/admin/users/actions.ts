@@ -78,7 +78,7 @@ export async function updateUserRole(userId: string, isAdmin: boolean) {
     const db = getMasterClient()
     const { error } = await db
         .from('users')
-        .update({ is_admin: isAdmin, role: isAdmin ? 'admin' : 'user' })
+        .update({ is_admin: isAdmin })
         .eq('id', userId)
         .eq('tenant_id', session.tenant.id)
 
