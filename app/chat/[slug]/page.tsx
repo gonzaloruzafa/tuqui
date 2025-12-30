@@ -19,13 +19,14 @@ function wrapTablesInScrollContainer(html: string): string {
         .replace(/<\/table>/g, '</table></div>')
 }
 
-// Real-time Wave Visualizer for Voice Input
+// Real-time Scrolling Temporal Waveform for Voice Input
 const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const audioContextRef = useRef<AudioContext | null>(null)
     const analyserRef = useRef<AnalyserNode | null>(null)
     const dataArrayRef = useRef<Uint8Array | null>(null)
     const animationRef = useRef<number | null>(null)
+    const historyRef = useRef<number[]>(new Array(60).fill(0)) // Store last 60 volume levels
 
     useEffect(() => {
         if (!isRecording) {
@@ -41,7 +42,7 @@ const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
                 const analyser = audioContext.createAnalyser()
                 const source = audioContext.createMediaStreamSource(stream)
 
-                analyser.fftSize = 64
+                analyser.fftSize = 256
                 source.connect(analyser)
 
                 const bufferLength = analyser.frequencyBinCount
@@ -63,18 +64,38 @@ const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
                     animationRef.current = requestAnimationFrame(draw)
                     analyserRef.current.getByteFrequencyData(dataArrayRef.current as any)
 
+                    // Calculate average volume
+                    let sum = 0
+                    for (let i = 0; i < dataArrayRef.current.length; i++) {
+                        sum += dataArrayRef.current[i]
+                    }
+                    const average = sum / dataArrayRef.current.length
+
+                    // Update history (scroll effect)
+                    historyRef.current.shift()
+                    historyRef.current.push(average)
+
                     ctx.clearRect(0, 0, width, height)
 
-                    const barWidth = (width / bufferLength) * 2.5
-                    let x = 0
+                    const barWidth = 2
+                    const gap = 3
+                    const totalBarWidth = barWidth + gap
+                    const barsToDraw = historyRef.current.length
 
-                    for (let i = 0; i < bufferLength; i++) {
-                        const barHeight = (dataArrayRef.current[i] / 255) * height * 0.8
+                    ctx.fillStyle = '#a78bfa' // Subtle Light Violet
 
-                        ctx.fillStyle = '#7c3aed' // Adhoc Violet
-                        // Center vertically
-                        ctx.fillRect(x, (height - barHeight) / 2, barWidth - 1, barHeight)
-                        x += barWidth
+                    for (let i = 0; i < barsToDraw; i++) {
+                        // Calculate bar height based on history, with a minimum height for the 'silent' look
+                        const vol = historyRef.current[i]
+                        const barHeight = Math.max(2, (vol / 128) * height * 0.8)
+
+                        const x = i * totalBarWidth
+                        const y = (height - barHeight) / 2
+
+                        // Round corners for the bars
+                        ctx.beginPath()
+                        ctx.roundRect(x, y, barWidth, barHeight, 1)
+                        ctx.fill()
                     }
                 }
                 draw()
@@ -95,8 +116,8 @@ const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
         <canvas
             ref={canvasRef}
             width={300}
-            height={40}
-            className="w-full h-10 opacity-80"
+            height={32}
+            className="w-full h-8 opacity-90"
         />
     )
 }
@@ -155,6 +176,7 @@ export default function ChatPage() {
     const [isRecording, setIsRecording] = useState(false)
     const [recognition, setRecognition] = useState<any>(null)
     const [lastTranscript, setLastTranscript] = useState('')
+    const transcriptRef = useRef('')
 
     // Setup Speech Recognition
     useEffect(() => {
@@ -167,14 +189,12 @@ export default function ChatPage() {
                 rec.interimResults = true
 
                 rec.onresult = (event: any) => {
-                    let interim = ''
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            setLastTranscript(prev => prev + event.results[i][0].transcript)
-                        } else {
-                            interim += event.results[i][0].transcript
-                        }
+                    let totalTranscript = ''
+                    for (let i = 0; i < event.results.length; ++i) {
+                        totalTranscript += event.results[i][0].transcript
                     }
+                    setLastTranscript(totalTranscript)
+                    transcriptRef.current = totalTranscript
                 }
 
                 rec.onerror = (event: any) => {
@@ -194,6 +214,7 @@ export default function ChatPage() {
     const startRecording = () => {
         if (!recognition) return
         setLastTranscript('')
+        transcriptRef.current = ''
         recognition.start()
         setIsRecording(true)
     }
@@ -202,16 +223,22 @@ export default function ChatPage() {
         if (!recognition) return
         recognition.stop()
         setLastTranscript('')
+        transcriptRef.current = ''
         setIsRecording(false)
     }
 
     const confirmRecording = () => {
         if (!recognition) return
         recognition.stop()
-        setInput(prev => {
-            const base = prev.trim()
-            return base ? `${base} ${lastTranscript}` : lastTranscript
-        })
+
+        const finalTranscript = transcriptRef.current.trim()
+        if (finalTranscript) {
+            setInput(prev => {
+                const base = prev.trim()
+                return base ? `${base} ${finalTranscript}` : finalTranscript
+            })
+        }
+
         setIsRecording(false)
     }
 
