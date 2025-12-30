@@ -1,10 +1,10 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Wrench, Home } from 'lucide-react'
+import { Wrench } from 'lucide-react'
 import { getTenantClient } from '@/lib/supabase/tenant'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
 import { ToolsList } from '@/components/admin/ToolsForm'
 
 async function getIntegrations(tenantId: string) {
@@ -30,27 +30,24 @@ export default async function AdminToolsPage() {
         <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">
             <Header />
 
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-                <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Link href="/admin" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">
-                            <ArrowLeft className="w-5 h-5" />
-                        </Link>
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                                <Wrench className="w-4 h-4 text-green-600" />
-                            </div>
-                            <h1 className="text-lg font-bold text-gray-900">Integraciones y Herramientas</h1>
-                        </div>
-                    </div>
-                    <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500" title="Ir a inicio">
-                        <Home className="w-5 h-5" />
-                    </Link>
-                </div>
-            </div>
+            <AdminSubHeader
+                title="Herramientas e Integraciones"
+                backHref="/admin"
+                icon={Wrench}
+                tenantName={session.tenant?.name}
+            />
 
-            <div className="flex-grow max-w-4xl mx-auto px-6 py-8 w-full">
-                <ToolsList integrations={integrations} />
+            <div className="flex-grow max-w-5xl mx-auto px-6 py-10 w-full">
+                <div className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm p-8">
+                    <div className="mb-8">
+                        <h2 className="text-xl font-bold text-gray-900 font-display flex items-center gap-2">
+                            <Wrench className="w-5 h-5 text-adhoc-violet" />
+                            Catálogo de Conectores
+                        </h2>
+                        <p className="text-sm text-gray-500 mt-1 italic">Habilita conexiones con tus sistemas externos para potenciar tus agentes.</p>
+                    </div>
+                    <ToolsList integrations={integrations} />
+                </div>
             </div>
 
             <Footer />

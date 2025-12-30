@@ -9,6 +9,7 @@ import { SaveButton } from '@/components/ui/SaveButton'
 import { DocumentSelector } from '@/components/ui/DocumentSelector'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
 
 async function getAgentDetails(tenantId: string, slug: string) {
     const db = await getTenantClient(tenantId)
@@ -109,7 +110,6 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
 
     const allDocs = await getAllDocs(session.tenant!.id)
 
-    // Tools hardcoded for alpha available choices
     const AVAILABLE_TOOLS = [
         { slug: 'web_search', label: 'Búsqueda Web (Tavily)', description: 'Buscar información actualizada en internet' },
         { slug: 'odoo', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' },
@@ -117,104 +117,100 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
     ]
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
+        <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">
             <Header />
 
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-                <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Link href="/admin/agents" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">
-                            <ArrowLeft className="w-5 h-5" />
-                        </Link>
-                        <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <span className="text-gray-400 font-normal">/</span>
-                            {agent.name}
-                        </h1>
-                    </div>
-                </div>
-            </div>
+            <AdminSubHeader
+                title={agent.name}
+                backHref="/admin/agents"
+                icon={Bot}
+                tenantName={session.tenant?.name}
+            />
 
-            <div className="flex-grow max-w-4xl mx-auto px-6 py-8 w-full">
-                <form action={updateAgent} className="space-y-6">
+            <div className="flex-grow max-w-5xl mx-auto px-6 py-10 w-full">
+                <form action={updateAgent} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     <input type="hidden" name="slug" value={agent.slug} />
 
-                    {/* Brain Config */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Brain className="w-5 h-5 text-adhoc-violet" />
-                                <h2 className="font-semibold text-gray-900">Configuración del Cerebro</h2>
+                    <div className="lg:col-span-2 space-y-10">
+                        {/* Brain Config */}
+                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
+                            <div className="p-8 border-b border-gray-50 bg-gray-50/20 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Brain className="w-5 h-5 text-adhoc-violet" />
+                                    <h2 className="text-xl font-bold text-gray-900 font-display">Configuración del Cerebro</h2>
+                                </div>
+                                <Switch name="is_active" defaultChecked={agent.is_active} label="Agente Activo" />
                             </div>
-                            <Switch name="is_active" defaultChecked={agent.is_active} label="Agente Activo" />
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Agente</label>
-                                <input
-                                    name="name"
-                                    defaultValue={agent.name || ''}
-                                    type="text"
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-adhoc-violet focus:outline-none"
-                                />
+                            <div className="p-8 space-y-6">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Agente</label>
+                                    <input
+                                        name="name"
+                                        defaultValue={agent.name || ''}
+                                        type="text"
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Prompt del Sistema</label>
+                                    <textarea
+                                        name="system_prompt"
+                                        defaultValue={agent.system_prompt || ''}
+                                        rows={10}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-mono text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all resize-none"
+                                    />
+                                    <p className="text-[11px] text-gray-400 mt-2 italic">Instrucciones base que definen la personalidad y límites del agente.</p>
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Prompt del Sistema</label>
-                                <textarea
-                                    name="system_prompt"
-                                    defaultValue={agent.system_prompt || ''}
-                                    rows={8}
-                                    className="w-full border border-gray-300 rounded-lg p-3 font-mono text-sm focus:ring-2 focus:ring-adhoc-violet focus:outline-none"
-                                />
-                                <p className="text-xs text-gray-500 mt-2">Instrucciones base que definen el comportamiento.</p>
-                            </div>
-                        </div>
-                    </div>
+                        </section>
 
-                    {/* RAG Config */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-blue-600" />
-                            <h2 className="font-semibold text-gray-900">Base de Conocimiento</h2>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="flex gap-8">
+                        {/* RAG Config */}
+                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
+                            <div className="p-8 border-b border-gray-100 bg-gray-50/20 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-adhoc-violet" />
+                                    <h2 className="text-xl font-bold text-gray-900 font-display">Base de Conocimiento (RAG)</h2>
+                                </div>
                                 <Switch name="rag_enabled" defaultChecked={agent.rag_enabled} label="Habilitar RAG" />
                             </div>
-
-                            <div className="pt-2">
-                                <h3 className="text-sm font-medium text-gray-700 mb-3">Documentos Disponibles</h3>
-                                <DocumentSelector 
-                                    documents={allDocs} 
-                                    selectedIds={agent.linkedDocIds}
-                                />
+                            <div className="p-8">
+                                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Documentos Vinculados</h3>
+                                <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-4">
+                                    <DocumentSelector
+                                        documents={allDocs}
+                                        selectedIds={agent.linkedDocIds}
+                                    />
+                                </div>
+                                <p className="text-[11px] text-gray-400 mt-4 italic">El agente consultará estos documentos antes de responder.</p>
                             </div>
-                        </div>
+                        </section>
                     </div>
 
-                    {/* Tools Config */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
-                            <Wrench className="w-5 h-5 text-green-600" />
-                            <h2 className="font-semibold text-gray-900">Herramientas</h2>
-                        </div>
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Sidebar / Tools */}
+                    <div className="space-y-6">
+                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden p-8">
+                            <h2 className="text-lg font-bold text-gray-900 font-display flex items-center gap-2 mb-6">
+                                <Wrench className="w-4 h-4 text-adhoc-violet" />
+                                Herramientas Habilitadas
+                            </h2>
+                            <div className="space-y-3">
                                 {AVAILABLE_TOOLS.map(tool => (
-                                    <div key={tool.slug} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div key={tool.slug} className="group p-4 bg-gray-50 hover:bg-adhoc-lavender/10 border border-gray-100 rounded-2xl transition-all duration-300">
                                         <Switch
                                             name="tools"
                                             value={tool.slug}
                                             defaultChecked={agent.tools?.includes(tool.slug)}
                                             label={tool.label}
                                         />
+                                        <p className="text-[10px] text-gray-400 mt-2 pl-12 leading-tight">{tool.description}</p>
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    </div>
+                        </section>
 
-                    <div className="flex justify-end pt-4 pb-20">
-                        <SaveButton />
+                        <div className="sticky top-24">
+                            <SaveButton />
+                        </div>
                     </div>
 
                 </form>

@@ -44,36 +44,36 @@ export function UserList({ initialUsers, currentUserEmail }: { initialUsers: Use
     return (
         <div className="space-y-3">
             {initialUsers.map((u) => (
-                <div key={u.id} className={`bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all ${isLoading === u.id ? 'opacity-50' : ''}`}>
+                <div key={u.id} className={`bg-white p-4 rounded-2xl border border-adhoc-lavender/20 shadow-sm flex items-center justify-between group hover:border-adhoc-violet/30 transition-all ${isLoading === u.id ? 'opacity-50' : ''}`}>
                     <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-medium ${u.is_admin ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${u.is_admin ? 'bg-adhoc-lavender text-adhoc-violet' : 'bg-gray-100 text-gray-400'}`}>
                             {u.email[0].toUpperCase()}
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-gray-900">{u.email}</span>
+                                <span className="text-sm font-semibold text-gray-900 leading-none">{u.email}</span>
                                 {u.is_admin ? (
-                                    <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-tight flex items-center gap-1">
-                                        <ShieldCheck className="w-3 h-3" />
+                                    <span className="px-2 py-0.5 rounded-full bg-adhoc-lavender/40 text-adhoc-violet text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 border border-adhoc-lavender/50">
+                                        <ShieldCheck className="w-2.5 h-2.5" />
                                         Admin
                                     </span>
                                 ) : (
-                                    <span className="px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 text-[10px] font-bold uppercase tracking-tight">
-                                        User
+                                    <span className="px-2 py-0.5 rounded-full bg-gray-50 text-gray-400 text-[9px] font-bold uppercase tracking-wider border border-gray-100">
+                                        Standard
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                                Agregado el {new Date(u.created_at).toLocaleDateString('es-AR')}
+                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-tight mt-1.5 leading-none">
+                                Miembro desde {new Date(u.created_at).toLocaleDateString('es-AR')}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
                         <button
                             onClick={() => handleToggleAdmin(u)}
                             disabled={u.email === currentUserEmail || isLoading !== null}
-                            className={`p-2 rounded-lg transition-colors ${u.is_admin ? 'text-blue-400 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-100'}`}
+                            className={`p-2 rounded-lg transition-colors ${u.is_admin ? 'text-adhoc-violet hover:bg-adhoc-lavender/30' : 'text-gray-300 hover:bg-gray-100 hover:text-adhoc-violet'}`}
                             title={u.is_admin ? "Quitar Admin" : "Hacer Admin"}
                         >
                             <Shield className="w-4 h-4" />
@@ -82,7 +82,7 @@ export function UserList({ initialUsers, currentUserEmail }: { initialUsers: Use
                         <button
                             onClick={() => handleDelete(u)}
                             disabled={u.email === currentUserEmail || isLoading !== null}
-                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-gray-300 hover:text-adhoc-coral hover:bg-adhoc-coral/5 rounded-lg transition-colors"
                             title="Eliminar Usuario"
                         >
                             <Trash2 className="w-4 h-4" />

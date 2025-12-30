@@ -12,10 +12,10 @@ export function RAGUpload() {
     const handleUpload = async (formData: FormData) => {
         setStatus('uploading')
         setMessage('Procesando documento...')
-        
+
         try {
             const result = await uploadDocument(formData)
-            
+
             if (result.error) {
                 setStatus('error')
                 setMessage(result.error)
@@ -28,7 +28,7 @@ export function RAGUpload() {
             setStatus('error')
             setMessage(e.message || 'Error desconocido')
         }
-        
+
         // Reset status after a delay
         setTimeout(() => {
             setStatus('idle')
@@ -37,35 +37,34 @@ export function RAGUpload() {
     }
 
     return (
-        <div className="bg-white rounded-xl border border-dashed border-gray-300 p-8 text-center mb-8 hover:border-adhoc-violet transition-colors group">
+        <div className="bg-white rounded-3xl border-2 border-dashed border-adhoc-lavender/40 p-10 text-center mb-10 hover:border-adhoc-violet/50 hover:bg-adhoc-lavender/5 transition-all group overflow-hidden relative">
             <form
                 ref={formRef}
                 action={handleUpload}
-                className="flex flex-col items-center justify-center cursor-pointer relative"
+                className="flex flex-col items-center justify-center cursor-pointer"
             >
-                <div className="w-16 h-16 bg-adhoc-lavender/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-20 h-20 bg-adhoc-lavender/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                     {status === 'uploading' ? (
-                        <Loader2 className="w-8 h-8 text-adhoc-violet animate-spin" />
+                        <Loader2 className="w-10 h-10 text-adhoc-violet animate-spin" />
                     ) : status === 'success' ? (
-                        <CheckCircle className="w-8 h-8 text-green-600" />
+                        <CheckCircle className="w-10 h-10 text-green-600" />
                     ) : status === 'error' ? (
-                        <AlertCircle className="w-8 h-8 text-red-600" />
+                        <AlertCircle className="w-10 h-10 text-adhoc-coral" />
                     ) : (
-                        <Upload className="w-8 h-8 text-adhoc-violet" />
+                        <Upload className="w-10 h-10 text-adhoc-violet" />
                     )}
                 </div>
-                
+
                 {status === 'idle' ? (
                     <>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Subir nuevos documentos</h3>
-                        <p className="text-sm text-gray-500 mb-4">Soporta .pdf, .txt, .md, .csv</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 font-display">Subir nuevos documentos</h3>
+                        <p className="text-sm text-gray-400 mb-6 italic">Arrastra archivos aquí o haz clic para seleccionar (PDF, TXT, MD)</p>
                     </>
                 ) : (
-                    <p className={`text-sm mb-4 ${
-                        status === 'error' ? 'text-red-600' : 
-                        status === 'success' ? 'text-green-600' : 
-                        'text-gray-600'
-                    }`}>
+                    <p className={`text-base font-semibold mb-6 font-display ${status === 'error' ? 'text-adhoc-coral' :
+                            status === 'success' ? 'text-green-600' :
+                                'text-adhoc-violet'
+                        }`}>
                         {message}
                     </p>
                 )}
@@ -78,16 +77,15 @@ export function RAGUpload() {
                     onChange={(e) => e.target.form?.requestSubmit()}
                     disabled={status === 'uploading'}
                 />
-                <button 
-                    className={`px-4 py-2 rounded-lg text-sm font-medium pointer-events-none ${
-                        status === 'uploading' 
-                            ? 'bg-gray-300 text-gray-500' 
-                            : 'bg-adhoc-violet text-white hover:bg-adhoc-violet/90'
-                    }`}
-                    disabled={status === 'uploading'}
+
+                <div
+                    className={`px-8 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all shadow-md active:scale-95 ${status === 'uploading'
+                            ? 'bg-gray-100 text-gray-400'
+                            : 'bg-adhoc-violet text-white hover:bg-adhoc-violet/90 shadow-adhoc-violet/20'
+                        }`}
                 >
                     {status === 'uploading' ? 'Procesando...' : 'Seleccionar Archivo'}
-                </button>
+                </div>
             </form>
         </div>
     )
