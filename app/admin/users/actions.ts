@@ -27,7 +27,7 @@ export async function addUser(formData: FormData) {
                 email,
                 tenant_id: session.tenant.id,
                 is_admin
-            }, { onConflict: 'email' })
+            }, { onConflict: 'tenant_id, email' })
 
         if (error) {
             console.error('❌ Supabase error adding user:', error)
