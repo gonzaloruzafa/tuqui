@@ -9,11 +9,16 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-apercu), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-weight: 400;
   line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-display {
+  font-family: var(--font-new-kansas), Georgia, serif;
 }
 
 /* Scrollbar styling - Light theme */
@@ -34,29 +39,32 @@ body {
   background: rgba(0, 0, 0, 0.25);
 }
 
-/* Bot message styles - Light theme */
+/* Bot message styles - ChatGPT-like clean look */
 .bot-message {
-  word-wrap: break-word;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #374151;
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-wrap: break-word;
 }
 
 .bot-message h1, .bot-message h2, .bot-message h3, .bot-message h4 {
   font-weight: 600;
-  margin-top: 1.25em;
+  margin-top: 1.5em;
   margin-bottom: 0.5em;
   color: #111827;
+  line-height: 1.3;
 }
 
 .bot-message h1 { font-size: 1.5em; }
-.bot-message h2 { font-size: 1.25em; }
-.bot-message h3 { font-size: 1.125em; }
-.bot-message h4 { font-size: 1em; }
+.bot-message h2 { font-size: 1.3em; }
+.bot-message h3 { font-size: 1.15em; }
+.bot-message h4 { font-size: 1.05em; }
 
 .bot-message ul, .bot-message ol {
   margin: 0.75em 0;
-  padding-left: 1.5em;
-  list-style-position: outside;
+  padding-left: 1.25em;
 }
 
 .bot-message ul {
@@ -68,13 +76,12 @@ body {
 }
 
 .bot-message li {
-  margin: 0.4em 0;
-  line-height: 1.7;
-  color: #111827;
+  margin: 0.5em 0;
+  padding-left: 0.25em;
 }
 
 .bot-message li::marker {
-  color: #6b7280;
+  color: #9ca3af;
 }
 
 .bot-message strong, .bot-message b {
@@ -87,9 +94,7 @@ body {
 }
 
 .bot-message p {
-  margin: 0.75em 0;
-  line-height: 1.7;
-  color: #111827;
+  margin: 1em 0;
 }
 
 .bot-message p:first-child {
@@ -143,88 +148,59 @@ body {
 }
 
 .bot-message blockquote {
-  border-left: 3px solid #667eea;
+  border-left: 3px solid #d1d5db;
   margin: 1em 0;
   padding-left: 1em;
-  color: #4b5563;
+  color: #6b7280;
   font-style: italic;
+}
+
+/* Tables - wrapped in scrollable container */
+.table-wrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bot-message table {
   border-collapse: collapse;
-  width: 100%;
-  margin: 1em 0;
-  table-layout: auto;
-  font-size: 0.9em;
+  font-size: 14px;
+  white-space: nowrap;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 }
 
 .bot-message th, .bot-message td {
   border: 1px solid #e5e7eb;
-  padding: 0.6em 0.8em;
+  padding: 10px 14px;
   text-align: left;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  max-width: 300px;
 }
 
 .bot-message th {
-  background: #f9fafb;
+  background: #f3f4f6;
   font-weight: 600;
-  color: #111827;
-  font-size: 0.85em;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
+  color: #374151;
+  font-size: 13px;
 }
 
 .bot-message td {
-  color: #374151;
-  line-height: 1.5;
+  color: #4b5563;
+  background: white;
 }
 
-/* Alineación de columnas según contenido */
-.bot-message td:nth-child(1) {
-  text-align: left;
-  font-weight: 500;
+.bot-message tr:nth-child(even) td {
+  background: #f9fafb;
 }
 
-/* Columnas numéricas - derecha */
-.bot-message td:nth-child(2),
-.bot-message td:nth-child(3),
-.bot-message td:nth-child(4) {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-family: 'SF Mono', 'Consolas', monospace;
-  white-space: nowrap;
-}
-
-/* Encabezados de columnas numéricas */
-.bot-message th:nth-child(2),
-.bot-message th:nth-child(3),
-.bot-message th:nth-child(4) {
-  text-align: right;
-}
-
-/* Primera columna más ancha para nombres/descripciones */
-.bot-message td:first-child,
-.bot-message th:first-child {
-  min-width: 200px;
-}
-
-/* Responsive: en mobile, hacer la tabla scrollable */
-@media (max-width: 768px) {
-  .bot-message table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
+/* Responsive */
+@media (max-width: 640px) {
+  .bot-message {
+    font-size: 15px;
   }
   
-  .bot-message td,
-  .bot-message th {
-    white-space: nowrap;
-    max-width: none;
+  .bot-message table {
+    font-size: 13px;
   }
 }
 

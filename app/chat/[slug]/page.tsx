@@ -13,6 +13,12 @@ import {
 } from 'lucide-react'
 import { marked } from 'marked'
 
+// Helper to wrap tables in scrollable div
+function wrapTablesInScrollContainer(html: string): string {
+    return html.replace(/<table>/g, '<div class="table-wrapper"><table>')
+               .replace(/<\/table>/g, '</table></div>')
+}
+
 // Simplified for brevity, assume types match
 // In real app, reuse components
 
@@ -43,11 +49,36 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<any[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [sidebarOpen, setSidebarOpen] = useState(true)
+    const [sidebarOpen, setSidebarOpen] = useState(false) // Start closed, open on desktop
     const [sessions, setSessions] = useState<any[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
+
+    // Auto open sidebar on desktop, keep closed on mobile
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setSidebarOpen(window.innerWidth >= 768)
+        }
+    }, [])
+
+    // Handle resize
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 768) {
+                setSidebarOpen(true)
+            }
+        }
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
+
+    // Close sidebar on mobile when navigating
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setSidebarOpen(false)
+        }
+    }, [agentSlug])
 
     // Load Agent
     useEffect(() => {
@@ -84,7 +115,7 @@ export default function ChatPage() {
                         // Simple parse
                         let content = m.content
                         if (m.role === 'assistant') {
-                            content = await marked.parse(m.content)
+                            content = wrapTablesInScrollContainer(await marked.parse(m.content))
                         }
                         loaded.push({ ...m, content, rawContent: m.content })
                     }
@@ -185,7 +216,7 @@ export default function ChatPage() {
                 }
 
                 // Update UI with partial text
-                const partialHtml = await marked.parse(botText)
+                const partialHtml = wrapTablesInScrollContainer(await marked.parse(botText))
                 setMessages(prev => {
                     const last = prev[prev.length - 1]
                     if (last?.role === 'assistant' && last.id === 'temp-bot') {
@@ -197,7 +228,7 @@ export default function ChatPage() {
             }
 
             // Final update to ensure everything is saved and marked as finished
-            const finalHtml = await marked.parse(botText)
+            const finalHtml = wrapTablesInScrollContainer(await marked.parse(botText))
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')
                 return [...filtered, { id: Date.now(), role: 'assistant', content: finalHtml, rawContent: botText }]
@@ -274,7 +305,7 @@ export default function ChatPage() {
             {/* Sidebar */}
             <aside className={`
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          fixed md:relative top-0 left-0 h-full z-40 bg-[#f9f9f9] flex flex-col transition-transform duration-300 ease-in-out border-r border-gray-200 w-[260px] shadow-xl md:shadow-none
+          fixed md:relative top-0 left-0 h-full z-40 bg-white flex flex-col transition-transform duration-300 ease-in-out border-r border-adhoc-lavender/30 w-[260px] shadow-xl md:shadow-none
       `}>
                 <div className="p-3 flex items-center justify-between border-b border-gray-200/50 h-14">
                     {/* Back to Menu Button */}
@@ -327,15 +358,28 @@ export default function ChatPage() {
                 {/* User bottom section could go here */}
             </aside>
 
+            {/* Overlay for mobile when sidebar open */}
+            {sidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/30 z-30 md:hidden" 
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Main Chat */}
             <div className="flex-1 flex flex-col min-w-0 h-full relative">
-                <header className="h-14 border-b border-gray-200 flex items-center px-4 justify-between bg-white z-10 shrink-0">
+                <header className="h-14 border-b border-adhoc-lavender/30 flex items-center px-4 justify-between bg-white z-10 shrink-0">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
+                        {/* Mobile: show menu button when sidebar closed */}
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors">
                             {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
                         </button>
-                        <div className="h-6 w-px bg-gray-200 mx-1"></div>
-                        <div className="w-8 h-8 rounded-full bg-adhoc-lavender flex items-center justify-center">
+                        {/* Mobile: quick back to menu */}
+                        <Link href="/" className="md:hidden p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors">
+                            <ArrowLeft className="w-5 h-5" />
+                        </Link>
+                        <div className="h-6 w-px bg-adhoc-lavender/50 mx-1 hidden md:block"></div>
+                        <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center">
                             {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
                         </div>
                         <span className="font-medium text-gray-800">{agent.name}</span>
@@ -346,7 +390,7 @@ export default function ChatPage() {
                     <div className="max-w-3xl mx-auto space-y-6">
                         {messages.length === 0 && (
                             <div className="text-center mt-20">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-adhoc-lavender flex items-center justify-center">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-adhoc-lavender/30 flex items-center justify-center">
                                     {getAgentIcon(agent.icon, 'lg', 'text-adhoc-violet')}
                                 </div>
                                 <h2 className="text-xl font-medium mb-2">{agent.welcome_message}</h2>
@@ -356,14 +400,14 @@ export default function ChatPage() {
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 {m.role === 'assistant' ? (
-                                    <div className="flex gap-3 max-w-[90%] md:max-w-[80%]">
-                                        <div className="w-8 h-8 rounded-full bg-adhoc-lavender flex items-center justify-center flex-shrink-0 mt-1">
+                                    <div className="flex gap-3 max-w-[90%] md:max-w-[80%] min-w-0">
+                                        <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center flex-shrink-0 mt-1">
                                             {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
                                         </div>
-                                        <div className="bot-message text-[15px] leading-relaxed text-gray-900" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                        <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
                                     </div>
                                 ) : (
-                                    <div className="bg-adhoc-lavender px-4 py-2 rounded-3xl rounded-br-lg max-w-[80%] text-[15px] text-gray-900 whitespace-pre-wrap">
+                                    <div className="bg-adhoc-lavender/30 px-4 py-2 rounded-3xl rounded-br-lg max-w-[80%] text-[15px] text-gray-900 whitespace-pre-wrap">
                                         {m.content}
                                     </div>
                                 )}
@@ -374,17 +418,17 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                <div className="p-4 bg-white border-t border-gray-100">
+                <div className="p-4 bg-white border-t border-adhoc-lavender/30">
                     <div className="max-w-3xl mx-auto relative">
                         <textarea
                             value={input}
                             onChange={e => setInput(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
                             placeholder={agent.placeholder_text}
-                            className="w-full bg-white border border-gray-200 rounded-2xl pl-4 pr-12 py-3 resize-none focus:outline-none focus:border-adhoc-violet focus:ring-1 focus:ring-adhoc-violet transition-all"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-4 pr-12 py-3 resize-none focus:outline-none focus:border-adhoc-violet focus:ring-2 focus:ring-adhoc-lavender/50 focus:bg-white transition-all"
                             rows={1}
                         />
-                        <button onClick={handleSend} disabled={isLoading || !input.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 transition-colors disabled:opacity-50">
+                        <button onClick={handleSend} disabled={isLoading || !input.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 hover:shadow-md transition-all disabled:opacity-50">
                             <Send className="w-4 h-4" />
                         </button>
                     </div>

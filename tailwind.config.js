@@ -8,9 +8,17 @@ module.exports = {
     theme: {
         extend: {
             colors: {
-                'adhoc-violet': '#667eea',
-                'adhoc-coral': '#f093fb',
-                'adhoc-lavender': '#e9e4f0',
+                adhoc: {
+                    violet: '#7C6CD8',
+                    lavender: '#BCAFEF',
+                    coral: '#FF7348',
+                    mustard: '#FEA912',
+                    white: '#FFFFFF',
+                }
+            },
+            fontFamily: {
+                sans: ['var(--font-apercu)', 'system-ui', 'sans-serif'],
+                display: ['var(--font-new-kansas)', 'Georgia', 'serif'],
             },
         },
     },

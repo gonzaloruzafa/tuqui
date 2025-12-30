@@ -1,8 +1,8 @@
 export function Footer() {
     return (
-        <footer className="bg-white border-t border-gray-200 py-8 mt-auto">
-            <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
-                <p className="font-sans text-sm text-gray-500">
+        <footer className="bg-white border-t border-adhoc-lavender/30 py-8 mt-auto">
+            <div className="max-w-7xl mx-auto px-4 text-center space-y-3">
+                <p className="text-sm text-gray-500">
                     <a
                         href="https://www.adhoc.inc"
                         target="_blank"
@@ -12,8 +12,8 @@ export function Footer() {
                         Conocé más sobre la tecnología de Adhoc →
                     </a>
                 </p>
-                <p className="font-sans text-sm text-gray-400">
-                    © {new Date().getFullYear()} Adhoc S.A. - Soluciones Tecnológicas. Todos los derechos reservados.
+                <p className="text-xs text-gray-400">
+                    © {new Date().getFullYear()} Adhoc S.A. - Soluciones Tecnológicas
                 </p>
             </div>
         </footer>

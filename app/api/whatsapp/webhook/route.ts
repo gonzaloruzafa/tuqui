@@ -41,14 +41,28 @@ export async function POST(req: Request) {
 
     if (!agent) return new Response('No agent available', { status: 500 })
 
-    // 3. Process with AI
+    // 3. Get Company Context
+    let systemPrompt = agent.system_prompt || 'Sos un asistente útil.'
+    
+    // Fetch company context from tenant
+    const { data: tenantData } = await master
+        .from('tenants')
+        .select('company_context')
+        .eq('id', tenantId)
+        .single()
+    
+    if (tenantData?.company_context) {
+        systemPrompt += `\n\nCONTEXTO DE LA EMPRESA:\n${tenantData.company_context}`
+    }
+
+    // 4. Process with AI
     // We should create a session context, but for alpha: simple stateless or last-message context
     // Let's do simple stateless response for speed in this Alpha setup
 
     try {
         const { text } = await generateText({
             model: google('gemini-2.5-flash'),
-            system: agent.system_prompt || 'Sos un asistente útil.',
+            system: systemPrompt,
             prompt: Body
         })
 

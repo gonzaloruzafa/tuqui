@@ -14,8 +14,14 @@ export function Switch({ name, defaultChecked = false, label, value }: SwitchPro
 
     return (
         <label className="relative inline-flex items-center cursor-pointer select-none gap-3">
-            {/* Hidden input to always send value */}
-            <input type="hidden" name={name} value={checked ? 'on' : 'off'} />
+            {/* For multi-value fields (like tools), only include when checked */}
+            {value ? (
+                // Multi-value mode: only send if checked
+                checked && <input type="hidden" name={name} value={value} />
+            ) : (
+                // Boolean mode: send on/off
+                <input type="hidden" name={name} value={checked ? 'on' : 'off'} />
+            )}
             <input
                 type="checkbox"
                 className="sr-only peer"

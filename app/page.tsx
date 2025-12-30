@@ -46,25 +46,40 @@ export default async function HomePage() {
     const session = await auth()
 
     if (!session?.tenant) {
-        // Should not happen if middleware works, but...
-        return <div>Error de autenticación: Tenant no encontrado.</div>
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
+                    <h1 className="text-xl font-semibold text-gray-900 mb-2">Acceso denegado</h1>
+                    <p className="text-gray-500 mb-4">
+                        Tu cuenta ({session?.user?.email}) no tiene un tenant asignado.
+                    </p>
+                    <p className="text-sm text-gray-400">
+                        Contacta al administrador para obtener acceso.
+                    </p>
+                </div>
+            </div>
+        )
     }
 
     const agents = await getAgentsForTenant(session.tenant.id)
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
+        <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
 
             {/* Main */}
-            <main className="flex-grow flex items-center justify-center px-4 py-8">
+            <main className="flex-grow flex items-center justify-center px-4 py-12">
                 <div className="w-full max-w-md">
 
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl font-medium text-gray-900 mb-2 font-display">
-                            Asistentes IA para tu empresa
+                    <div className="text-center mb-10">
+                        <span className="inline-block px-4 py-1.5 rounded-full bg-adhoc-lavender/30 text-adhoc-violet font-bold text-xs uppercase tracking-wider mb-4">
+                            Potenciado por IA
+                        </span>
+                        <h1 className="text-3xl font-medium text-gray-900 mb-3 font-display leading-tight">
+                            Asistentes IA para <br/>
+                            <span className="text-adhoc-violet">tu empresa</span>
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-base text-gray-500">
                             Seleccioná un agente para comenzar
                         </p>
                     </div>
@@ -121,8 +136,18 @@ export default async function HomePage() {
                 </div>
             </main>
 
-            <footer className="bg-white border-t border-gray-100 py-6 mt-auto">
+            <footer className="bg-white border-t border-adhoc-lavender/30 py-6 mt-auto">
                 <div className="max-w-5xl mx-auto px-4 text-center">
+                    <p className="text-sm text-gray-500 mb-1">
+                        <a
+                            href="https://www.adhoc.inc"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-adhoc-violet hover:text-adhoc-coral transition-colors font-medium"
+                        >
+                            Conocé más sobre Adhoc →
+                        </a>
+                    </p>
                     <p className="text-xs text-gray-400">
                         © {new Date().getFullYear()} Adhoc S.A.
                     </p>

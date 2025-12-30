@@ -70,17 +70,17 @@ export default async function AdminPage() {
     ]
 
     return (
-        <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
 
             {/* Sub-header / Breadcrumb equivalent */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+            <div className="bg-white border-b border-adhoc-lavender/30 sticky top-0 z-10 shadow-sm">
                 <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Link href="/" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">
+                        <Link href="/" className="p-1.5 hover:bg-adhoc-lavender/20 rounded-lg transition-colors text-gray-500 hover:text-adhoc-violet">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
-                        <h1 className="text-lg font-bold text-gray-900">Panel de Administración</h1>
+                        <h1 className="text-lg font-bold text-gray-900 font-display">Panel de Administración</h1>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</span>
@@ -92,12 +92,14 @@ export default async function AdminPage() {
             </div>
 
             {/* Content */}
-            <div className="flex-grow max-w-5xl mx-auto px-6 py-8 w-full">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">¿Qué quieres configurar hoy?</h2>
+            <div className="flex-grow max-w-5xl mx-auto px-6 py-10 w-full">
+                <div className="text-center mb-8">
+                    <h2 className="text-2xl font-medium text-gray-900 font-display">¿Qué quieres configurar hoy?</h2>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {cards.map((card, i) => (
-                        <Link key={i} href={card.href} className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-adhoc-violet/20 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full relative overflow-hidden">
+                        <Link key={i} href={card.href} className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-adhoc-violet/30 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full relative overflow-hidden">
                             {/* Decorative background circle */}
                             <div className={`absolute top-0 right-0 w-24 h-24 ${card.bg} rounded-bl-full opacity-20 -mr-4 -mt-4 transition-transform group-hover:scale-110`}></div>
 

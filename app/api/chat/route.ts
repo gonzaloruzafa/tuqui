@@ -6,12 +6,30 @@ import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 import { streamChatWithOdoo } from '@/lib/tools/gemini-odoo'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
+import { getMasterClient } from '@/lib/supabase/master'
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
 })
 
 export const maxDuration = 60 // Allow longer timeout for tools
+
+async function getCompanyContext(tenantId: string): Promise<string | null> {
+    try {
+        const db = getMasterClient()
+        const { data, error } = await db
+            .from('tenants')
+            .select('company_context')
+            .eq('id', tenantId)
+            .single()
+        
+        if (error || !data?.company_context) return null
+        return data.company_context
+    } catch (e) {
+        console.error('[Chat] Error fetching company context:', e)
+        return null
+    }
+}
 
 export async function POST(req: Request) {
     const session = await auth()
@@ -55,6 +73,13 @@ export async function POST(req: Request) {
 
         // 3. RAG Context
         let systemSystem = agent.system_prompt || 'Sos un asistente útil.'
+
+        // 3.1 Inject Company Context if available
+        const companyContext = await getCompanyContext(tenantId)
+        if (companyContext) {
+            systemSystem += `\n\nCONTEXTO DE LA EMPRESA:\n${companyContext}`
+            console.log('[Chat] Company context injected')
+        }
 
         if (agent.rag_enabled) {
             try {

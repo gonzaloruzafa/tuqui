@@ -2,6 +2,7 @@ import NextAuth, { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
 
 export const authConfig = {
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
@@ -23,15 +24,26 @@ export const authConfig = {
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user
-            const isOnDashboard = nextUrl.pathname.startsWith("/") && nextUrl.pathname !== "/login"
-
-            if (isOnDashboard) {
-                if (isLoggedIn) return true
-                return false // Redirect unauthenticated users to login page
-            } else if (isLoggedIn) {
+            const isOnLogin = nextUrl.pathname === "/login"
+            const isAuthCallback = nextUrl.pathname.startsWith("/api/auth")
+            
+            // Allow auth callbacks to pass through
+            if (isAuthCallback) {
+                return true
+            }
+            
+            // If on login page and logged in, redirect to home
+            if (isOnLogin && isLoggedIn) {
                 return Response.redirect(new URL("/", nextUrl))
             }
-            return true
+            
+            // If on login page and not logged in, allow
+            if (isOnLogin) {
+                return true
+            }
+            
+            // All other pages require login
+            return isLoggedIn
         },
         async session({ session, token }) {
             if (session.user?.email) {

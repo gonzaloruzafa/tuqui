@@ -1,0 +1,92 @@
+/* New Kansas Font Family */
+@font-face {
+  font-family: 'New Kansas';
+  src: url('/fonts/fonnts.com-New-Kansas-.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'New Kansas';
+  src: url('/fonts/fonnts.com-New-Kansas-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'New Kansas';
+  src: url('/fonts/fonnts.com-New-Kansas-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'New Kansas';
+  src: url('/fonts/fonnts.com-New-Kansas-Semi-Bold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'New Kansas';
+  src: url('/fonts/fonnts.com-New-Kansas-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'New Kansas';
+  src: url('/fonts/fonnts.com-New-Kansas-Heavy.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'New Kansas';
+  src: url('/fonts/fonnts.com-New-Kansas-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+/* Apercu Pro Font Family */
+@font-face {
+  font-family: 'Apercu Pro';
+  src: url('/fonts/apercu_regular_pro.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Apercu Pro';
+  src: url('/fonts/apercu_regular_italic_pro.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Apercu Pro';
+  src: url('/fonts/apercu_medium_pro.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Apercu Pro';
+  src: url('/fonts/apercu_medium_italic_pro.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Apercu Pro';
+  src: url('/fonts/apercu_bold_pro.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Apercu Pro';
+  src: url('/fonts/apercu_bold_italic_pro.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+}
