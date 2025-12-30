@@ -16,11 +16,30 @@ import { marked } from 'marked'
 // Helper to wrap tables in scrollable div
 function wrapTablesInScrollContainer(html: string): string {
     return html.replace(/<table>/g, '<div class="table-wrapper"><table>')
-               .replace(/<\/table>/g, '</table></div>')
+        .replace(/<\/table>/g, '</table></div>')
 }
 
-// Simplified for brevity, assume types match
-// In real app, reuse components
+interface Agent {
+    id: string
+    name: string
+    slug: string
+    icon: string
+    welcome_message: string
+    placeholder_text: string
+}
+
+interface Message {
+    id: string | number
+    role: 'user' | 'assistant'
+    content: string
+    rawContent?: string
+}
+
+interface Session {
+    id: string
+    title: string
+    agent_id: string
+}
 
 const getAgentIcon = (iconName: string, size: 'sm' | 'md' | 'lg' = 'sm', colorClass = 'text-white') => {
     const sizeClass = size === 'lg' ? 'w-7 h-7' : size === 'md' ? 'w-5 h-5' : 'w-4 h-4'
@@ -31,9 +50,8 @@ const getAgentIcon = (iconName: string, size: 'sm' | 'md' | 'lg' = 'sm', colorCl
         'ShoppingCart': <ShoppingCart className={`${sizeClass} ${colorClass}`} />,
         'Database': <Database className={`${sizeClass} ${colorClass}`} />,
         'Calculator': <Calculator className={`${sizeClass} ${colorClass}`} />,
-        'Building': <Briefcase className={`${sizeClass} ${colorClass}`} />, // Mapped from Building to Briefcase for now
+        'Building': <Briefcase className={`${sizeClass} ${colorClass}`} />,
         'Sparkles': <Sparkles className={`${sizeClass} ${colorClass}`} />
-        // Add more as needed
     }
     return icons[iconName] || <Bot className={`${sizeClass} ${colorClass}`} />
 }
@@ -45,12 +63,12 @@ export default function ChatPage() {
     const agentSlug = params.slug as string
     const sessionIdParam = searchParams.get('session')
 
-    const [agent, setAgent] = useState<any>(undefined) // undefined = loading, null = not found
-    const [messages, setMessages] = useState<any[]>([])
+    const [agent, setAgent] = useState<Agent | null | undefined>(undefined) // undefined = loading, null = not found
+    const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [sidebarOpen, setSidebarOpen] = useState(false) // Start closed, open on desktop
-    const [sessions, setSessions] = useState<any[]>([])
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [sessions, setSessions] = useState<Session[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -98,8 +116,9 @@ export default function ChatPage() {
     useEffect(() => {
         if (agent?.id) {
             fetch(`/api/chat-sessions?agentId=${agent.id}`)
-                .then(res => res.json())
+                .then(res => res.ok ? res.json() : [])
                 .then(data => setSessions(data))
+                .catch(err => console.error('Error loading sessions:', err))
         }
     }, [agent?.id])
 
@@ -108,11 +127,10 @@ export default function ChatPage() {
         if (sessionIdParam) {
             setCurrentSessionId(sessionIdParam)
             fetch(`/api/chat-sessions?sessionId=${sessionIdParam}`)
-                .then(res => res.json())
-                .then(async msgs => {
-                    const loaded = []
+                .then(res => res.ok ? res.json() : [])
+                .then(async (msgs: any[]) => {
+                    const loaded: Message[] = []
                     for (const m of msgs) {
-                        // Simple parse
                         let content = m.content
                         if (m.role === 'assistant') {
                             content = wrapTablesInScrollContainer(await marked.parse(m.content))
@@ -121,6 +139,7 @@ export default function ChatPage() {
                     }
                     setMessages(loaded)
                 })
+                .catch(err => console.error('Error loading messages:', err))
         } else {
             setMessages([])
             setCurrentSessionId(null)
@@ -137,7 +156,7 @@ export default function ChatPage() {
         setInput('')
 
         // Optimistic UI
-        const tempUserMsg = { id: Date.now(), role: 'user', content: userContent }
+        const tempUserMsg: Message = { id: Date.now().toString(), role: 'user', content: userContent }
         setMessages(prev => [...prev, tempUserMsg])
         setIsLoading(true)
 
@@ -150,6 +169,7 @@ export default function ChatPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'create-session', agentId: agent.id })
                 })
+                if (!res.ok) throw new Error('Failed to create session')
                 const session = await res.json()
                 sid = session.id
                 setCurrentSessionId(sid)
@@ -159,15 +179,17 @@ export default function ChatPage() {
             // Save User Message
             await fetch('/api/chat-sessions', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'save-message', sessionId: sid, role: 'user', content: userContent })
             })
 
             // Call AI
             const response = await fetch('/api/chat', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     agentSlug,
-                    messages: [{ role: 'user', content: userContent }], // Simplified history for Alpha
+                    messages: [{ role: 'user', content: userContent }],
                     sessionId: sid
                 })
             })
@@ -179,47 +201,39 @@ export default function ChatPage() {
 
             const reader = response.body?.getReader()
             if (!reader) throw new Error('No reader available')
-            
+
             let botText = ''
-            let isFirstChunk = true
 
             while (true) {
                 const { done, value } = await reader.read()
                 if (done) break
-                
+
                 const chunk = new TextDecoder().decode(value)
-                
-                // Check if it's Data Stream format (starts with 0:, 1:, etc.)
                 const isDataStream = chunk.match(/^[0-9a-z]:/m)
 
                 if (isDataStream) {
-                    // Vercel AI SDK Data Stream format handling
                     const lines = chunk.split('\n').filter(line => line.trim())
                     for (const line of lines) {
                         const match = line.match(/^([0-9a-z]):(.*)$/)
                         if (match) {
                             const [_, type, content] = match
-                            if (type === '0') { // Text part
+                            if (type === '0') {
                                 try {
-                                    const text = JSON.parse(content)
-                                    botText += text
+                                    botText += JSON.parse(content)
                                 } catch (e) {
-                                    // Fallback if JSON parse fails
                                     botText += content.replace(/^"|"$/g, '')
                                 }
                             }
                         }
                     }
                 } else {
-                    // Raw text format
                     botText += chunk
                 }
 
-                // Update UI with partial text
                 const partialHtml = wrapTablesInScrollContainer(await marked.parse(botText))
                 setMessages(prev => {
                     const last = prev[prev.length - 1]
-                    if (last?.role === 'assistant' && last.id === 'temp-bot') {
+                    if (last?.id === 'temp-bot') {
                         return [...prev.slice(0, -1), { ...last, content: partialHtml, rawContent: botText }]
                     } else {
                         return [...prev, { id: 'temp-bot', role: 'assistant', content: partialHtml, rawContent: botText }]
@@ -227,16 +241,16 @@ export default function ChatPage() {
                 })
             }
 
-            // Final update to ensure everything is saved and marked as finished
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(botText))
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')
-                return [...filtered, { id: Date.now(), role: 'assistant', content: finalHtml, rawContent: botText }]
+                return [...filtered, { id: Date.now().toString(), role: 'assistant', content: finalHtml, rawContent: botText }]
             })
 
             // Save Bot Message
             await fetch('/api/chat-sessions', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'save-message', sessionId: sid, role: 'assistant', content: botText })
             })
 
@@ -244,26 +258,25 @@ export default function ChatPage() {
             if (messages.length <= 1) {
                 fetch('/api/chat-sessions', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'generate-title', sessionId: sid, userMessage: userContent })
-                }).then(res => res.json()).then(data => {
-                    if (data.title) {
-                        // Check if session exists in list, if not add it
+                }).then(res => res.ok ? res.json() : null).then(data => {
+                    if (data?.title) {
                         setSessions(prev => {
                             const exists = prev.find(s => s.id === sid)
                             if (exists) {
                                 return prev.map(s => s.id === sid ? { ...s, title: data.title } : s)
                             } else {
-                                // Add new session to top of list
-                                return [{ id: sid, title: data.title, agent_id: agent.id }, ...prev]
+                                return [{ id: sid!, title: data.title, agent_id: agent.id }, ...prev]
                             }
                         })
                     }
                 })
             }
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e)
-            setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: 'Error al procesar mensaje.' }])
+            setMessages(prev => [...prev.filter(m => m.id !== 'temp-bot'), { id: Date.now().toString(), role: 'assistant', content: `Error: ${e.message || 'No se pudo procesar el mensaje.'}` }])
         } finally {
             setIsLoading(false)
         }
@@ -360,8 +373,8 @@ export default function ChatPage() {
 
             {/* Overlay for mobile when sidebar open */}
             {sidebarOpen && (
-                <div 
-                    className="fixed inset-0 bg-black/30 z-30 md:hidden" 
+                <div
+                    className="fixed inset-0 bg-black/30 z-30 md:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
