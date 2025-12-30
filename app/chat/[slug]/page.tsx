@@ -8,8 +8,8 @@ import {
     Scale, Users, Briefcase, HeadphonesIcon,
     Bot, Brain, Code, Lightbulb, MessageSquare, Sparkles,
     GraduationCap, Heart, ShoppingCart, TrendingUp, Wrench,
-    FileText, Calculator, Globe, Shield, Zap, Mail, Copy, Check,
-    PanelLeftClose, PanelLeft, Search, Database, Mic, MicOff
+    FileText, Calculator, Globe, Shield, Zap, Mail, Copy,
+    PanelLeftClose, PanelLeft, Search, Database, Mic, MicOff, Check, X
 } from 'lucide-react'
 import { marked } from 'marked'
 
@@ -17,6 +17,88 @@ import { marked } from 'marked'
 function wrapTablesInScrollContainer(html: string): string {
     return html.replace(/<table>/g, '<div class="table-wrapper"><table>')
         .replace(/<\/table>/g, '</table></div>')
+}
+
+// Real-time Wave Visualizer for Voice Input
+const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+    const audioContextRef = useRef<AudioContext | null>(null)
+    const analyserRef = useRef<AnalyserNode | null>(null)
+    const dataArrayRef = useRef<Uint8Array | null>(null)
+    const animationRef = useRef<number | null>(null)
+
+    useEffect(() => {
+        if (!isRecording) {
+            if (animationRef.current) cancelAnimationFrame(animationRef.current)
+            return
+        }
+
+        const startAudio = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext
+                const audioContext = new AudioContextClass()
+                const analyser = audioContext.createAnalyser()
+                const source = audioContext.createMediaStreamSource(stream)
+
+                analyser.fftSize = 64
+                source.connect(analyser)
+
+                const bufferLength = analyser.frequencyBinCount
+                const dataArray = new Uint8Array(bufferLength)
+
+                audioContextRef.current = audioContext
+                analyserRef.current = analyser
+                dataArrayRef.current = dataArray
+
+                const draw = () => {
+                    if (!canvasRef.current || !analyserRef.current || !dataArrayRef.current) return
+                    const canvas = canvasRef.current
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) return
+
+                    const width = canvas.width
+                    const height = canvas.height
+
+                    animationRef.current = requestAnimationFrame(draw)
+                    analyserRef.current.getByteFrequencyData(dataArrayRef.current as any)
+
+                    ctx.clearRect(0, 0, width, height)
+
+                    const barWidth = (width / bufferLength) * 2.5
+                    let x = 0
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = (dataArrayRef.current[i] / 255) * height * 0.8
+
+                        ctx.fillStyle = '#7c3aed' // Adhoc Violet
+                        // Center vertically
+                        ctx.fillRect(x, (height - barHeight) / 2, barWidth - 1, barHeight)
+                        x += barWidth
+                    }
+                }
+                draw()
+            } catch (err) {
+                console.error('Visualizer error:', err)
+            }
+        }
+
+        startAudio()
+
+        return () => {
+            if (animationRef.current) cancelAnimationFrame(animationRef.current)
+            if (audioContextRef.current) audioContextRef.current.close()
+        }
+    }, [isRecording])
+
+    return (
+        <canvas
+            ref={canvasRef}
+            width={300}
+            height={40}
+            className="w-full h-10 opacity-80"
+        />
+    )
 }
 
 interface Agent {
@@ -72,6 +154,7 @@ export default function ChatPage() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
     const [isRecording, setIsRecording] = useState(false)
     const [recognition, setRecognition] = useState<any>(null)
+    const [lastTranscript, setLastTranscript] = useState('')
 
     // Setup Speech Recognition
     useEffect(() => {
@@ -80,16 +163,18 @@ export default function ChatPage() {
             if (SpeechRecognition) {
                 const rec = new SpeechRecognition()
                 rec.lang = 'es-AR'
-                rec.continuous = false
-                rec.interimResults = false
+                rec.continuous = true
+                rec.interimResults = true
 
                 rec.onresult = (event: any) => {
-                    const transcript = event.results[0][0].transcript
-                    setInput(prev => {
-                        const base = prev.trim()
-                        return base ? `${base} ${transcript}` : transcript
-                    })
-                    setIsRecording(false)
+                    let interim = ''
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            setLastTranscript(prev => prev + event.results[i][0].transcript)
+                        } else {
+                            interim += event.results[i][0].transcript
+                        }
+                    }
                 }
 
                 rec.onerror = (event: any) => {
@@ -98,7 +183,7 @@ export default function ChatPage() {
                 }
 
                 rec.onend = () => {
-                    setIsRecording(false)
+                    // Do not auto-close unless error
                 }
 
                 setRecognition(rec)
@@ -106,22 +191,28 @@ export default function ChatPage() {
         }
     }, [])
 
-    const toggleRecording = () => {
-        if (!recognition) {
-            alert('Tu navegador no soporta reconocimiento de voz.')
-            return
-        }
-        if (isRecording) {
-            recognition.stop()
-        } else {
-            try {
-                recognition.start()
-                setIsRecording(true)
-            } catch (e) {
-                recognition.stop()
-                setIsRecording(false)
-            }
-        }
+    const startRecording = () => {
+        if (!recognition) return
+        setLastTranscript('')
+        recognition.start()
+        setIsRecording(true)
+    }
+
+    const cancelRecording = () => {
+        if (!recognition) return
+        recognition.stop()
+        setLastTranscript('')
+        setIsRecording(false)
+    }
+
+    const confirmRecording = () => {
+        if (!recognition) return
+        recognition.stop()
+        setInput(prev => {
+            const base = prev.trim()
+            return base ? `${base} ${lastTranscript}` : lastTranscript
+        })
+        setIsRecording(false)
     }
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -489,28 +580,55 @@ export default function ChatPage() {
 
                 <div className="p-4 bg-white border-t border-adhoc-lavender/30">
                     <div className="max-w-3xl mx-auto relative">
-                        <textarea
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                            placeholder={agent.placeholder_text}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-4 pr-24 py-3 resize-none focus:outline-none focus:border-adhoc-violet focus:ring-2 focus:ring-adhoc-lavender/50 focus:bg-white transition-all"
-                            rows={1}
-                        />
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                            {recognition && (
-                                <button
-                                    onClick={toggleRecording}
-                                    className={`p-2.5 rounded-xl transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                                    title={isRecording ? 'Detener grabación' : 'Dictar mensaje'}
-                                >
-                                    {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                                </button>
-                            )}
-                            <button onClick={handleSend} disabled={isLoading || !input.trim()} className="p-2.5 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 hover:shadow-md transition-all disabled:opacity-50">
-                                <Send className="w-4 h-4" />
-                            </button>
-                        </div>
+                        {isRecording ? (
+                            <div className="w-full bg-gray-50 border border-adhoc-violet/30 rounded-2xl px-4 py-3 flex items-center gap-4 animate-in fade-in zoom-in duration-300">
+                                <div className="flex-1 flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                                    <AudioVisualizer isRecording={isRecording} />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={cancelRecording}
+                                        className="p-2.5 bg-gray-200 text-gray-600 rounded-xl hover:bg-gray-300 transition-colors"
+                                        title="Cancelar"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={confirmRecording}
+                                        className="p-2.5 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 shadow-md transition-all"
+                                        title="Terminar y revisar"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="relative">
+                                <textarea
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+                                    placeholder={agent.placeholder_text}
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-4 pr-24 py-3 resize-none focus:outline-none focus:border-adhoc-violet focus:ring-2 focus:ring-adhoc-lavender/50 focus:bg-white transition-all"
+                                    rows={1}
+                                />
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                    {recognition && (
+                                        <button
+                                            onClick={startRecording}
+                                            className="p-2.5 bg-gray-100 text-gray-500 hover:bg-gray-200 rounded-xl transition-all"
+                                            title="Dictar mensaje"
+                                        >
+                                            <Mic className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <button onClick={handleSend} disabled={isLoading || !input.trim()} className="p-2.5 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 hover:shadow-md transition-all disabled:opacity-50">
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <p className="text-center text-xs text-gray-400 mt-2">IA puede cometer errores.</p>
                 </div>
