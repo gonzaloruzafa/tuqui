@@ -14,8 +14,7 @@ export async function addUser(formData: FormData) {
         }
 
         const email = (formData.get('email') as string)?.toLowerCase().trim()
-        const role = formData.get('role') as string || 'user'
-        const is_admin = role === 'admin'
+        const is_admin = formData.get('role') === 'admin'
 
         if (!email) throw new Error('Email es requerido')
 
@@ -27,7 +26,6 @@ export async function addUser(formData: FormData) {
             .upsert({
                 email,
                 tenant_id: session.tenant.id,
-                role,
                 is_admin
             }, { onConflict: 'email' })
 
