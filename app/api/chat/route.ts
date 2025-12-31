@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
     }
 
-    const { agentSlug, messages, sessionId } = body
+    const { agentSlug, messages, sessionId, voiceMode } = body
     const tenantId = session.tenant.id
 
     console.log('[Chat] Request:', { agentSlug, sessionId, messagesCount: messages?.length })
@@ -84,7 +84,11 @@ export async function POST(req: Request) {
         // Add context persistence rule
         systemSystem += '\n\nIMPORTANTE: Estás en una conversación fluida. Usa siempre los mensajes anteriores para entender referencias como "él", "eso", "ahora", o "qué productos?". No pidas aclaraciones si el contexto ya está en el historial.'
 
-        if (agent.rag_enabled) {
+        if (voiceMode) {
+            systemSystem += '\n\nREGLA PARA VOZ: Sé extremadamente conciso. Respuestas de máximo 2 oraciones, tipo telegrama elegante. No des rodeos ni explicaciones largas excepto que te lo pidan explícitamente.'
+        }
+
+        if (agent.rag_enabled && !voiceMode) {
             try {
                 console.log(`[Chat] RAG enabled for agent ${agent.slug}. Searching for: "${inputContent.substring(0, 50)}..."`)
                 const docs = await searchDocuments(tenantId, agent.id, inputContent)

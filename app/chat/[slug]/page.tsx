@@ -4,14 +4,16 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import {
-    Send, Loader2, ArrowLeft,
+    Send, Loader2, ArrowLeft, ArrowUp,
     Scale, Users, Briefcase, HeadphonesIcon,
     Bot, Brain, Code, Lightbulb, MessageSquare, Sparkles,
     GraduationCap, Heart, ShoppingCart, TrendingUp, Wrench,
     FileText, Calculator, Globe, Shield, Zap, Mail, Copy,
-    PanelLeftClose, PanelLeft, Search, Database, Mic, MicOff, Check, X
+    PanelLeftClose, PanelLeft, Search, Database, Mic, MicOff, Check, X,
+    AudioLines
 } from 'lucide-react'
 import { marked } from 'marked'
+import { VoiceChat } from '@/components/chat/VoiceChat'
 
 // Helper to wrap tables in scrollable div
 function wrapTablesInScrollContainer(html: string): string {
@@ -40,6 +42,12 @@ const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
                 const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext
                 const audioContext = new AudioContextClass()
+
+                // CRITICAL FOR MOBILE: Resume context after user interaction
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume()
+                }
+
                 const analyser = audioContext.createAnalyser()
                 const source = audioContext.createMediaStreamSource(stream)
 
@@ -134,6 +142,10 @@ interface Agent {
     icon: string
     welcome_message: string
     placeholder_text: string
+    system_prompt?: string
+    description?: string
+    tools: string[]
+    rag_enabled: boolean
 }
 
 interface Message {
@@ -181,6 +193,7 @@ export default function ChatPage() {
     const [isRecording, setIsRecording] = useState(false)
     const [recognition, setRecognition] = useState<any>(null)
     const [lastTranscript, setLastTranscript] = useState('')
+    const [isVoiceOpen, setIsVoiceOpen] = useState(false)
     const transcriptRef = useRef('')
 
     // Setup Speech Recognition
@@ -492,7 +505,7 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="h-screen flex bg-white overflow-hidden relative font-sans">
+        <div className="h-[100dvh] flex bg-white overflow-hidden relative font-sans">
 
             {/* Sidebar */}
             <aside className={`
@@ -581,11 +594,16 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto p-4">
                     <div className="max-w-3xl mx-auto space-y-6">
                         {messages.length === 0 && (
-                            <div className="text-center mt-20">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-adhoc-lavender/30 flex items-center justify-center">
+                            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-adhoc-lavender/30 flex items-center justify-center shadow-lg shadow-adhoc-lavender/20">
                                     {getAgentIcon(agent.icon, 'lg', 'text-adhoc-violet')}
                                 </div>
-                                <h2 className="text-xl font-medium mb-2">{agent.welcome_message}</h2>
+                                <h1 className="text-2xl font-display font-bold text-gray-900 mb-3 leading-tight tracking-tight">
+                                    {agent.welcome_message}
+                                </h1>
+                                <p className="text-gray-500 max-w-sm mx-auto text-sm leading-relaxed">
+                                    {agent.description || 'Consultame lo que necesites, estoy para ayudarte.'}
+                                </p>
                             </div>
                         )}
 
@@ -610,61 +628,92 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                <div className="p-4 bg-white border-t border-adhoc-lavender/30">
-                    <div className="max-w-3xl mx-auto relative">
+                <div className="p-3 md:p-6 bg-white border-t border-adhoc-lavender/20 pb-[env(safe-area-inset-bottom,12px)] md:pb-6">
+                    <div className="max-w-3xl mx-auto">
                         {isRecording ? (
-                            <div className="w-full bg-gray-50 border border-adhoc-violet/30 rounded-2xl px-4 py-3 flex items-center gap-4 animate-in fade-in zoom-in duration-300">
-                                <div className="flex-1 flex items-center gap-3">
+                            <div className="w-full bg-gray-50 border border-adhoc-violet/30 rounded-full px-4 py-2 flex items-center gap-3 animate-in fade-in zoom-in duration-300 shadow-sm">
+                                <div className="flex-1 flex items-center gap-2 overflow-hidden">
                                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
                                     <AudioVisualizer isRecording={isRecording} />
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                     <button
                                         onClick={cancelRecording}
-                                        className="p-2.5 bg-gray-200 text-gray-600 rounded-xl hover:bg-gray-300 transition-colors"
+                                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                                         title="Cancelar"
                                     >
-                                        <X className="w-4 h-4" />
+                                        <X className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={confirmRecording}
-                                        className="p-2.5 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 shadow-md transition-all"
+                                        className="p-2 bg-adhoc-violet text-white rounded-full hover:bg-adhoc-violet/90 shadow-sm transition-all"
                                         title="Terminar y revisar"
                                     >
-                                        <Check className="w-4 h-4" />
+                                        <Check className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative">
+                            <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-[24px] focus-within:border-adhoc-violet focus-within:ring-1 focus-within:ring-adhoc-violet/20 focus-within:bg-white transition-all p-1.5 px-3 group shadow-sm">
                                 <textarea
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
                                     placeholder={agent.placeholder_text}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-4 pr-24 py-3 resize-none focus:outline-none focus:border-adhoc-violet focus:ring-2 focus:ring-adhoc-lavender/50 focus:bg-white transition-all"
+                                    className="flex-1 bg-transparent border-none rounded-2xl pl-2 pr-2 py-2.5 resize-none focus:outline-none min-h-[44px] max-h-[200px] text-[15px] leading-relaxed"
                                     rows={1}
                                 />
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                <div className="flex items-center gap-1 pb-1">
                                     {recognition && (
                                         <button
                                             onClick={startRecording}
-                                            className="p-2.5 bg-gray-100 text-gray-500 hover:bg-gray-200 rounded-xl transition-all"
+                                            className="p-2 text-gray-400 hover:text-adhoc-violet hover:bg-adhoc-lavender/20 rounded-full transition-all"
                                             title="Dictar mensaje"
                                         >
-                                            <Mic className="w-4 h-4" />
+                                            <Mic className="w-5 h-5" />
                                         </button>
                                     )}
-                                    <button onClick={handleSend} disabled={isLoading || !input.trim()} className="p-2.5 bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 hover:shadow-md transition-all disabled:opacity-50">
-                                        <Send className="w-4 h-4" />
-                                    </button>
+                                    {input.trim().length > 0 ? (
+                                        <button
+                                            onClick={handleSend}
+                                            disabled={isLoading}
+                                            className="p-2 bg-adhoc-violet text-white rounded-full hover:bg-adhoc-violet/90 shadow-sm transition-all disabled:opacity-50"
+                                            title="Enviar mensaje"
+                                        >
+                                            <ArrowUp className="w-5 h-5" />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => setIsVoiceOpen(true)}
+                                            className="p-2 bg-adhoc-coral text-white rounded-full hover:bg-adhoc-coral/90 shadow-sm transition-all flex items-center justify-center animate-in zoom-in duration-300"
+                                            title="Voz en tiempo real"
+                                        >
+                                            <AudioLines className="w-5 h-5" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
+                        <p className="text-center text-[10px] text-gray-400 mt-2">IA puede cometer errores.</p>
                     </div>
-                    <p className="text-center text-xs text-gray-400 mt-2">IA puede cometer errores.</p>
                 </div>
             </div>
+
+            <VoiceChat
+                isOpen={isVoiceOpen}
+                onClose={() => setIsVoiceOpen(false)}
+                agentSlug={agentSlug}
+                sessionId={currentSessionId}
+                systemPrompt={agent.system_prompt || ''}
+                onAddMessage={(role: 'user' | 'assistant', content: string) => {
+                    setMessages(prev => [...prev, {
+                        id: Date.now().toString(),
+                        role,
+                        content,
+                        rawContent: content
+                    }])
+                }}
+            />
         </div>
     )
 }

@@ -149,12 +149,30 @@ create table if not exists agent_documents (
 alter table agents add column if not exists rag_strict boolean default false;
 alter table agents add column if not exists tools text[] default '{}';
 
--- Enable RLS
-alter table company_info enable row level security;
-create policy "Enable access for tenant" on company_info for all using (true) with check (true);
+-- ===========================================
+-- RLS CONFIGURATION (Security Advisor Fixes)
+-- ===========================================
 
-alter table agent_documents enable row level security;
-create policy "Enable access for tenant" on agent_documents for all using (true) with check (true);
+-- 1. Enable RLS and Create Policies for ALL tables in public schema
+do $$
+declare
+  t text;
+begin
+  for t in select table_name 
+           from information_schema.tables 
+           where table_schema = 'public' 
+           and table_type = 'BASE TABLE'
+           and table_name != 'schema_migrations' -- Skip migrations if exists
+  loop
+    -- Enable RLS
+    execute format('alter table %I enable row level security', t);
+    
+    -- Create permissive policy
+    execute format('drop policy if exists "Enable access for tenant" on %I', t);
+    execute format('create policy "Enable access for tenant" on %I for all using (true) with check (true)', t);
+  end loop;
+end;
+$$;
 
 
 -- ===========================================
