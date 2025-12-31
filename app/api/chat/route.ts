@@ -180,6 +180,8 @@ export async function POST(req: Request) {
             // to make the client implementation simpler and avoiding parsing SSE
             if (voiceMode) {
                 const { generateText } = await import('ai')
+                const hasActiveTools = Object.keys(tools).length > 0
+
                 const result = await generateText({
                     model: google('gemini-2.0-flash'),
                     system: systemSystem,
@@ -187,7 +189,8 @@ export async function POST(req: Request) {
                         role: m.role as 'user' | 'assistant' | 'system',
                         content: m.content
                     })),
-                })
+                    ...(hasActiveTools ? { tools, maxSteps: 5 } : {})
+                } as any) // Cast to any to bypass strict type check for experimental/new AI SDK versions
 
                 // Track usage
                 try {
@@ -207,8 +210,7 @@ export async function POST(req: Request) {
                     role: m.role as 'user' | 'assistant' | 'system',
                     content: m.content
                 })),
-                // Note: tools disabled for non-Odoo agents due to Gemini SDK compatibility issues
-                // tools,
+                ...(Object.keys(tools).length > 0 ? { tools, maxSteps: 5 } : {}),
                 onFinish: async (event: any) => {
                     // 6. Async Billing Tracking (After processing)
                     try {
