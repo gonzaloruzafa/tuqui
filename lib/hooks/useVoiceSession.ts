@@ -19,7 +19,7 @@ interface UseVoiceSessionReturn {
     clearError: () => void
 }
 
-const SILENCE_TIMEOUT = 500 // Reduced for faster response, was 800
+const SILENCE_TIMEOUT = 800
 const MIN_TRANSCRIPT_LENGTH = 2
 
 export function useVoiceSession(language: string = 'es-AR'): UseVoiceSessionReturn {

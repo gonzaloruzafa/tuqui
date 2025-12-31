@@ -705,6 +705,7 @@ export default function ChatPage() {
                 agentSlug={agentSlug}
                 sessionId={currentSessionId}
                 systemPrompt={agent.system_prompt || ''}
+                messages={messages}
                 onAddMessage={(role: 'user' | 'assistant', content: string) => {
                     setMessages(prev => [...prev, {
                         id: Date.now().toString(),

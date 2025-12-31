@@ -9,6 +9,7 @@ interface VoiceChatProps {
     agentSlug: string
     sessionId: string | null
     systemPrompt: string
+    messages: any[]
 }
 
 const statusMessages: Record<VoiceSessionStatus, string> = {
@@ -27,7 +28,7 @@ const statusColors: Record<VoiceSessionStatus, string> = {
     error: 'bg-red-600'
 }
 
-export function VoiceChat({ isOpen, onClose, onAddMessage, agentSlug, sessionId, systemPrompt }: VoiceChatProps) {
+export function VoiceChat({ isOpen, onClose, onAddMessage, agentSlug, sessionId, systemPrompt, messages }: VoiceChatProps) {
     const hasStartedRef = useRef(false)
     const [displayedText, setDisplayedText] = useState<string>('')
     const typingIntervalRef = useRef<number | null>(null)
@@ -55,13 +56,18 @@ export function VoiceChat({ isOpen, onClose, onAddMessage, agentSlug, sessionId,
         }
 
         try {
-            // In voice mode we call the same chat API but optimized for speed
+            // Include message history for context
+            const fullMessages = [
+                ...messages.map(m => ({ role: m.role, content: m.content })),
+                { role: 'user', content: text }
+            ]
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     agentSlug,
-                    messages: [{ role: 'user', content: text }], // simplified for speed in voice
+                    messages: fullMessages,
                     sessionId,
                     voiceMode: true
                 })
@@ -92,10 +98,11 @@ export function VoiceChat({ isOpen, onClose, onAddMessage, agentSlug, sessionId,
                 setTimeout(() => startListening(handleFinalTranscript), 100)
             })
         } catch (err) {
+            console.error('[VoiceChat] API error:', err)
             setDisplayedText('Disculpá, hubo un error.')
             setTimeout(() => startListening(handleFinalTranscript), 800)
         }
-    }, [speak, startListening, onAddMessage, agentSlug, sessionId])
+    }, [speak, startListening, onAddMessage, agentSlug, sessionId, messages])
 
     useEffect(() => {
         console.log('[VoiceChat] useEffect triggered - isOpen:', isOpen, 'isSupported:', isSupported, 'hasStarted:', hasStartedRef.current)

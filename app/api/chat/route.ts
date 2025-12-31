@@ -116,6 +116,7 @@ export async function POST(req: Request) {
                 // Convert message history to Gemini Content[] format
                 // Limit to last 20 messages to avoid context overflow
                 const MAX_HISTORY = 20
+                const SILENCE_TIMEOUT = 800
                 const historyMessages = messages.slice(
                     Math.max(0, messages.length - 1 - MAX_HISTORY),
                     -1  // Exclude last message (will be sent as userMessage)
@@ -175,11 +176,32 @@ export async function POST(req: Request) {
                 console.error('[Chat] Error loading tools:', toolsError)
             }
 
-            // Use faster model for voice mode to reduce latency
-            const modelName = voiceMode ? 'gemini-1.5-flash' : 'gemini-2.0-flash'
-            console.log('[Chat] Calling streamText with model:', modelName, 'voiceMode:', voiceMode)
+            // If voiceMode is ON, we want a simple text response, not a stream
+            // to make the client implementation simpler and avoiding parsing SSE
+            if (voiceMode) {
+                const { generateText } = await import('ai')
+                const result = await generateText({
+                    model: google('gemini-2.0-flash'),
+                    system: systemSystem,
+                    messages: messages.map((m: any) => ({
+                        role: m.role as 'user' | 'assistant' | 'system',
+                        content: m.content
+                    })),
+                })
+
+                // Track usage
+                try {
+                    await trackUsage(tenantId, session.user.email!, result.usage.totalTokens || 0)
+                } catch (e) {
+                    console.error('[Chat] Failed to track usage:', e)
+                }
+
+                return new Response(result.text)
+            }
+
+            console.log('[Chat] Calling streamText with model: gemini-2.0-flash')
             const result = streamText({
-                model: google(modelName),
+                model: google('gemini-2.0-flash'),
                 system: systemSystem,
                 messages: messages.map((m: any) => ({
                     role: m.role as 'user' | 'assistant' | 'system',
