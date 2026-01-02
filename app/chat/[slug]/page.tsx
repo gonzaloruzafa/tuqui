@@ -200,12 +200,23 @@ export default function ChatPage() {
         }
     }, [])
 
-    const startRecording = () => {
+    const startRecording = async () => {
         if (!recognition) return
         setLastTranscript('')
         transcriptRef.current = ''
-        recognition.start()
-        setIsRecording(true)
+        
+        // Request mic permission first (required for mobile and some desktop browsers)
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            // Stop the stream immediately - we just need the permission
+            stream.getTracks().forEach(track => track.stop())
+            
+            recognition.start()
+            setIsRecording(true)
+        } catch (err) {
+            console.error('Mic permission denied:', err)
+            // Optionally show error to user
+        }
     }
 
     const cancelRecording = () => {
@@ -480,8 +491,8 @@ export default function ChatPage() {
 
             {/* Sidebar */}
             <aside className={`
-          ${sidebarOpen ? 'w-[260px]' : 'w-0 -ml-[260px] md:ml-0 md:w-0'}
-          relative h-full z-40 bg-white flex flex-col transition-all duration-300 ease-in-out border-r border-adhoc-lavender/30 overflow-hidden shrink-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          fixed md:relative top-0 left-0 h-full z-40 bg-white flex flex-col transition-transform duration-300 ease-in-out border-r border-adhoc-lavender/30 w-[260px] shadow-xl md:shadow-none
       `}>
                 <div className="p-3 flex items-center justify-between border-b border-gray-200/50 h-14">
                     {/* Logo */}
@@ -532,7 +543,7 @@ export default function ChatPage() {
                 {/* User bottom section could go here */}
             </aside>
 
-            {/* Mobile overlay when sidebar open */}
+            {/* Overlay for mobile when sidebar open */}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/30 z-30 md:hidden"
@@ -542,21 +553,21 @@ export default function ChatPage() {
 
             {/* Main Chat */}
             <div className="flex-1 flex flex-col min-w-0 h-full relative">
-                <header className="h-14 border-b border-adhoc-lavender/30 flex items-center px-3 md:px-4 justify-between bg-white z-10 shrink-0">
-                    <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                <header className="h-14 border-b border-adhoc-lavender/30 flex items-center px-4 justify-between bg-white z-10 shrink-0">
+                    <div className="flex items-center gap-3">
                         {/* Toggle sidebar */}
-                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 md:p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors flex-shrink-0">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors">
                             {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
                         </button>
-                        {/* Logo - visible when sidebar collapsed, hidden on mobile to save space */}
+                        {/* Logo - always visible when sidebar collapsed */}
                         {!sidebarOpen && (
-                            <img src="/adhoc-logo.png" alt="Adhoc" className="h-6 md:h-7 w-auto hidden md:block" />
+                            <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto" />
                         )}
-                        {!sidebarOpen && <div className="h-6 w-px bg-adhoc-lavender/50 mx-1 hidden md:block"></div>}
-                        <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center flex-shrink-0">
+                        {!sidebarOpen && <div className="h-6 w-px bg-adhoc-lavender/50 mx-1"></div>}
+                        <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center">
                             {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
                         </div>
-                        <span className="font-medium text-gray-800 truncate">{agent.name}</span>
+                        <span className="font-medium text-gray-800">{agent.name}</span>
                     </div>
                     {/* Right side: Admin link */}
                     <div className="flex items-center gap-2">
@@ -573,11 +584,13 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto p-4">
                     <div className="max-w-3xl mx-auto space-y-6">
                         {messages.length === 0 && (
-                            <div className="text-center mt-20">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-adhoc-lavender/30 flex items-center justify-center">
+                            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-adhoc-lavender/30 flex items-center justify-center">
                                     {getAgentIcon(agent.icon, 'lg', 'text-adhoc-violet')}
                                 </div>
-                                <h2 className="text-xl font-medium mb-2">¿En qué puedo ayudarte?</h2>
+                                <h1 className="text-xl font-medium text-gray-700">
+                                    ¿En qué puedo ayudarte?
+                                </h1>
                             </div>
                         )}
 
@@ -605,34 +618,27 @@ export default function ChatPage() {
                 <div className="p-3 md:p-6 bg-white border-t border-adhoc-lavender/20 pb-[env(safe-area-inset-bottom,12px)] md:pb-6">
                     <div className="max-w-3xl mx-auto">
                         {isRecording ? (
-                            <div className="w-full bg-gray-50 border border-adhoc-violet/30 rounded-2xl px-4 py-3 flex flex-col gap-2 animate-in fade-in zoom-in duration-300 shadow-sm">
-                                <div className="flex items-center gap-3">
+                            <div className="w-full bg-gray-50 border border-adhoc-violet/30 rounded-full px-4 py-2 flex items-center gap-3 animate-in fade-in zoom-in duration-300 shadow-sm">
+                                <div className="flex-1 flex items-center gap-2 overflow-hidden">
                                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-                                    <div className="flex-1">
-                                        <AudioVisualizer isRecording={isRecording} />
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={cancelRecording}
-                                            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                                            title="Cancelar"
-                                        >
-                                            <X className="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            onClick={confirmRecording}
-                                            className="p-2 bg-adhoc-violet text-white rounded-full hover:bg-adhoc-violet/90 shadow-sm transition-all"
-                                            title="Terminar y revisar"
-                                        >
-                                            <Check className="w-5 h-5" />
-                                        </button>
-                                    </div>
+                                    <AudioVisualizer isRecording={isRecording} />
                                 </div>
-                                {lastTranscript && (
-                                    <div className="text-sm text-gray-600 px-1 truncate">
-                                        {lastTranscript}
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={cancelRecording}
+                                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        title="Cancelar"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={confirmRecording}
+                                        className="p-2 bg-adhoc-violet text-white rounded-full hover:bg-adhoc-violet/90 shadow-sm transition-all"
+                                        title="Terminar y revisar"
+                                    >
+                                        <Check className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-[24px] focus-within:border-adhoc-violet focus-within:ring-1 focus-within:ring-adhoc-violet/20 focus-within:bg-white transition-all p-1.5 px-3 group shadow-sm">
