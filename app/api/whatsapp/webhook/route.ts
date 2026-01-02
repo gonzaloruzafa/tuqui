@@ -18,12 +18,16 @@ export async function POST(req: NextRequest) {
     console.log('[WhatsApp] Webhook received')
 
     try {
-        const formData = await req.formData()
-        const from = formData.get('From')?.toString() // whatsapp:+549...
-        const body = formData.get('Body')?.toString()
+        const rawBody = await req.text()
+        console.log('[WhatsApp] Raw payload:', rawBody)
+
+        const params = new URLSearchParams(rawBody)
+        const from = params.get('From')
+        const body = params.get('Body')
 
         if (!from || !body) {
-            return new Response('Missing From or Body', { status: 400 })
+            console.log('[WhatsApp] Invalid payload. Params:', Object.fromEntries(params.entries()))
+            return new Response(`Missing From or Body. Received keys: ${Array.from(params.keys()).join(', ')}`, { status: 400 })
         }
 
         console.log(`[WhatsApp] Incoming from ${from}: ${body}`)
