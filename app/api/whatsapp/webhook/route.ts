@@ -97,6 +97,13 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('[WhatsApp] Webhook Error:', error)
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 })
+        return new Response(JSON.stringify({
+            error: error.message,
+            stack: error.stack,
+            hint: 'Check if whatsapp_phone column exists and environment variables are set'
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        })
     }
 }
