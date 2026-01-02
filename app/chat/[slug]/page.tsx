@@ -182,6 +182,7 @@ export default function ChatPage() {
                     for (let i = 0; i < event.results.length; ++i) {
                         totalTranscript += event.results[i][0].transcript
                     }
+                    console.log('[Speech] Transcript:', totalTranscript)
                     setLastTranscript(totalTranscript)
                     transcriptRef.current = totalTranscript
                 }
@@ -192,7 +193,9 @@ export default function ChatPage() {
                 }
 
                 rec.onend = () => {
-                    // Do not auto-close unless error
+                    console.log('[Speech] onend - isRecording:', isRecording, 'transcript:', transcriptRef.current)
+                    // On mobile, recognition may auto-stop. Don't restart or clear the transcript.
+                    // User must manually confirm to keep transcript.
                 }
 
                 setRecognition(rec)
@@ -202,6 +205,7 @@ export default function ChatPage() {
 
     const startRecording = async () => {
         if (!recognition) return
+        console.log('[Speech] Starting recording...')
         setLastTranscript('')
         transcriptRef.current = ''
         
@@ -213,6 +217,7 @@ export default function ChatPage() {
             
             recognition.start()
             setIsRecording(true)
+            console.log('[Speech] Recording started')
         } catch (err) {
             console.error('Mic permission denied:', err)
             // Optionally show error to user
@@ -221,6 +226,7 @@ export default function ChatPage() {
 
     const cancelRecording = () => {
         if (!recognition) return
+        console.log('[Speech] Canceling recording')
         recognition.stop()
         setLastTranscript('')
         transcriptRef.current = ''
@@ -229,9 +235,11 @@ export default function ChatPage() {
 
     const confirmRecording = () => {
         if (!recognition) return
+        console.log('[Speech] Confirming recording, transcript:', transcriptRef.current)
         recognition.stop()
 
         const finalTranscript = transcriptRef.current.trim()
+        console.log('[Speech] Final transcript:', finalTranscript)
         if (finalTranscript) {
             setInput(prev => {
                 const base = prev.trim()
@@ -240,6 +248,8 @@ export default function ChatPage() {
         }
 
         setIsRecording(false)
+        setLastTranscript('')
+        transcriptRef.current = ''
     }
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -646,8 +656,8 @@ export default function ChatPage() {
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                                    placeholder={agent.placeholder_text}
-                                    className="flex-1 bg-transparent border-none rounded-2xl pl-2 pr-2 py-2.5 resize-none focus:outline-none min-h-[44px] max-h-[200px] text-[15px] leading-relaxed"
+                                    placeholder="Preguntale lo que quieras a Tuqui"
+                                    className="flex-1 bg-transparent border-none rounded-2xl pl-2 pr-2 py-2.5 resize-none focus:outline-none min-h-[44px] max-h-[200px] text-[15px] leading-relaxed placeholder:text-ellipsis"
                                     rows={1}
                                 />
                                 <div className="flex items-center gap-1 pb-1">
