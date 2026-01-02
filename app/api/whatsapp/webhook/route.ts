@@ -7,6 +7,7 @@ import { getToolsForAgent } from '@/lib/tools/executor'
 import { getMasterClient } from '@/lib/supabase/master'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
+import { getOrCreateWhatsAppSession, getSessionMessages, saveMessage } from '@/lib/supabase/chat-history'
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
         // Check if this is a Twilio Debugger event instead of a message
         if (params.has('Payload')) {
             console.log('[WhatsApp] Ignoring Twilio Debugger event')
-            return new Response('OK (Debugger event ignored)', { status: 200 })
+            return new Response('<Response></Response>', { status: 200, headers: { 'Content-Type': 'text/xml' } })
         }
 
         const from = params.get('From')
@@ -41,8 +42,6 @@ export async function POST(req: NextRequest) {
 
         // 1. Lookup Tenant by Phone
         const tenantInfo = await getTenantByPhone(from)
-        console.log(`[WhatsApp] Lookup result for ${from}:`, tenantInfo ? 'Found' : 'NOT FOUND')
-
         if (!tenantInfo) {
             console.log(`[WhatsApp] Unauthorized phone: ${from}`)
             return new Response(`Unauthorized phone: ${from}`, { status: 401 })
@@ -51,27 +50,35 @@ export async function POST(req: NextRequest) {
         const { id: tenantId, schema, userEmail } = tenantInfo
         console.log(`[WhatsApp] Routed to Tenant: ${tenantId} (${schema}) for ${userEmail}`)
 
-        // 2. Load Orchestrator Agent (default or based on keywords)
+        // 2. Load Agent
         const { getAgentsForTenant } = await import('@/lib/agents/service')
         const allAgents = await getAgentsForTenant(tenantId)
-        console.log(`[WhatsApp] Available agents for tenant ${tenantId}:`, allAgents.map(a => a.slug).join(', '))
 
         if (allAgents.length === 0) {
             console.error(`[WhatsApp] No agents found for tenant ${tenantId}`)
             await sendWhatsApp(tenantId, from, "Lo siento, no tenés agentes configurados. Por favor contacta a soporte.")
-            return new Response('No agents found', { status: 404 })
+            return new Response('<Response></Response>', { status: 200, headers: { 'Content-Type': 'text/xml' } })
         }
 
         // Try to find a default agent: tuqui-chat or the first one available
         const preferredSlug = 'tuqui-chat'
         let agent = allAgents.find(a => a.slug === preferredSlug) || allAgents[0]
-
         console.log(`[WhatsApp] selected Agent: ${agent.slug} (${agent.id})`)
 
-        // 3. Prepare AI Context
-        const systemPrompt = agent.system_prompt || ''
+        // 3. Chat History & Session
+        const sessionId = await getOrCreateWhatsAppSession(tenantId, agent.id, userEmail)
+        const history = await getSessionMessages(tenantId, sessionId)
+        console.log(`[WhatsApp] Session ${sessionId} loaded with ${history.length} messages`)
 
-        // Fetch company context if exists
+        // Save USER message to history
+        await saveMessage(tenantId, sessionId, 'user', body)
+
+        // 4. Determine Execution Path (Standard vs Odoo)
+        let responseText = ""
+        const hasOdooTools = agent.tools?.some(t => t.startsWith('odoo'))
+
+        // Prepare System Prompt
+        const basePrompt = agent.system_prompt || ''
         const master = getMasterClient()
         const { data: tenantData } = await master
             .from('tenants')
@@ -80,45 +87,70 @@ export async function POST(req: NextRequest) {
             .single()
 
         const companyContext = tenantData?.company_context ? `CONTEXTO DE LA EMPRESA:\n${tenantData.company_context}\n\n` : ''
-        const fullSystemPrompt = `${companyContext}${systemPrompt}`
+        const fullSystemPrompt = `${companyContext}${basePrompt}\n\nIMPORTANTE: Estás en WhatsApp. Sé conciso pero útil. No pidas aclaraciones innecesarias si el contexto ya está en el historial.`
 
-        // 4. RAG Search (Optional but recommended)
-        let ragContext = ""
-        try {
-            const searchResults = await searchDocuments(tenantId, agent.id, body, 3)
-            if (searchResults.length > 0) {
-                ragContext = "\n\nINFORMACIÓN RELEVANTE:\n" + searchResults.map(r => r.content).join("\n---\n")
+        if (hasOdooTools) {
+            // Path A: Odoo BI Agent (Native Loop)
+            console.log('[WhatsApp] Using Odoo BI Agent loop')
+            const { chatWithOdoo } = await import('@/lib/tools/gemini-odoo')
+
+            // Convert history for Gemini
+            const geminiHistory = history.map(m => ({
+                role: m.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: m.content }]
+            })) as any[]
+
+            const odooRes = await chatWithOdoo(tenantId, fullSystemPrompt, body, geminiHistory)
+            responseText = odooRes.text
+        } else {
+            // Path B: Standard Agent (AI SDK)
+            console.log('[WhatsApp] Using Standard Agent loop')
+
+            // 4.2 RAG Search
+            let ragContext = ""
+            if (agent.rag_enabled) {
+                try {
+                    const searchResults = await searchDocuments(tenantId, agent.id, body, 3)
+                    if (searchResults.length > 0) {
+                        ragContext = "\n\nINFORMACIÓN RELEVANTE:\n" + searchResults.map(r => r.content).join("\n---\n")
+                    }
+                } catch (e) {
+                    console.error('[WhatsApp] RAG Error:', e)
+                }
             }
-        } catch (e) {
-            console.error('[WhatsApp] RAG Error:', e)
+
+            // 4.3 Load Tools
+            const tools = await getToolsForAgent(tenantId, agent.tools || [])
+
+            const { text } = await generateText({
+                model: google('gemini-2.0-flash'),
+                system: fullSystemPrompt + ragContext,
+                messages: [
+                    ...history.map(m => ({ role: m.role, content: m.content })),
+                    { role: 'user', content: body }
+                ] as any,
+                tools: tools as any,
+                maxSteps: 5
+            } as any)
+            responseText = text
         }
 
-        // 5. Load Tools
-        const tools = await getToolsForAgent(tenantId, agent.tools || [])
+        // 5. Save ASSISTANT message to history
+        await saveMessage(tenantId, sessionId, 'assistant', responseText)
 
-        // 6. Generate Text
-        console.log('[WhatsApp] Invoking Gemini...')
-        const { text } = await generateText({
-            model: google('gemini-2.0-flash'),
-            system: fullSystemPrompt + ragContext,
-            messages: [{ role: 'user', content: body }],
-            tools: tools as any,
-            maxSteps: 5
-        } as any)
-
-        // 7. Send Response back via Twilio
+        // 6. Send Response back via Twilio
         console.log('[WhatsApp] Sending response...')
-        await sendWhatsApp(tenantId, from, text)
+        await sendWhatsApp(tenantId, from, responseText)
 
-        return new Response('OK', { status: 200 })
+        // 7. Return empty TwiML to avoid echo
+        return new Response('<Response></Response>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/xml' }
+        })
 
     } catch (error: any) {
         console.error('[WhatsApp] Webhook Error:', error)
-        return new Response(JSON.stringify({
-            error: error.message,
-            stack: error.stack,
-            hint: 'Check if whatsapp_phone column exists and environment variables are set'
-        }), {
+        return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         })
