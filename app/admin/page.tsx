@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Settings, Users, Database, ArrowLeft, Wrench, Building, Clock } from 'lucide-react'
+import { Brain, Users, Database, ArrowLeft, Wrench, Building, Clock } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 
@@ -14,9 +14,9 @@ export default async function AdminPage() {
 
     const cards = [
         {
-            title: 'Agentes',
-            description: 'Gestionar asistentes activos y sus prompts.',
-            icon: Settings,
+            title: 'Especialidades',
+            description: 'Áreas de conocimiento que Tuqui puede usar.',
+            icon: Brain,
             href: '/admin/agents',
             color: 'text-adhoc-violet',
             bg: 'bg-adhoc-violet/10',

@@ -10,7 +10,7 @@ import {
     GraduationCap, Heart, ShoppingCart, TrendingUp, Wrench,
     FileText, Calculator, Globe, Shield, Zap, Mail, Copy,
     PanelLeftClose, PanelLeft, Search, Database, Mic, MicOff, Check, X,
-    AudioLines
+    AudioLines, Settings
 } from 'lucide-react'
 import { marked } from 'marked'
 import { VoiceChat } from '@/components/chat/VoiceChat'
@@ -521,13 +521,10 @@ export default function ChatPage() {
           fixed md:relative top-0 left-0 h-full z-40 bg-white flex flex-col transition-transform duration-300 ease-in-out border-r border-adhoc-lavender/30 w-[260px] shadow-xl md:shadow-none
       `}>
                 <div className="p-3 flex items-center justify-between border-b border-gray-200/50 h-14">
-                    {/* Back to Menu Button */}
-                    <Link href="/" className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-200/60 rounded-md text-gray-600 transition-colors group">
-                        <div className="w-6 h-6 rounded-md bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300">
-                            <ArrowLeft className="w-3.5 h-3.5 text-gray-500" />
-                        </div>
-                        <span className="text-sm font-medium">Volver</span>
-                    </Link>
+                    {/* Logo */}
+                    <div className="flex items-center gap-2">
+                        <img src="/adhoc-logo.png" alt="Adhoc" className="h-6 w-auto" />
+                    </div>
 
                     {/* Close Sidebar (Mobile only) */}
                     <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 text-gray-400 hover:text-gray-600">
@@ -587,15 +584,25 @@ export default function ChatPage() {
                         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors">
                             {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
                         </button>
-                        {/* Mobile: quick back to menu */}
-                        <Link href="/" className="md:hidden p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors">
-                            <ArrowLeft className="w-5 h-5" />
-                        </Link>
+                        {/* Logo - visible when sidebar collapsed */}
+                        {!sidebarOpen && (
+                            <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto hidden md:block" />
+                        )}
                         <div className="h-6 w-px bg-adhoc-lavender/50 mx-1 hidden md:block"></div>
                         <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center">
                             {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
                         </div>
                         <span className="font-medium text-gray-800">{agent.name}</span>
+                    </div>
+                    {/* Right side: Admin link */}
+                    <div className="flex items-center gap-2">
+                        <a 
+                            href="/admin" 
+                            className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors"
+                            title="Configuración"
+                        >
+                            <Settings className="w-5 h-5" />
+                        </a>
                     </div>
                 </header>
 
@@ -609,34 +616,9 @@ export default function ChatPage() {
                                 <h1 className="text-2xl font-display font-bold text-gray-900 mb-3 leading-tight tracking-tight">
                                     {agent.welcome_message}
                                 </h1>
-                                <p className="text-gray-500 max-w-sm mx-auto text-sm leading-relaxed mb-8">
-                                    {agent.description || 'Consultame lo que necesites, estoy para ayudarte.'}
+                                <p className="text-gray-500 max-w-md mx-auto text-sm leading-relaxed">
+                                    Puedo ayudarte con datos del ERP, precios de mercado, documentos internos, temas legales y búsquedas web.
                                 </p>
-                                
-                                {/* Capabilities Grid */}
-                                {agent.capabilities && agent.capabilities.length > 0 && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
-                                        {agent.capabilities.map((cap, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => cap.examples[0] && setInput(cap.examples[0])}
-                                                className="text-left p-4 bg-white border border-gray-200 rounded-xl hover:border-adhoc-violet hover:shadow-md transition-all group"
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <span className="text-2xl">{cap.icon}</span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-medium text-gray-900 group-hover:text-adhoc-violet transition-colors">
-                                                            {cap.title}
-                                                        </h3>
-                                                        <p className="text-xs text-gray-500 mt-1">
-                                                            {cap.description}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         )}
 

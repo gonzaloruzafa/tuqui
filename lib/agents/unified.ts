@@ -119,16 +119,7 @@ Podés orientar sobre:
 - No pidas aclaraciones innecesarias si la info está en el historial
 `,
 
-    welcomeMessage: `¡Hola! Soy **Tuqui**, tu asistente de IA empresarial. 
-
-Puedo ayudarte con:
-- 📊 **Datos del ERP** - Ventas, compras, stock, clientes
-- 🛒 **Precios de mercado** - Búsquedas en MercadoLibre
-- 📚 **Documentos internos** - Manuales y procedimientos
-- ⚖️ **Orientación legal** - Leyes, contratos, impuestos
-- 🌐 **Búsqueda web** - Info actualizada
-
-¿En qué puedo ayudarte?`,
+    welcomeMessage: '¿En qué puedo ayudarte hoy?',
 
     placeholderText: 'Preguntale lo que quieras a Tuqui...'
 }
