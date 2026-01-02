@@ -1,12 +1,48 @@
 /**
  * Supabase Module Index
  * 
- * Re-exports for backwards compatibility
+ * Unified Single-Database Architecture with RLS
+ * 
+ * ## Migration from Multi-DB
+ * 
+ * Old pattern (deprecated):
+ * ```typescript
+ * import { getTenantClient } from '@/lib/supabase'
+ * const db = await getTenantClient(tenantId)
+ * ```
+ * 
+ * New pattern (recommended):
+ * ```typescript
+ * import { getClient, setTenantContext } from '@/lib/supabase'
+ * await setTenantContext(tenantId)
+ * const db = getClient()
+ * ```
+ * 
+ * Or with helper:
+ * ```typescript
+ * import { withTenant } from '@/lib/supabase'
+ * const result = await withTenant(tenantId, async (db) => {
+ *     return db.from('table').select('*')
+ * })
+ * ```
  */
 
-export { getMasterClient } from './master'
-export { getTenantClient, getTenantConfig, getTenantForUser, isUserAdmin } from './tenant'
+// Main client and tenant functions
+export {
+    getClient,
+    setTenantContext,
+    withTenant,
+    getTenantForUser,
+    getTenantByPhone,
+    getTenantByTwilioPhone,
+    isUserAdmin,
+    // Backwards compatibility
+    getTenantClient,
+    getMasterClient,
+    // Types
+    type TenantInfo,
+    type UserTenantInfo,
+} from './client'
 
-// Alias for backwards compatibility with some modules
-// supabaseAdmin is a function that returns the client (matching the expected interface)
-export { getMasterClient as supabaseAdmin } from './master'
+// Alias for common patterns
+export { getClient as supabaseAdmin } from './client'

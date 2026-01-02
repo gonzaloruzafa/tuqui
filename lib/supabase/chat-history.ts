@@ -1,5 +1,4 @@
-import { getTenantClient } from './tenant'
-import { getMasterClient } from './master'
+import { getTenantClient, getClient } from './client'
 
 export interface Message {
     role: 'user' | 'assistant'

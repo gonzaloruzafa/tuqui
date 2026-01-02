@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import { Users, Mail } from 'lucide-react'
-import { getMasterClient } from '@/lib/supabase/master'
+import { getClient } from '@/lib/supabase/client'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
@@ -9,7 +9,7 @@ import { addUser } from './actions'
 import { UserList } from './UserList'
 
 async function getTenantUsers(tenantId: string) {
-    const db = getMasterClient()
+    const db = getClient()
     const { data, error } = await db
         .from('users')
         .select('*')

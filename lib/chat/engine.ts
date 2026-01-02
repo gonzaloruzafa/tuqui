@@ -1,4 +1,4 @@
-import { getMasterClient } from '@/lib/supabase/master'
+import { getClient } from '@/lib/supabase/client'
 import { searchDocuments } from '@/lib/rag/search'
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
@@ -34,7 +34,7 @@ export interface ChatEngineResponse {
 
 async function getCompanyContext(tenantId: string): Promise<string | null> {
     try {
-        const db = getMasterClient()
+        const db = getClient()
         const { data, error } = await db
             .from('tenants')
             .select('company_context')

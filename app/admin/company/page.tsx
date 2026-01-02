@@ -1,15 +1,15 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import { Building, Globe, Mail, MapPin, Phone, Save, FileText, Database } from 'lucide-react'
-import { getMasterClient } from '@/lib/supabase/master'
-import { getTenantClient } from '@/lib/supabase/tenant'
+import { getClient } from '@/lib/supabase/client'
+import { getTenantClient } from '@/lib/supabase/client'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
 import { revalidatePath } from 'next/cache'
 
 async function getTenantData(tenantId: string) {
-    const db = getMasterClient()
+    const db = getClient()
     const { data, error } = await db
         .from('tenants')
         .select('*')
@@ -44,7 +44,7 @@ async function updateCompany(formData: FormData) {
     const phone = formData.get('phone') as string
     const address = formData.get('address') as string
 
-    const db = getMasterClient()
+    const db = getClient()
     await db
         .from('tenants')
         .update({ name, website, email, phone, address })

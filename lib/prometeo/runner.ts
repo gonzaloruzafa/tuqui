@@ -9,8 +9,7 @@
  * 5. Updates next_run based on schedule/check_interval
  */
 
-import { getTenantClient } from '@/lib/supabase/tenant'
-import { getMasterClient } from '@/lib/supabase/master'
+import { getTenantClient, getClient } from '@/lib/supabase/client'
 import { generateText } from 'ai'
 import { google } from '@ai-sdk/google'
 import { CronExpressionParser } from 'cron-parser'
@@ -28,7 +27,7 @@ import type {
  */
 export async function runPendingTasks() {
     console.log('[Prometeo] Starting run...')
-    const master = getMasterClient()
+    const master = getClient()
 
     // 1. Get all active tenants
     const { data: tenants } = await master

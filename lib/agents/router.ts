@@ -5,7 +5,7 @@
  * El routing es invisible al usuario - siempre habla con "Tuqui".
  */
 
-import { getTenantClient } from '@/lib/supabase/tenant'
+import { getTenantClient } from '@/lib/supabase/client'
 
 export interface SubAgent {
     id: string

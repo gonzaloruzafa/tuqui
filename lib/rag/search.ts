@@ -1,4 +1,4 @@
-import { getTenantClient } from '../supabase/tenant'
+import { getTenantClient } from '../supabase/client'
 import { generateEmbedding } from './embeddings'
 
 export interface SearchResult {

@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth/config'
-import { getTenantClient } from '@/lib/supabase/tenant'
+import { getTenantClient } from '@/lib/supabase/client'
 import { NextResponse } from 'next/server'
 
 export async function GET() {

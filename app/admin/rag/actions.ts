@@ -1,7 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth/config'
-import { getTenantClient } from '@/lib/supabase/tenant'
+import { getTenantClient } from '@/lib/supabase/client'
 import { revalidatePath } from 'next/cache'
 import { chunkDocument } from '@/lib/rag/chunker'
 import { generateEmbeddings } from '@/lib/rag/embeddings'

@@ -6,7 +6,7 @@ import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 import { streamChatWithOdoo } from '@/lib/tools/gemini-odoo'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
-import { getMasterClient } from '@/lib/supabase/master'
+import { getClient } from '@/lib/supabase/client'
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -16,7 +16,7 @@ export const maxDuration = 60 // Allow longer timeout for tools
 
 async function getCompanyContext(tenantId: string): Promise<string | null> {
     try {
-        const db = getMasterClient()
+        const db = getClient()
         const { data, error } = await db
             .from('tenants')
             .select('company_context')

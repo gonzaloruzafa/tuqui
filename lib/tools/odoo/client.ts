@@ -1,4 +1,4 @@
-import { getTenantClient, getTenantConfig } from '@/lib/supabase/tenant'
+import { getTenantClient } from '@/lib/supabase/client'
 import { decrypt } from '@/lib/crypto'
 
 export interface OdooConfig {

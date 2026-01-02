@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import { FileText, Database } from 'lucide-react'
-import { getTenantClient } from '@/lib/supabase/tenant'
+import { getTenantClient } from '@/lib/supabase/client'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'

@@ -1,7 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth/config'
-import { getMasterClient } from '@/lib/supabase/master'
+import { getClient } from '@/lib/supabase/client'
 import { revalidatePath } from 'next/cache'
 
 export async function addUser(formData: FormData) {
@@ -20,7 +20,7 @@ export async function addUser(formData: FormData) {
 
         console.log(`👤 Adding user ${email} to tenant ${session.tenant.id}`)
 
-        const db = getMasterClient()
+        const db = getClient()
         const { error } = await db
             .from('users')
             .upsert({
@@ -48,7 +48,7 @@ export async function deleteUser(userId: string) {
         throw new Error('No autorizado')
     }
 
-    const db = getMasterClient()
+    const db = getClient()
 
     // Safety check: Don't let users delete themselves
     if (userId === session.user?.id) {
@@ -75,7 +75,7 @@ export async function updateUserRole(userId: string, isAdmin: boolean) {
         throw new Error('No autorizado')
     }
 
-    const db = getMasterClient()
+    const db = getClient()
     const { error } = await db
         .from('users')
         .update({ is_admin: isAdmin })
@@ -96,7 +96,7 @@ export async function updateUserPhone(userId: string, whatsappPhone: string) {
         throw new Error('No autorizado')
     }
 
-    const db = getMasterClient()
+    const db = getClient()
     const { error } = await db
         .from('users')
         .update({ whatsapp_phone: whatsappPhone || null })

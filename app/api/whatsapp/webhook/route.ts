@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getTenantByPhone } from '@/lib/supabase/tenant'
+import { getTenantByPhone } from '@/lib/supabase/client'
 import { sendWhatsApp } from '@/lib/twilio/client'
 import { getOrCreateWhatsAppSession, getSessionMessages, saveMessage } from '@/lib/supabase/chat-history'
 import { processChatRequest } from '@/lib/chat/engine'

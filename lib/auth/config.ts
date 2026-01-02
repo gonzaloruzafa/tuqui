@@ -48,7 +48,7 @@ export const authConfig = {
         async session({ session, token }) {
             if (session.user?.email) {
                 // Fetch tenant info
-                const { getTenantForUser, isUserAdmin } = await import("@/lib/supabase/tenant")
+                const { getTenantForUser, isUserAdmin } = await import("@/lib/supabase/client")
                 const tenant = await getTenantForUser(session.user.email)
 
                 if (tenant) {

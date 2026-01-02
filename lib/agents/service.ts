@@ -1,4 +1,4 @@
-import { getTenantClient } from '../supabase/tenant'
+import { getTenantClient } from '../supabase/client'
 import { TUQUI_UNIFIED, type TuquiCapability } from './unified'
 
 export interface Agent {

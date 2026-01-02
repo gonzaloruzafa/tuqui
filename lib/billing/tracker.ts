@@ -1,4 +1,4 @@
-import { getTenantClient } from '@/lib/supabase/tenant'
+import { getTenantClient } from '@/lib/supabase/client'
 import { getTenantPlan, USAGE_LIMITS } from './limits'
 
 export async function checkUsageLimit(tenantId: string, userEmail: string, estimatedTokens: number) {

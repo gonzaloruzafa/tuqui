@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth/config'
-import { getTenantClient } from '@/lib/supabase/tenant'
+import { getTenantClient } from '@/lib/supabase/client'
 import { generateText } from 'ai'
 import { google } from '@ai-sdk/google'
 
