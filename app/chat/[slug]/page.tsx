@@ -247,7 +247,7 @@ export default function ChatPage() {
     const isSpeechSupported = typeof window !== 'undefined' && 
         ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
-    const startRecording = async () => {
+    const startRecording = () => {
         const recognition = getOrCreateRecognition()
         if (!recognition) {
             console.error('[Recording] Speech recognition not supported')
@@ -256,20 +256,13 @@ export default function ChatPage() {
         setLastTranscript('')
         transcriptRef.current = ''
         
-        // Request mic permission first (required for mobile and some desktop browsers)
         try {
-            console.log('[Recording] Requesting mic permission...')
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-            console.log('[Recording] Got stream, stopping tracks...')
-            // Stop the stream immediately - we just need the permission
-            stream.getTracks().forEach(track => track.stop())
-            
             console.log('[Recording] Starting recognition...')
             recognition.start()
             setIsRecording(true)
             console.log('[Recording] Started successfully')
         } catch (err: any) {
-            console.error('[Recording] Mic permission denied:', err?.name, err?.message)
+            console.error('[Recording] Start failed:', err?.name, err?.message)
         }
     }
 
