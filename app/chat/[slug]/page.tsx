@@ -21,14 +21,11 @@ function wrapTablesInScrollContainer(html: string): string {
         .replace(/<\/table>/g, '</table></div>')
 }
 
-// Real-time Scrolling Temporal Waveform for Voice Input
+// Real-time Scrolling Temporal Waveform for Voice Input (Simplified - no getUserMedia conflict)
 const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const audioContextRef = useRef<AudioContext | null>(null)
-    const analyserRef = useRef<AnalyserNode | null>(null)
-    const dataArrayRef = useRef<Uint8Array | null>(null)
     const animationRef = useRef<number | null>(null)
-    const historyRef = useRef<number[]>(new Array(100).fill(0)) // Store more history for slower scroll
+    const historyRef = useRef<number[]>(new Array(100).fill(0))
     const frameCountRef = useRef(0)
 
     useEffect(() => {
@@ -37,91 +34,57 @@ const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
             return
         }
 
-        const startAudio = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-                const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext
-                const audioContext = new AudioContextClass()
+        // Simple animated waveform without requesting mic access (avoids permission conflicts)
+        const draw = () => {
+            if (!canvasRef.current) return
+            const canvas = canvasRef.current
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
 
-                // CRITICAL FOR MOBILE: Resume context after user interaction
-                if (audioContext.state === 'suspended') {
-                    await audioContext.resume()
-                }
+            const width = canvas.width
+            const height = canvas.height
 
-                const analyser = audioContext.createAnalyser()
-                const source = audioContext.createMediaStreamSource(stream)
+            animationRef.current = requestAnimationFrame(draw)
 
-                analyser.fftSize = 256
-                source.connect(analyser)
+            // Generate animated wave pattern
+            frameCountRef.current++
+            if (frameCountRef.current % 4 === 0) {
+                // Simulate voice activity with random + sine wave
+                const t = Date.now() / 1000
+                const wave = Math.sin(t * 3) * 0.5 + 0.5
+                const randomVariation = Math.random() * 0.3
+                const average = (wave * 80 + randomVariation * 40) + 30
 
-                const bufferLength = analyser.frequencyBinCount
-                const dataArray = new Uint8Array(bufferLength)
+                historyRef.current.shift()
+                historyRef.current.push(average)
+            }
 
-                audioContextRef.current = audioContext
-                analyserRef.current = analyser
-                dataArrayRef.current = dataArray
+            ctx.clearRect(0, 0, width, height)
 
-                const draw = () => {
-                    if (!canvasRef.current || !analyserRef.current || !dataArrayRef.current) return
-                    const canvas = canvasRef.current
-                    const ctx = canvas.getContext('2d')
-                    if (!ctx) return
+            const barWidth = 0.8
+            const gap = 2.5
+            const totalBarWidth = barWidth + gap
+            const barsToDraw = historyRef.current.length
 
-                    const width = canvas.width
-                    const height = canvas.height
+            ctx.fillStyle = '#a78bfa'
 
-                    animationRef.current = requestAnimationFrame(draw)
+            for (let i = 0; i < barsToDraw; i++) {
+                const vol = historyRef.current[i]
+                const barHeight = Math.max(1, (vol / 160) * height * 0.6)
 
-                    // Throttle updates even more to slow down the scroll (update every 4 frames)
-                    frameCountRef.current++
-                    if (frameCountRef.current % 4 === 0) {
-                        analyserRef.current.getByteFrequencyData(dataArrayRef.current as any)
+                const x = i * totalBarWidth
+                const y = (height - barHeight) / 2
 
-                        // Calculate average volume
-                        let sum = 0
-                        for (let i = 0; i < dataArrayRef.current.length; i++) {
-                            sum += dataArrayRef.current[i]
-                        }
-                        const average = sum / dataArrayRef.current.length
-
-                        // Update history (scroll effect)
-                        historyRef.current.shift()
-                        historyRef.current.push(average)
-                    }
-
-                    ctx.clearRect(0, 0, width, height)
-
-                    const barWidth = 0.8 // Muy fino
-                    const gap = 2.5
-                    const totalBarWidth = barWidth + gap
-                    const barsToDraw = historyRef.current.length
-
-                    ctx.fillStyle = '#a78bfa' // Subtle Light Violet (discrete)
-
-                    for (let i = 0; i < barsToDraw; i++) {
-                        const vol = historyRef.current[i]
-                        // Make height a bit more discrete too
-                        const barHeight = Math.max(1, (vol / 160) * height * 0.6)
-
-                        const x = i * totalBarWidth
-                        const y = (height - barHeight) / 2
-
-                        ctx.beginPath()
-                        ctx.roundRect(x, y, barWidth, barHeight, 0.4)
-                        ctx.fill()
-                    }
-                }
-                draw()
-            } catch (err) {
-                console.error('Visualizer error:', err)
+                ctx.beginPath()
+                ctx.roundRect(x, y, barWidth, barHeight, 0.4)
+                ctx.fill()
             }
         }
 
-        startAudio()
+        draw()
 
         return () => {
             if (animationRef.current) cancelAnimationFrame(animationRef.current)
-            if (audioContextRef.current) audioContextRef.current.close()
         }
     }, [isRecording])
 
@@ -211,9 +174,7 @@ export default function ChatPage() {
             if (SpeechRecognition) {
                 const rec = new SpeechRecognition()
                 rec.lang = 'es-AR'
-                // On mobile, continuous mode causes severe duplication issues
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-                rec.continuous = !isMobile // false on mobile, true on desktop
+                rec.continuous = true
                 rec.interimResults = true
 
                 rec.onresult = (event: any) => {
@@ -221,7 +182,6 @@ export default function ChatPage() {
                     for (let i = 0; i < event.results.length; ++i) {
                         totalTranscript += event.results[i][0].transcript
                     }
-                    console.log('[Recording] onresult:', totalTranscript)
                     setLastTranscript(totalTranscript)
                     transcriptRef.current = totalTranscript
                 }
@@ -232,11 +192,7 @@ export default function ChatPage() {
                 }
 
                 rec.onend = () => {
-                    console.log('[Recording] onend - transcript:', transcriptRef.current)
-                    // On mobile, auto-confirm if we have transcript
-                    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && transcriptRef.current.trim()) {
-                        // Don't auto-stop, let user confirm
-                    }
+                    // Do not auto-close unless error
                 }
 
                 setRecognition(rec)
@@ -617,11 +573,11 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto p-4">
                     <div className="max-w-3xl mx-auto space-y-6">
                         {messages.length === 0 && (
-                            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-adhoc-lavender/30 flex items-center justify-center">
+                            <div className="flex flex-col items-center justify-center min-h-[50vh] md:min-h-[60vh] text-center px-4 py-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 rounded-2xl bg-adhoc-lavender/30 flex items-center justify-center">
                                     {getAgentIcon(agent.icon, 'lg', 'text-adhoc-violet')}
                                 </div>
-                                <h1 className="text-xl font-medium text-gray-700">
+                                <h1 className="text-lg md:text-xl font-medium text-gray-700 break-words max-w-full">
                                     ¿En qué puedo ayudarte?
                                 </h1>
                             </div>
