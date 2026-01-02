@@ -178,13 +178,21 @@ export default function ChatPage() {
                 rec.interimResults = true
 
                 rec.onresult = (event: any) => {
-                    let totalTranscript = ''
-                    for (let i = 0; i < event.results.length; ++i) {
-                        totalTranscript += event.results[i][0].transcript
+                    // Only process final results to avoid duplication
+                    let finalTranscript = ''
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript
+                        }
                     }
-                    console.log('[Speech] Transcript:', totalTranscript)
-                    setLastTranscript(totalTranscript)
-                    transcriptRef.current = totalTranscript
+                    
+                    if (finalTranscript) {
+                        // Append to existing transcript instead of replacing
+                        const newTranscript = (transcriptRef.current + ' ' + finalTranscript).trim()
+                        console.log('[Speech] Final transcript:', newTranscript)
+                        setLastTranscript(newTranscript)
+                        transcriptRef.current = newTranscript
+                    }
                 }
 
                 rec.onerror = (event: any) => {
@@ -651,13 +659,13 @@ export default function ChatPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-[24px] focus-within:border-adhoc-violet focus-within:ring-1 focus-within:ring-adhoc-violet/20 focus-within:bg-white transition-all p-1.5 px-3 group shadow-sm">
+                            <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-[24px] focus-within:border-adhoc-violet focus-within:ring-1 focus-within:ring-adhoc-violet/20 focus-within:bg-white transition-all p-1.5 px-3 group shadow-sm overflow-hidden">
                                 <textarea
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
                                     placeholder="Preguntale lo que quieras a Tuqui"
-                                    className="flex-1 bg-transparent border-none rounded-2xl pl-2 pr-2 py-2.5 resize-none focus:outline-none min-h-[44px] max-h-[200px] text-[15px] leading-relaxed placeholder:text-ellipsis"
+                                    className="flex-1 bg-transparent border-none rounded-2xl pl-2 pr-2 py-2.5 resize-none focus:outline-none min-h-[44px] max-h-[200px] text-[15px] leading-relaxed"
                                     rows={1}
                                 />
                                 <div className="flex items-center gap-1 pb-1">
