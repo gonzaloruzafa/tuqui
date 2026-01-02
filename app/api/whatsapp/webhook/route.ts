@@ -22,12 +22,19 @@ export async function POST(req: NextRequest) {
         console.log('[WhatsApp] Raw payload:', rawBody)
 
         const params = new URLSearchParams(rawBody)
+
+        // Check if this is a Twilio Debugger event instead of a message
+        if (params.has('Payload')) {
+            console.log('[WhatsApp] Ignoring Twilio Debugger event')
+            return new Response('OK (Debugger event ignored)', { status: 200 })
+        }
+
         const from = params.get('From')
         const body = params.get('Body')
 
         if (!from || !body) {
-            console.log('[WhatsApp] Invalid payload. Params:', Object.fromEntries(params.entries()))
-            return new Response(`Missing From or Body. Received keys: ${Array.from(params.keys()).join(', ')}`, { status: 400 })
+            console.log('[WhatsApp] Invalid messaging payload. Params:', Object.fromEntries(params.entries()))
+            return new Response(`Error: Se esperaba un mensaje de WhatsApp (From/Body). Recibido: ${Array.from(params.keys()).join(', ')}`, { status: 400 })
         }
 
         console.log(`[WhatsApp] Incoming from ${from}: ${body}`)
