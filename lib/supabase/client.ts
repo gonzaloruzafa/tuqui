@@ -133,27 +133,29 @@ export async function getTenantForUser(email: string): Promise<{
 } | null> {
     const db = getClient()
     
-    const { data: user, error } = await db
+    // First get the user
+    const { data: user, error: userError } = await db
         .from('users')
-        .select(`
-            tenant_id,
-            tenants!inner (
-                id,
-                name,
-                slug
-            )
-        `)
+        .select('tenant_id')
         .eq('email', email)
         .single()
 
-    if (error || !user) {
-        console.log(`[Supabase] No user found for email: ${email}`)
+    if (userError || !user) {
+        console.log(`[Supabase] No user found for email: ${email}`, userError?.message)
         return null
     }
 
-    // Handle both array and object response
-    const tenant = Array.isArray(user.tenants) ? user.tenants[0] : user.tenants
-    if (!tenant) return null
+    // Then get the tenant
+    const { data: tenant, error: tenantError } = await db
+        .from('tenants')
+        .select('id, name, slug')
+        .eq('id', user.tenant_id)
+        .single()
+
+    if (tenantError || !tenant) {
+        console.log(`[Supabase] No tenant found for id: ${user.tenant_id}`, tenantError?.message)
+        return null
+    }
 
     return {
         id: tenant.id,
