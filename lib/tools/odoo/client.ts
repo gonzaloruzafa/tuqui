@@ -1,5 +1,5 @@
 import { getTenantClient, getTenantConfig } from '@/lib/supabase/tenant'
-import { decrypt } from '@/lib/crypto' // Need to implement crypto lib
+import { decrypt } from '@/lib/crypto'
 
 export interface OdooConfig {
     url: string
@@ -150,43 +150,43 @@ export class OdooClient {
         allFields: string[]
     }> {
         const fields = await this.fieldsGet(model, ['string', 'type', 'relation', 'store'])
-        
+
         const dateFields: string[] = []
         const amountFields: string[] = []
         const relationFields: Array<{ name: string; relation: string }> = []
         const allFields: string[] = []
         let stateField: string | undefined
-        
+
         for (const [name, meta] of Object.entries(fields) as [string, any][]) {
             // Skip internal fields
             if (name.startsWith('__') || name === 'id') continue
             if (!meta.store) continue // Only stored fields
-            
+
             allFields.push(name)
-            
+
             // Detect date fields
             if (['date', 'datetime'].includes(meta.type)) {
                 dateFields.push(name)
             }
-            
+
             // Detect amount/money fields by type + name heuristic
             if (['float', 'monetary'].includes(meta.type)) {
                 if (/amount|total|price|cost|residual|balance|credit|debit/i.test(name)) {
                     amountFields.push(name)
                 }
             }
-            
+
             // Detect relations
             if (['many2one', 'one2many', 'many2many'].includes(meta.type) && meta.relation) {
                 relationFields.push({ name, relation: meta.relation })
             }
-            
+
             // Detect state field
             if (name === 'state' && meta.type === 'selection') {
                 stateField = 'state'
             }
         }
-        
+
         return { dateFields, amountFields, relationFields, stateField, allFields }
     }
 }
@@ -210,6 +210,6 @@ export async function getOdooClient(tenantId: string) {
         url: config.odoo_url || config.url,
         db: config.odoo_db || config.db,
         username: config.odoo_user || config.username,
-        api_key: config.odoo_password || config.api_key // decrypt(config.api_key)
+        api_key: decrypt(config.odoo_password || config.api_key)
     })
 }

@@ -12,27 +12,27 @@
 
 import { GoogleGenerativeAI, Part, Content, SchemaType, FunctionDeclaration } from '@google/generative-ai'
 import { getOdooClient } from './odoo/client'
-import { 
-    OdooSubQuery, 
-    QueryResult, 
+import {
+    OdooSubQuery,
+    QueryResult,
     ChartData,
-    executeQueries, 
-    buildDomain, 
+    executeQueries,
+    buildDomain,
     generateChartData,
-    MODEL_CONFIG 
+    MODEL_CONFIG
 } from './odoo/query-builder'
-import { 
-    getComparisonPeriods, 
-    getPeriodDomain, 
+import {
+    getComparisonPeriods,
+    getPeriodDomain,
     compareGroupedData,
     calculateVariation,
     ComparisonResult
 } from './odoo/comparisons'
-import { 
-    generateInsights, 
-    formatInsightsAsText, 
+import {
+    generateInsights,
+    formatInsightsAsText,
     Insight,
-    InsightContext 
+    InsightContext
 } from './odoo/insights'
 
 // ============================================
@@ -262,10 +262,10 @@ async function executeIntelligentQuery(
     }
 ): Promise<OdooToolResult> {
     const startTime = Date.now()
-    
+
     try {
         const odoo = await getOdooClient(tenantId)
-        
+
         // Convert args to OdooSubQuery format
         const subQueries: OdooSubQuery[] = args.queries.slice(0, 5).map(q => ({
             id: q.id,
@@ -277,10 +277,10 @@ async function executeIntelligentQuery(
             orderBy: q.orderBy,
             compare: q.compare
         }))
-        
+
         // Execute all queries in parallel
         const results = await executeQueries(odoo, tenantId, subQueries)
-        
+
         // Process results
         let allData: any[] = []
         let totalCount = 0
@@ -288,13 +288,13 @@ async function executeIntelligentQuery(
         let allGrouped: Record<string, { count: number; total: number }> = {}
         let comparisonData: OdooToolResult['comparison'] | undefined
         let chartData: ChartData | undefined
-        
+
         for (let i = 0; i < results.length; i++) {
             const result = results[i]
             const query = subQueries[i]
-            
+
             if (!result.success) continue
-            
+
             if (result.data) allData = allData.concat(result.data)
             if (result.count) totalCount += result.count
             if (result.total) totalAmount += result.total
@@ -308,18 +308,18 @@ async function executeIntelligentQuery(
                     allGrouped[key].total += value.total
                 }
             }
-            
+
             // Handle comparisons
             if (query.compare && result.grouped && args.include_comparison) {
                 const periods = getComparisonPeriods(new Date(), query.compare)
                 const config = MODEL_CONFIG[query.model] || { dateField: 'create_date', defaultFields: [] }
-                
+
                 // Execute previous period query
                 const prevDomain = [
                     ...getPeriodDomain(periods.previous, config.dateField),
                     ...(query.filters ? buildDomain(query.filters, query.model).filter(d => !d[0].includes('date')) : [])
                 ]
-                
+
                 const prevQuery: OdooSubQuery = {
                     id: `${query.id}_prev`,
                     model: query.model,
@@ -328,17 +328,17 @@ async function executeIntelligentQuery(
                     groupBy: query.groupBy,
                     limit: query.limit
                 }
-                
+
                 const [prevResult] = await executeQueries(odoo, tenantId, [prevQuery])
-                
+
                 if (prevResult.success && prevResult.grouped) {
                     const compared = compareGroupedData(result.grouped, prevResult.grouped)
-                    
+
                     // Calculate overall variation
                     const currentTotal = Object.values(result.grouped).reduce((s, g) => s + g.total, 0)
                     const previousTotal = Object.values(prevResult.grouped).reduce((s, g) => s + g.total, 0)
                     const variation = calculateVariation(currentTotal, previousTotal)
-                    
+
                     comparisonData = {
                         current: result.grouped,
                         previous: prevResult.grouped,
@@ -350,27 +350,27 @@ async function executeIntelligentQuery(
                     }
                 }
             }
-            
+
             // Generate chart data for the first grouped result
             if (result.grouped && !chartData) {
                 const chart = generateChartData(result, 'bar', `Datos por ${query.groupBy?.[0] || 'grupo'}`)
                 if (chart) chartData = chart
             }
         }
-        
+
         // Generate insights if requested
         let insights: Insight[] | undefined
         if (args.include_insights) {
             const firstQuery = subQueries[0]
             const queryType = getQueryType(firstQuery.model)
-            
+
             const context: InsightContext = {
                 queryType,
                 model: firstQuery.model,
                 hasComparison: !!comparisonData,
                 comparisonType: firstQuery.compare
             }
-            
+
             // Build comparison records for insight generation
             let comparisonRecords: Record<string, ComparisonResult<{ count: number; total: number }>> | undefined
             if (comparisonData) {
@@ -389,10 +389,10 @@ async function executeIntelligentQuery(
                     }
                 }
             }
-            
+
             insights = generateInsights(context, results, comparisonRecords)
         }
-        
+
         return {
             success: true,
             data: allData.length > 0 ? allData : undefined,
@@ -405,7 +405,7 @@ async function executeIntelligentQuery(
             cached: results.some(r => r.cached),
             executionMs: Date.now() - startTime
         }
-        
+
     } catch (error: any) {
         return {
             success: false,
@@ -442,10 +442,34 @@ export async function chatWithOdoo(
     history: Content[] = []
 ): Promise<GeminiOdooResponse> {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    
-    // Merge custom system prompt with BI analyst prompt
-    const fullSystemPrompt = `${BI_ANALYST_PROMPT}\n\n${systemPrompt}`
-    
+
+    // ============================================
+    // PASO 1: INTERPRETAR LA CONSULTA
+    // ============================================
+    const { interpretQuery } = await import('./odoo/interpreter')
+    const interpreted = await interpretQuery(userMessage, history)
+
+    if (interpreted.intent === 'clarify') {
+        return { text: interpreted.needsClarification || interpreted.description }
+    }
+
+    // ============================================
+    // PASO 2: EJECUTAR LA CONSULTA
+    // ============================================
+    // Merge custom system prompt with BI analyst prompt and interpretation
+    const executorPrompt = `${BI_ANALYST_PROMPT}
+
+**CONSULTA INTERPRETADA:**
+${JSON.stringify(interpreted, null, 2)}
+
+**INSTRUCCIONES:**
+- Usa odoo_intelligent_query para ejecutar esta consulta
+- La interpretación ya analizó el contexto y el historial
+- Responde de forma clara y concisa con los datos obtenidos
+- Formato: español, montos legibles, emojis para tendencias
+
+${systemPrompt}`
+
     const model = genAI.getGenerativeModel({
         model: 'gemini-2.0-flash',
         tools: [{ functionDeclarations: [odooIntelligentQueryDeclaration] }],
@@ -455,50 +479,62 @@ export async function chatWithOdoo(
             }
         }
     })
-    
+
     const chat = model.startChat({
         history,
         systemInstruction: {
             role: 'user',
-            parts: [{ text: fullSystemPrompt }]
+            parts: [{ text: executorPrompt }]
         }
     })
-    
-    // First turn - user message
-    let result = await chat.sendMessage(userMessage)
+
+    const enhancedMessage = `Consulta del usuario: "${userMessage}"
+
+Interpretación: ${interpreted.description}
+Modelo: ${interpreted.model}
+Operación: ${interpreted.intent}
+${interpreted.period ? `Período: ${interpreted.period}` : ''}
+${interpreted.groupBy ? `Agrupar por: ${interpreted.groupBy.join(', ')}` : ''}
+${interpreted.metric ? `Métrica: ${interpreted.metric}` : ''}
+${interpreted.contextFromHistory ? `Contexto: ${interpreted.contextFromHistory}` : ''}
+
+Ejecuta la consulta y responde al usuario.`
+
+    // First turn - enhanced message
+    let result = await chat.sendMessage(enhancedMessage)
     let response = result.response
-    
+
     const toolCalls: ToolCall[] = []
     const toolResults: OdooToolResult[] = []
-    
+
     // Process function calls (up to 5 iterations for complex queries)
     for (let i = 0; i < 5; i++) {
         const candidate = response.candidates?.[0]
         const functionCall = candidate?.content?.parts?.find(
-            (part): part is Part & { functionCall: { name: string; args: Record<string, any> } } => 
+            (part): part is Part & { functionCall: { name: string; args: Record<string, any> } } =>
                 'functionCall' in part
         )
-        
+
         if (!functionCall) break
-        
+
         const { name, args } = functionCall.functionCall
         console.log(`[OdooBIAgent] Tool call: ${name}`, JSON.stringify(args, null, 2))
-        
+
         toolCalls.push({ name, args })
-        
+
         // Execute the tool
         const toolResult = await executeIntelligentQuery(tenantId, args as any)
-        
+
         toolResults.push(toolResult)
-        
+
         console.log(`[OdooBIAgent] Tool result: success=${toolResult.success}, count=${toolResult.count}, cached=${toolResult.cached}, ms=${toolResult.executionMs}`)
-        
+
         // Prepare response for model (include insights text if available)
         const responseForModel: any = { ...toolResult }
         if (toolResult.insights && toolResult.insights.length > 0) {
             responseForModel.insights_text = formatInsightsAsText(toolResult.insights)
         }
-        
+
         // Send function response back to model
         result = await chat.sendMessage([{
             functionResponse: {
@@ -508,7 +544,7 @@ export async function chatWithOdoo(
         }])
         response = result.response
     }
-    
+
     return {
         text: response.text(),
         toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
@@ -530,29 +566,29 @@ export async function* streamChatWithOdoo(
     history: Content[] = []
 ): AsyncGenerator<string, void, unknown> {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    
+
     // ============================================
     // PASO 1: INTERPRETAR LA CONSULTA
     // ============================================
     console.log('[OdooBIAgent] Step 1: Interpreting query...')
     console.log('[OdooBIAgent] History length:', history.length)
-    
+
     const { interpretQuery, interpretedQueryToToolParams } = await import('./odoo/interpreter')
     const interpreted = await interpretQuery(userMessage, history)
-    
+
     console.log('[OdooBIAgent] Interpreted:', JSON.stringify(interpreted, null, 2))
-    
+
     // Si necesita clarificación, preguntar al usuario
     if (interpreted.intent === 'clarify') {
         yield interpreted.needsClarification || interpreted.description
         return
     }
-    
+
     // ============================================
     // PASO 2: EJECUTAR LA CONSULTA
     // ============================================
     console.log('[OdooBIAgent] Step 2: Executing query...')
-    
+
     // Construir prompt mejorado con la interpretación
     const executorPrompt = `${BI_ANALYST_PROMPT}
 
@@ -566,7 +602,7 @@ ${JSON.stringify(interpreted, null, 2)}
 - Formato: español, montos legibles, emojis para tendencias
 
 ${systemPrompt}`
-    
+
     const model = genAI.getGenerativeModel({
         model: 'gemini-2.0-flash',
         tools: [{ functionDeclarations: [odooIntelligentQueryDeclaration] }],
@@ -580,10 +616,10 @@ ${systemPrompt}`
             parts: [{ text: executorPrompt }]
         }
     })
-    
+
     // Incluir historial para contexto adicional
     const chat = model.startChat({ history })
-    
+
     // Mensaje mejorado que incluye la interpretación
     const enhancedMessage = `Consulta del usuario: "${userMessage}"
 
@@ -596,42 +632,42 @@ ${interpreted.metric ? `Métrica: ${interpreted.metric}` : ''}
 ${interpreted.contextFromHistory ? `Contexto: ${interpreted.contextFromHistory}` : ''}
 
 Ejecuta la consulta y responde al usuario.`
-    
+
     // First turn - send message and check for function calls
     let result = await chat.sendMessage(enhancedMessage)
     let response = result.response
-    
+
     // Process up to 5 function calls
     for (let i = 0; i < 5; i++) {
         const candidate = response.candidates?.[0]
         const functionCall = candidate?.content?.parts?.find(
-            (part): part is Part & { functionCall: { name: string; args: Record<string, any> } } => 
+            (part): part is Part & { functionCall: { name: string; args: Record<string, any> } } =>
                 'functionCall' in part
         )
-        
+
         if (!functionCall) break
-        
+
         const { name, args } = functionCall.functionCall
         console.log(`[OdooBIAgent Stream] Tool call: ${name}`)
-        
+
         // Show progress indicator
         const queryCount = (args as any).queries?.length || 1
         yield `🔧 Analizando datos (${queryCount} consulta${queryCount > 1 ? 's' : ''})...\n\n`
-        
+
         // Execute the tool
         const toolResult = await executeIntelligentQuery(tenantId, args as any)
-        
+
         if (!toolResult.success) {
             yield `❌ Error: ${toolResult.error}\n`
             return
         }
-        
+
         // Prepare response for model
         const responseForModel: any = { ...toolResult }
         if (toolResult.insights && toolResult.insights.length > 0) {
             responseForModel.insights_text = formatInsightsAsText(toolResult.insights)
         }
-        
+
         // Send function response back and stream the response
         const streamResult = await chat.sendMessageStream([{
             functionResponse: {
@@ -639,30 +675,30 @@ Ejecuta la consulta y responde al usuario.`
                 response: responseForModel
             }
         }])
-        
+
         // Stream chunks as they arrive
         for await (const chunk of streamResult.stream) {
             const text = chunk.text()
             if (text) yield text
         }
-        
+
         // Check if there's another function call in the response
         const streamResponse = await streamResult.response
         const nextCandidate = streamResponse.candidates?.[0]
         const nextFunctionCall = nextCandidate?.content?.parts?.find(
-            (part): part is Part & { functionCall: { name: string; args: Record<string, any> } } => 
+            (part): part is Part & { functionCall: { name: string; args: Record<string, any> } } =>
                 'functionCall' in part
         )
-        
+
         if (!nextFunctionCall) {
             // No more function calls, we're done
             return
         }
-        
+
         // Continue loop with new function call
         response = streamResponse
     }
-    
+
     // If we get here without returning, yield any remaining text
     const text = response.text()
     if (text) yield text

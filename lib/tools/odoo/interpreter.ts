@@ -55,6 +55,7 @@ Si el usuario pregunta "pero esos son de X?", quiere REPETIR la consulta anterio
 
 ### 5. MODELOS SEGÚN CONTEXTO:
 - "ventas" / "vendedores" / "quién vendió" → sale.order
+- "compras" / "proveedores" / "qué compramos" → purchase.order
 - "productos" / "qué se vendió" → sale.order.line (Suele usarse para detalles de ventas)
 - "facturas" → account.move
 - "stock" → stock.quant
