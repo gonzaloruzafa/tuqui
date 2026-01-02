@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         // 4. RAG Search (Optional but recommended)
         let ragContext = ""
         try {
-            const searchResults = await searchDocuments(tenantId, body, 3)
+            const searchResults = await searchDocuments(tenantId, agent.id, body, 3)
             if (searchResults.length > 0) {
                 ragContext = "\n\nINFORMACIÓN RELEVANTE:\n" + searchResults.map(r => r.content).join("\n---\n")
             }
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
             messages: [{ role: 'user', content: body }],
             tools: tools as any,
             maxSteps: 5
-        })
+        } as any)
 
         // 7. Send Response back via Twilio
         console.log('[WhatsApp] Sending response...')
