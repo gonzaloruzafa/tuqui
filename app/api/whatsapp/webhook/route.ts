@@ -1,79 +1,101 @@
-import { getMasterClient } from '@/lib/supabase/master'
-import { getTenantClient, getTenantConfig } from '@/lib/supabase/tenant'
+import { NextRequest, NextResponse } from 'next/server'
+import { getTenantByPhone } from '@/lib/supabase/tenant'
 import { sendWhatsApp } from '@/lib/twilio/client'
+import { getAgentBySlug } from '@/lib/agents/service'
+import { searchDocuments } from '@/lib/rag/search'
+import { getToolsForAgent } from '@/lib/tools/executor'
+import { getMasterClient } from '@/lib/supabase/master'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
-import { google } from '@ai-sdk/google'
-import { getAgentsForTenant } from '@/lib/agents/service'
 
-export async function POST(req: Request) {
-    const formData = await req.formData()
-    const From = formData.get('From') as string // whatsapp:+123456...
-    const To = formData.get('To') as string
-    const Body = formData.get('Body') as string
+const google = createGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY
+})
 
-    if (!From || !To) return new Response('Missing From/To', { status: 400 })
+export const maxDuration = 60 // Allow longer timeout for tools
 
-    const fromNumber = From.replace('whatsapp:', '')
-    const toNumber = To.replace('whatsapp:', '')
-
-    console.log(`[WhatsApp] Received message from ${fromNumber} to ${toNumber}: ${Body}`)
-
-    // 1. Identify Tenant by 'To' number (This is tricky if we don't have a reverse lookup table)
-    // The Master DB 'tenants' table has 'twilio_phone' column.
-    const master = getMasterClient()
-    const { data: tenant } = await master
-        .from('tenants')
-        .select('id, slug')
-        .eq('twilio_phone', toNumber)
-        .single()
-
-    if (!tenant) {
-        console.error(`[WhatsApp] No tenant found for number ${toNumber}`)
-        return new Response('Tenant not found', { status: 404 })
-    }
-
-    // 2. Identify Agent
-    // For Alpha, pick 'tuqui-chat' or a specific 'whatsapp_agent' configured in settings
-    // Let's assume 'tuqui-chat' for now
-    const tenantId = tenant.id
-    const agents = await getAgentsForTenant(tenantId)
-    const agent = agents.find(a => a.slug === 'tuqui-chat') || agents[0]
-
-    if (!agent) return new Response('No agent available', { status: 500 })
-
-    // 3. Get Company Context
-    let systemPrompt = agent.system_prompt || 'Sos un asistente útil.'
-    
-    // Fetch company context from tenant
-    const { data: tenantData } = await master
-        .from('tenants')
-        .select('company_context')
-        .eq('id', tenantId)
-        .single()
-    
-    if (tenantData?.company_context) {
-        systemPrompt += `\n\nCONTEXTO DE LA EMPRESA:\n${tenantData.company_context}`
-    }
-
-    // 4. Process with AI
-    // We should create a session context, but for alpha: simple stateless or last-message context
-    // Let's do simple stateless response for speed in this Alpha setup
+export async function POST(req: NextRequest) {
+    console.log('[WhatsApp] Webhook received')
 
     try {
+        const formData = await req.formData()
+        const from = formData.get('From')?.toString() // whatsapp:+549...
+        const body = formData.get('Body')?.toString()
+
+        if (!from || !body) {
+            return new Response('Missing From or Body', { status: 400 })
+        }
+
+        console.log(`[WhatsApp] Incoming from ${from}: ${body}`)
+
+        // 1. Lookup Tenant by Phone
+        const tenantInfo = await getTenantByPhone(from)
+        if (!tenantInfo) {
+            console.log(`[WhatsApp] Unauthorized phone: ${from}`)
+            // Optional: send a message back saying they are not authorized or to sign up
+            return new Response('Unauthorized phone', { status: 401 })
+        }
+
+        const { id: tenantId, schema, userEmail } = tenantInfo
+        console.log(`[WhatsApp] Routed to Tenant: ${tenantId} (${schema}) for ${userEmail}`)
+
+        // 2. Load Orchestrator Agent (default or based on keywords)
+        // For POC we'll use a hardcoded agent slug or the first one found
+        const agentSlug = 'bi-analyst' // Default for now, can be an env var
+        const agent = await getAgentBySlug(tenantId, agentSlug)
+
+        if (!agent) {
+            console.error(`[WhatsApp] Agent ${agentSlug} not found for tenant ${tenantId}`)
+            await sendWhatsApp(tenantId, from, "Lo siento, mi configuración está incompleta. Por favor contacta a soporte.")
+            return new Response('Agent not found', { status: 404 })
+        }
+
+        // 3. Prepare AI Context
+        const systemPrompt = agent.system_prompt || ''
+
+        // Fetch company context if exists
+        const master = getMasterClient()
+        const { data: tenantData } = await master
+            .from('tenants')
+            .select('company_context')
+            .eq('id', tenantId)
+            .single()
+
+        const companyContext = tenantData?.company_context ? `CONTEXTO DE LA EMPRESA:\n${tenantData.company_context}\n\n` : ''
+        const fullSystemPrompt = `${companyContext}${systemPrompt}`
+
+        // 4. RAG Search (Optional but recommended)
+        let ragContext = ""
+        try {
+            const searchResults = await searchDocuments(tenantId, body, 3)
+            if (searchResults.length > 0) {
+                ragContext = "\n\nINFORMACIÓN RELEVANTE:\n" + searchResults.map(r => r.content).join("\n---\n")
+            }
+        } catch (e) {
+            console.error('[WhatsApp] RAG Error:', e)
+        }
+
+        // 5. Load Tools
+        const tools = await getToolsForAgent(tenantId, agent.tools || [])
+
+        // 6. Generate Text
+        console.log('[WhatsApp] Invoking Gemini...')
         const { text } = await generateText({
-            model: google('gemini-2.5-flash'),
-            system: systemPrompt,
-            prompt: Body
+            model: google('gemini-2.0-flash'),
+            system: fullSystemPrompt + ragContext,
+            messages: [{ role: 'user', content: body }],
+            tools: tools as any,
+            maxSteps: 5
         })
 
-        // 4. Reply
-        await sendWhatsApp(tenantId, fromNumber, text)
+        // 7. Send Response back via Twilio
+        console.log('[WhatsApp] Sending response...')
+        await sendWhatsApp(tenantId, from, text)
 
-    } catch (error) {
-        console.error('[WhatsApp] Processing error:', error)
+        return new Response('OK', { status: 200 })
+
+    } catch (error: any) {
+        console.error('[WhatsApp] Webhook Error:', error)
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 })
     }
-
-    return new Response('<Response></Response>', {
-        headers: { 'Content-Type': 'text/xml' }
-    })
 }

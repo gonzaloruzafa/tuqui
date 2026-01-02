@@ -3,6 +3,14 @@ import { getTenantClient, getTenantConfig } from '@/lib/supabase/tenant'
 import { decrypt } from '@/lib/crypto'
 
 export async function getTwilioClientForTenant(tenantId: string) {
+    // For POC/Sandbox: If env vars are present, use them as global default
+    const globalSid = process.env.TWILIO_ACCOUNT_SID
+    const globalToken = process.env.TWILIO_AUTH_TOKEN
+
+    if (globalSid && globalToken) {
+        return twilio(globalSid, globalToken)
+    }
+
     const db = await getTenantClient(tenantId)
     const { data: config } = await db
         .from('integrations')
@@ -12,13 +20,7 @@ export async function getTwilioClientForTenant(tenantId: string) {
 
     if (!config || !config.is_active || !config.config) return null
 
-    // Real implementation: decrypt secrets
     const { account_sid, auth_token } = config.config
-
-    // Decrypt if needed (if stored encrypted)
-    // const sid = decrypt(account_sid)
-    // const token = decrypt(auth_token)
-
     return twilio(account_sid, auth_token)
 }
 
@@ -37,11 +39,21 @@ export async function sendWhatsApp(tenantId: string, to: string, message: string
     const client = await getTwilioClientForTenant(tenantId)
     if (!client) throw new Error('Twilio not configured for this tenant')
 
-    const config = await getTwilioConfig(tenantId)
+    // Support global Sandbox number
+    const globalPhone = process.env.TWILIO_PHONE_NUMBER
+    let from = ''
+
+    if (globalPhone) {
+        from = globalPhone.startsWith('whatsapp:') ? globalPhone : `whatsapp:${globalPhone}`
+    } else {
+        const config = await getTwilioConfig(tenantId)
+        if (!config) throw new Error('Twilio config not found')
+        from = `whatsapp:${config.iphone_number || config.phone_number}`
+    }
 
     return client.messages.create({
-        from: `whatsapp:${config.iphone_number || config.phone_number}`, // config.phone_number should include + prefix
-        to: `whatsapp:${to}`,
+        from,
+        to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
         body: message
     })
 }

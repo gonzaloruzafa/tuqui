@@ -61,6 +61,34 @@ export async function getTenantForUser(email: string): Promise<{ id: string; nam
     }
 }
 
+/**
+ * Lookup tenant info based on WhatsApp phone number (routing)
+ */
+export async function getTenantByPhone(whatsappPhone: string): Promise<{ id: string; name: string; slug: string; schema: string; userEmail: string } | null> {
+    const master = getMasterClient()
+    const { data: user, error } = await master
+        .from('users')
+        .select('email, tenant_id, tenants(*)')
+        .eq('whatsapp_phone', whatsappPhone)
+        .single()
+
+    if (error || !user) {
+        console.log(`[Tenant] No user found for phone: ${whatsappPhone}`)
+        return null
+    }
+
+    const tenantData = Array.isArray(user.tenants) ? user.tenants[0] : user.tenants
+    if (!tenantData) return null
+
+    return {
+        id: tenantData.id,
+        name: tenantData.name,
+        slug: tenantData.slug,
+        schema: tenantData.schema_name || 'public',
+        userEmail: user.email
+    }
+}
+
 export async function isUserAdmin(email: string) {
     const master = getMasterClient()
     const { data: user } = await master
