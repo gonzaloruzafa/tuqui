@@ -5,6 +5,6 @@ export default auth
 export const config = {
     // Protect all routes except public assets and auth endpoints
     matcher: [
-        '/((?!_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.svg$).*)',
+        '/((?!api/whatsapp/webhook|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.svg$).*)',
     ],
 }

@@ -9,4 +9,5 @@ ADD COLUMN IF NOT EXISTS whatsapp_phone TEXT UNIQUE;
 CREATE INDEX IF NOT EXISTS idx_users_whatsapp_phone ON users(whatsapp_phone);
 
 -- 3. Example assignment (replace with real data)
--- UPDATE users SET whatsapp_phone = 'whatsapp:+123456789' WHERE email = 'your-email@example.com';
+-- El formato debe ser 'whatsapp:+549...'
+UPDATE users SET whatsapp_phone = 'whatsapp:+5493416718905' WHERE email = 'gr@adhoc.inc';

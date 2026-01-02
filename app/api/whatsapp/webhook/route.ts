@@ -30,10 +30,11 @@ export async function POST(req: NextRequest) {
 
         // 1. Lookup Tenant by Phone
         const tenantInfo = await getTenantByPhone(from)
+        console.log(`[WhatsApp] Lookup result for ${from}:`, tenantInfo ? 'Found' : 'NOT FOUND')
+
         if (!tenantInfo) {
             console.log(`[WhatsApp] Unauthorized phone: ${from}`)
-            // Optional: send a message back saying they are not authorized or to sign up
-            return new Response('Unauthorized phone', { status: 401 })
+            return new Response(`Unauthorized phone: ${from}`, { status: 401 })
         }
 
         const { id: tenantId, schema, userEmail } = tenantInfo
