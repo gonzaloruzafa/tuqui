@@ -80,6 +80,12 @@ const BI_ANALYST_PROMPT = `Eres un analista de Business Intelligence experto tra
 - Responder preguntas de manera precisa y directa
 - NUNCA pedir clarificación si el historial tiene la información necesaria
 
+**⚠️ REGLA CRÍTICA - MOSTRAR DATOS REALES:**
+- SIEMPRE muestra los nombres EXACTOS que vienen en los datos (productos, clientes, etc.)
+- NUNCA uses placeholders como "Producto A", "Cliente 1", "Item X"
+- Si los datos dicen "[C001063] Adhesivo Adper Single Bond 2", muestra ESE nombre
+- Las keys del objeto "grouped" SON los nombres reales, úsalos tal cual
+
 **OPERACIONES DISPONIBLES:**
 
 1. "dame las ventas/facturas de X" → operation: "search" (LISTAR registros)
@@ -162,7 +168,12 @@ Q: "ajustes de inventario"
 - Responde en español, claro y conciso
 - Montos en formato argentino: $ 1.234.567,89
 - Emojis para tendencias: 📈 subió, 📉 bajó
-- Tablas Markdown para rankings`
+- Tablas Markdown para rankings
+- USA LOS NOMBRES REALES de productos/clientes/etc que vienen en "grouped"
+
+**EJEMPLO DE RESPUESTA CON DATOS REALES:**
+Si grouped = {"[C001063] Adhesivo Adper": {count: 12, total: 90420017.8}}
+Tu respuesta debe mostrar "[C001063] Adhesivo Adper" NO "Producto A"`
 
 // ============================================
 // INTELLIGENT QUERY TOOL
