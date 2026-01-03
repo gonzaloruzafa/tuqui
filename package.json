@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ci": "vitest run --reporter=verbose"
+    "test:ci": "vitest run --reporter=verbose",
+    "test:e2e": "tsx scripts/e2e-tests/runner.ts",
+    "test:e2e:local": "tsx scripts/e2e-tests/runner.ts --env local",
+    "test:e2e:critical": "tsx scripts/e2e-tests/runner.ts --subset critical"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.51",

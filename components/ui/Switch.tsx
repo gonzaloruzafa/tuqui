@@ -1,19 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface SwitchProps {
     name: string
     defaultChecked?: boolean
     label?: string
     value?: string
+    disabled?: boolean
 }
 
-export function Switch({ name, defaultChecked = false, label, value }: SwitchProps) {
+export function Switch({ name, defaultChecked = false, label, value, disabled = false }: SwitchProps) {
     const [checked, setChecked] = useState(defaultChecked)
+    
+    // Sync state with prop when it changes (fixes bug with Server Components)
+    useEffect(() => {
+        setChecked(defaultChecked)
+    }, [defaultChecked])
 
     return (
-        <label className="relative inline-flex items-center cursor-pointer select-none gap-3">
+        <label className={`relative inline-flex items-center select-none gap-3 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
             {/* For multi-value fields (like tools), only include when checked */}
             {value ? (
                 // Multi-value mode: only send if checked
@@ -26,7 +32,8 @@ export function Switch({ name, defaultChecked = false, label, value }: SwitchPro
                 type="checkbox"
                 className="sr-only peer"
                 checked={checked}
-                onChange={(e) => setChecked(e.target.checked)}
+                onChange={(e) => !disabled && setChecked(e.target.checked)}
+                disabled={disabled}
             />
             <div className={`
                 w-11 h-6 rounded-full transition-colors duration-200 ease-in-out
