@@ -13,8 +13,6 @@ interface Tenant {
 }
 
 export default function SuperAdminTenantsPage() {
-    console.log('[SuperAdmin Page] Component mounting...')
-    
     const [tenants, setTenants] = useState<Tenant[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)

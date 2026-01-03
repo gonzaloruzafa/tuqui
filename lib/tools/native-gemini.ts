@@ -24,43 +24,15 @@ export async function generateTextNative({
 
     if (tools) {
         for (const [name, tool] of Object.entries(tools)) {
-            // Manual conversion for MercadoLibre tools
-            if (name === 'meli_search') {
+            // Manual conversion for each tool type
+            if (name === 'web_search') {
                 functionDeclarations.push({
                     name,
-                    description: tool.description,
+                    description: tool.description || 'Buscar información en internet',
                     parameters: {
                         type: SchemaType.OBJECT,
                         properties: {
-                            query: { type: SchemaType.STRING, description: 'Producto a buscar' },
-                            site: { type: SchemaType.STRING, description: 'Código de sitio MeLi (MLA, MLB, etc)' },
-                            maxResults: { type: SchemaType.NUMBER, description: 'Cantidad máxima de resultados' }
-                        },
-                        required: ['query']
-                    }
-                })
-            } else if (name === 'meli_price_analysis') {
-                functionDeclarations.push({
-                    name,
-                    description: tool.description,
-                    parameters: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            query: { type: SchemaType.STRING, description: 'Producto a analizar' },
-                            site: { type: SchemaType.STRING, description: 'Código de sitio MeLi' },
-                            sampleSize: { type: SchemaType.NUMBER, description: 'Tamaño de muestra' }
-                        },
-                        required: ['query']
-                    }
-                })
-            } else if (name === 'web_search') {
-                functionDeclarations.push({
-                    name,
-                    description: tool.description,
-                    parameters: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            query: { type: SchemaType.STRING, description: 'Búsqueda' }
+                            query: { type: SchemaType.STRING, description: 'Términos de búsqueda' }
                         },
                         required: ['query']
                     }
@@ -68,11 +40,11 @@ export async function generateTextNative({
             } else if (name === 'web_investigator') {
                 functionDeclarations.push({
                     name,
-                    description: tool.description,
+                    description: tool.description || 'Extraer contenido de una página web',
                     parameters: {
                         type: SchemaType.OBJECT,
                         properties: {
-                            url: { type: SchemaType.STRING, description: 'URL completa a investigar' }
+                            url: { type: SchemaType.STRING, description: 'URL completa a investigar (incluir https://)' }
                         },
                         required: ['url']
                     }
@@ -129,12 +101,14 @@ export async function generateTextNative({
         console.log(`[NativeGemini] Executing ${name} with args:`, args)
 
         const tool = tools?.[name]
+        let toolResult: any
+        
         if (!tool || !tool.execute) {
-            console.error(`[NativeGemini] Tool ${name} not found or missing execute`)
-            break
+            console.warn(`[NativeGemini] Tool ${name} not found, returning error to model`)
+            toolResult = { error: `Tool ${name} no está disponible. Usa web_search o web_investigator.` }
+        } else {
+            toolResult = await tool.execute(args)
         }
-
-        const toolResult = await tool.execute(args)
 
         result = await chat.sendMessage([{
             functionResponse: {

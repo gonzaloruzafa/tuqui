@@ -26,8 +26,8 @@ export const TUQUI_UNIFIED = {
     // Todas las tools disponibles
     tools: [
         'odoo_intelligent_query',  // Odoo BI Agent
-        'meli_search',             // MercadoLibre
-        'web_search',              // Tavily
+        'tavily',                  // Navegador Web (búsqueda)
+        'firecrawl',               // Investigador Web (scraping)
     ],
     
     // RAG siempre habilitado
@@ -42,10 +42,16 @@ export const TUQUI_UNIFIED = {
             examples: ['¿Cuánto vendimos este mes?', 'Top 10 clientes por deuda', 'Stock de productos']
         },
         {
-            icon: '🛒',
-            title: 'Mercado',
-            description: 'Buscar productos y precios en MercadoLibre',
-            examples: ['Buscar precios de notebooks', '¿Cuánto sale un iPhone 15?']
+            icon: '🌐',
+            title: 'Búsqueda Web',
+            description: 'Buscar información actualizada en internet',
+            examples: ['Cotización del dólar hoy', 'Últimas noticias de AFIP', 'Precios de productos']
+        },
+        {
+            icon: '🔍',
+            title: 'Investigar Páginas',
+            description: 'Extraer contenido detallado de cualquier página web',
+            examples: ['Leer precios de MercadoLibre', 'Analizar documentación técnica']
         },
         {
             icon: '📚',
@@ -58,12 +64,6 @@ export const TUQUI_UNIFIED = {
             title: 'Legal',
             description: 'Orientación sobre leyes argentinas, contratos, impuestos',
             examples: ['¿Puedo abrir una SAS?', '¿Cómo calcular indemnización?']
-        },
-        {
-            icon: '🌐',
-            title: 'Búsqueda Web',
-            description: 'Buscar información actualizada en internet',
-            examples: ['Cotización del dólar hoy', 'Últimas noticias de AFIP']
         }
     ],
 
@@ -84,19 +84,21 @@ Cuando pregunten sobre ventas, compras, facturas, stock, clientes, proveedores:
 - Podés hacer agregaciones, rankings, comparaciones
 - Entendés períodos: "este mes", "Q4 2025", "año pasado"
 
-### 2. MERCADOLIBRE
-Cuando pregunten precios de productos o comparaciones de mercado:
-- Usá la tool \`meli_search\`
-- Buscá en Argentina (MLA)
+### 2. BÚSQUEDA WEB (Navegador)
+Cuando necesites buscar información actualizada (noticias, precios, regulaciones):
+- Usá la tool \`web_search\`
+- Ideal para búsquedas generales y múltiples fuentes
 
-### 3. DOCUMENTOS INTERNOS (RAG)
+### 3. INVESTIGAR PÁGINAS (Scraping)
+Cuando necesites extraer contenido de una página específica:
+- Usá la tool \`web_investigator\`
+- Para leer artículos, precios en tiendas (MercadoLibre, Amazon), documentación
+- Ejemplo: Para precios en MercadoLibre, buscá con web_search primero, luego investigá URLs específicas
+
+### 4. DOCUMENTOS INTERNOS (RAG)
 Cuando pregunten sobre procedimientos, políticas, manuales de la empresa:
 - El contexto relevante se inyecta automáticamente
 - Basá tus respuestas en esos documentos
-
-### 4. BÚSQUEDA WEB
-Cuando necesites información actualizada (cotizaciones, noticias, regulaciones):
-- Usá la tool \`web_search\`
 
 ### 5. CONSULTAS LEGALES Y CONTABLES
 Podés orientar sobre:
