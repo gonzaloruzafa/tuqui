@@ -104,11 +104,18 @@ export async function getSubAgents(tenantId: string): Promise<SubAgent[]> {
     const subAgents: SubAgent[] = []
 
     for (const agent of agents) {
-        const { data: tools } = await db
-            .from('agent_tools')
-            .select('tool_slug')
-            .eq('agent_id', agent.id)
-            .eq('enabled', true)
+        // Primary: use tools from agents.tools column (synced from master_agents)
+        let agentTools = agent.tools || []
+        
+        // Fallback: if no tools in column, check agent_tools table
+        if (agentTools.length === 0) {
+            const { data: toolsFromTable } = await db
+                .from('agent_tools')
+                .select('tool_slug')
+                .eq('agent_id', agent.id)
+                .eq('enabled', true)
+            agentTools = toolsFromTable?.map(t => t.tool_slug) || []
+        }
 
         // Inferir keywords del slug/nombre
         const slug = agent.slug.replace('tuqui-', '')
@@ -120,7 +127,7 @@ export async function getSubAgents(tenantId: string): Promise<SubAgent[]> {
             name: agent.name,
             description: agent.description,
             system_prompt: agent.system_prompt,
-            tools: tools?.map(t => t.tool_slug) || [],
+            tools: agentTools,
             rag_enabled: agent.rag_enabled || false,
             keywords: inferredKeywords,
             priority: agent.slug === 'tuqui' ? 0 : 1  // Tuqui principal tiene prioridad más baja (fallback)

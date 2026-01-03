@@ -56,15 +56,16 @@ async function updateAgent(formData: FormData) {
     const { data: agent } = await db.from('agents').select('id').eq('slug', slug).single()
     if (!agent) return
 
-    // Update Agent Main Fields (without tools column - use agent_tools table)
+    // Update Agent Main Fields (including tools column)
     await db.from('agents').update({
         name: name,
         system_prompt: systemPrompt,
         rag_enabled: ragEnabled,
-        is_active: isActive
+        is_active: isActive,
+        tools: tools  // Also save to tools column for routing
     }).eq('id', agent.id)
 
-    // Update Agent Tools (Resync)
+    // Update Agent Tools table (for backward compatibility)
     // 1. Delete all current tools
     await db.from('agent_tools').delete().eq('agent_id', agent.id)
 
