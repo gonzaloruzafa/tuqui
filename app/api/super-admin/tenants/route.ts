@@ -3,10 +3,17 @@ import { auth } from '@/lib/auth/config'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createTenant, syncAgentsFromMasters } from '@/lib/tenants/service'
 
+// Platform admins - use env var or hardcode for now
+const PLATFORM_ADMINS = (process.env.PLATFORM_ADMIN_EMAILS || 'gonzaloprieto@adhoc.com.ar').split(',')
+
+function isPlatformAdmin(email?: string | null): boolean {
+    return !!email && PLATFORM_ADMINS.includes(email)
+}
+
 export async function GET() {
     const session = await auth()
 
-    if (!session?.user?.is_platform_admin) {
+    if (!isPlatformAdmin(session?.user?.email)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -31,7 +38,7 @@ export async function GET() {
 export async function POST(req: Request) {
     const session = await auth()
 
-    if (!session?.user?.is_platform_admin) {
+    if (!isPlatformAdmin(session?.user?.email)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

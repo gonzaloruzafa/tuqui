@@ -55,7 +55,8 @@ export const webInvestigatorTool = tool({
     parameters: z.object({
         url: z.string().describe('URL completa a investigar (debe incluir https://)')
     }),
-    execute: async ({ url }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    execute: async ({ url }: any) => {
         return await scrapeUrl(url)
     }
 } as any)
