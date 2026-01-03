@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth/config'
-import { getAgentBySlug, getAvailableAgentSlugs } from '@/lib/agents/service'
+import { getAgentBySlug } from '@/lib/agents/service'
 import { searchDocuments } from '@/lib/rag/search'
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
@@ -7,7 +7,7 @@ import { streamChatWithOdoo } from '@/lib/tools/gemini-odoo'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
 import { getClient } from '@/lib/supabase/client'
-import { detectIntent } from '@/lib/agents/intent-router'
+import { routeMessage, buildCombinedPrompt } from '@/lib/agents/router'
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -66,36 +66,43 @@ export async function POST(req: Request) {
         const estimatedInputTokens = Math.ceil(inputContent.length / 3)
         await checkUsageLimit(tenantId, session.user.email, estimatedInputTokens)
 
-        // 2. Get Agent (with smart routing)
-        let effectiveAgentSlug = agentSlug
+        // 2. Get Agent (with smart routing via router.ts)
+        // Always start with Tuqui as orchestrator, then route to specialized agent if needed
+        const conversationHistory = messages.slice(0, -1).map((m: any) => m.content)
+        const routingResult = await routeMessage(tenantId, inputContent, conversationHistory)
         
-        // If requesting Tuqui, check if we should route to a specialized agent
-        if (agentSlug === 'tuqui') {
-            try {
-                const availableAgents = await getAvailableAgentSlugs(tenantId)
-                const routingDecision = detectIntent(inputContent, availableAgents)
-                
-                if (routingDecision.agentSlug !== 'tuqui' && routingDecision.confidence === 'high') {
-                    console.log(`[Chat] Routing to specialized agent: ${routingDecision.agentSlug} (${routingDecision.reason})`)
-                    effectiveAgentSlug = routingDecision.agentSlug
-                }
-            } catch (routingError) {
-                console.warn('[Chat] Routing detection failed, using default:', routingError)
-            }
+        console.log(`[Chat] Routing: ${routingResult.selectedAgent?.slug || 'none'} (${routingResult.confidence}) - ${routingResult.reason}`)
+        
+        // Get the base agent (Tuqui) for personality
+        const baseAgent = await getAgentBySlug(tenantId, agentSlug)
+        if (!baseAgent) {
+            return new Response('Agent not found', { status: 404 })
         }
         
-        let agent = await getAgentBySlug(tenantId, effectiveAgentSlug)
-        if (!agent) {
-            // Fallback to original slug if routed agent not found
-            agent = await getAgentBySlug(tenantId, agentSlug)
-            if (!agent) {
-                return new Response('Agent not found', { status: 404 })
+        // Determine effective agent config (tools from routed agent, personality from base)
+        let agent = baseAgent
+        let effectiveTools = baseAgent.tools || []
+        let systemPromptAddition = ''
+        
+        if (routingResult.selectedAgent && routingResult.confidence !== 'low') {
+            // Use tools from the specialized agent
+            if (routingResult.selectedAgent.tools.length > 0) {
+                effectiveTools = routingResult.selectedAgent.tools
             }
-            console.log(`[Chat] Routed agent ${effectiveAgentSlug} not found, using ${agentSlug}`)
+            // Combine prompts if specialized agent has its own prompt
+            if (routingResult.selectedAgent.system_prompt) {
+                systemPromptAddition = `\n\n## 🎯 MODO ACTIVO: ${routingResult.selectedAgent.name}\n${routingResult.selectedAgent.system_prompt}`
+            }
+            console.log(`[Chat] Using specialized config: ${routingResult.selectedAgent.slug} with tools: ${effectiveTools.join(', ')}`)
         }
 
         // 3. System Prompt (already merged with custom instructions + company context)
         let systemSystem = agent.merged_system_prompt || agent.system_prompt || 'Sos un asistente útil.'
+        
+        // Add specialized prompt if routing detected a specialty
+        if (systemPromptAddition) {
+            systemSystem += systemPromptAddition
+        }
 
         // Add context persistence rule
         systemSystem += '\n\nIMPORTANTE: Estás en una conversación fluida. Usa siempre los mensajes anteriores para entender referencias como "él", "eso", "ahora", o "qué productos?". No pidas aclaraciones si el contexto ya está en el historial.'
@@ -118,10 +125,10 @@ export async function POST(req: Request) {
             }
         }
 
-        // 4. Check if agent uses Odoo tools (use native Google SDK for these)
-        const hasOdooTools = agent.tools?.some((t: string) => t.startsWith('odoo'))
+        // 4. Check if uses Odoo tools (use native Google SDK for these)
+        const hasOdooTools = effectiveTools.some((t: string) => t.startsWith('odoo'))
 
-        console.log('[Chat] Loading tools for agent tools:', agent.tools, 'hasOdoo:', hasOdooTools)
+        console.log('[Chat] Loading tools:', effectiveTools, 'hasOdoo:', hasOdooTools)
 
         // 5. Generate Stream
         try {
@@ -186,7 +193,7 @@ export async function POST(req: Request) {
             // Standard AI SDK path for non-Odoo agents
             let tools: any = {}
             try {
-                tools = await getToolsForAgent(tenantId, agent.tools || [])
+                tools = await getToolsForAgent(tenantId, effectiveTools)
                 console.log('[Chat] Tools loaded:', Object.keys(tools))
             } catch (toolsError) {
                 console.error('[Chat] Error loading tools:', toolsError)

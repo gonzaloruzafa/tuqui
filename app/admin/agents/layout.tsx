@@ -1,7 +1,5 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
-import { Header } from '@/components/Header'
-import { Footer } from '@/components/Footer'
 
 export default async function AdminAgentsLayout({
     children,
@@ -14,11 +12,6 @@ export default async function AdminAgentsLayout({
         redirect('/')
     }
 
-    return (
-        <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">
-            <Header />
-            {children}
-            <Footer />
-        </div>
-    )
+    // Just auth check, no additional wrapper (parent already has Header)
+    return <>{children}</>
 }

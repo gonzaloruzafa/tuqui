@@ -110,8 +110,7 @@ export default async function AdminPage() {
                             <h3 className="font-bold text-gray-900 text-lg mb-2 group-hover:text-adhoc-violet transition-colors">{card.title}</h3>
                             <p className="text-sm text-gray-500 mb-6 flex-1 leading-relaxed">{card.description}</p>
 
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-                                <span className="text-xs font-semibold text-gray-400 group-hover:text-adhoc-violet transition-colors uppercase tracking-wider">Acción</span>
+                            <div className="flex items-center justify-end mt-auto pt-4 border-t border-gray-50">
                                 <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-adhoc-violet group-hover:text-white transition-all transform rotate-0 group-hover:rotate-45">
                                     <ArrowLeft className="w-4 h-4 rotate-180" />
                                 </div>

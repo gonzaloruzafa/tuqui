@@ -179,14 +179,14 @@ export async function routeMessage(
     const topSpecialty = sortedScores[0][0]
     const topScore = sortedScores[0][1]
 
-    // Mapeo de especialidad a slug de agente
+    // Mapeo de especialidad a slug de agente (actualizado para nuevos agentes)
     const specialtyToSlug: Record<string, string> = {
-        'erp': 'tuqui-odoo',
-        'mercado': 'tuqui-mercadolibre',
+        'erp': 'odoo',           // Agente Odoo para consultas ERP
+        'mercado': 'meli',       // Agente MeLi para precios/productos
         'legal': 'tuqui-legal',
         'contador': 'tuqui-contador',
-        'documentos': 'tuqui',  // RAG se maneja en el agente principal
-        'web': 'tuqui'  // Web search también
+        'documentos': 'tuqui',   // RAG se maneja en el agente principal
+        'web': 'meli'            // Búsquedas web van a meli
     }
 
     const targetSlug = specialtyToSlug[topSpecialty] || 'tuqui'
