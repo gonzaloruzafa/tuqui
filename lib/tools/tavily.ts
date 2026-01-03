@@ -61,15 +61,13 @@ async function searchWeb(
 export const tavilySearchTool = tool({
     description: 'Navegador Web: Busca información actualizada en internet. Usa esto para encontrar noticias recientes, preguntas generales, comparar fuentes múltiples.',
     parameters: z.object({
-        query: z.string().describe('Términos de búsqueda en español o inglés'),
-        search_depth: z.string().optional().describe('Profundidad: basic o advanced'),
-        max_results: z.number().optional().describe('Cantidad máxima de resultados')
+        query: z.string().describe('Términos de búsqueda en español o inglés')
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    execute: async ({ query, search_depth, max_results }: any) => {
+    execute: async ({ query }: any) => {
         return await searchWeb(query, {
-            search_depth: search_depth || 'basic',
-            max_results: max_results || 5,
+            search_depth: 'basic',
+            max_results: 5,
             include_answer: true
         })
     }
