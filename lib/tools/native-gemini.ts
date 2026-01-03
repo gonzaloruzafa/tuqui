@@ -94,29 +94,44 @@ export async function generateTextNative({
     // Manual Tool Loop (maxSteps)
     for (let i = 0; i < maxSteps; i++) {
         const parts = response.candidates?.[0]?.content?.parts || []
-        const call = parts.find(p => 'functionCall' in p) as any
-
-        if (!call) break
-
-        const { name, args } = call.functionCall
-        console.log(`[NativeGemini] Executing ${name} with args:`, args)
-
-        const tool = tools?.[name]
-        let toolResult: any
         
-        if (!tool || !tool.execute) {
-            console.warn(`[NativeGemini] Tool ${name} not found, returning error to model`)
-            toolResult = { error: `Tool ${name} no está disponible. Usa web_search o web_investigator.` }
-        } else {
-            toolResult = await tool.execute(args)
+        // Find ALL function calls in this response (Gemini may call multiple tools at once)
+        const functionCalls = parts.filter(p => 'functionCall' in p) as any[]
+
+        if (functionCalls.length === 0) break
+
+        // Execute ALL function calls and collect responses
+        const functionResponses: any[] = []
+        
+        for (const call of functionCalls) {
+            const { name, args } = call.functionCall
+            console.log(`[NativeGemini] Executing ${name} with args:`, args)
+
+            const tool = tools?.[name]
+            let toolResult: any
+            
+            if (!tool || !tool.execute) {
+                console.warn(`[NativeGemini] Tool ${name} not found, returning error to model`)
+                toolResult = { error: `Tool ${name} no está disponible. Usa web_search o web_investigator.` }
+            } else {
+                try {
+                    toolResult = await tool.execute(args)
+                } catch (execError: any) {
+                    console.error(`[NativeGemini] Tool ${name} execution error:`, execError)
+                    toolResult = { error: execError.message || 'Tool execution failed' }
+                }
+            }
+
+            functionResponses.push({
+                functionResponse: {
+                    name,
+                    response: toolResult
+                }
+            })
         }
 
-        result = await chat.sendMessage([{
-            functionResponse: {
-                name,
-                response: toolResult
-            }
-        }])
+        // Send ALL function responses together (this is what Gemini expects)
+        result = await chat.sendMessage(functionResponses)
 
         response = result.response
         totalTokens += response.usageMetadata?.totalTokenCount || 0
