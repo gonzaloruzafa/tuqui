@@ -1,5 +1,6 @@
 import { meliTools } from './mercadolibre/tools'
 import { tavilySearchTool } from './tavily'
+import { webInvestigatorTool } from './firecrawl'
 
 /**
  * Get tools for an agent based on its configured tool list.
@@ -11,15 +12,20 @@ import { tavilySearchTool } from './tavily'
 export async function getToolsForAgent(tenantId: string, agentTools: string[]) {
     const tools: Record<string, any> = {}
 
-    // 1. Tavily Web Search
+    // 1. Tavily - Navegador Web
     if (agentTools.includes('web_search') || agentTools.includes('tavily')) {
         tools.web_search = tavilySearchTool
     }
 
-    // 2. Odoo Tools - Handled separately via native Google SDK wrapper
+    // 2. Firecrawl - Investigador Web
+    if (agentTools.includes('firecrawl') || agentTools.includes('web_investigator')) {
+        tools.web_investigator = webInvestigatorTool
+    }
+
+    // 3. Odoo Tools - Handled separately via native Google SDK wrapper
     // See app/api/chat/route.ts for Odoo-specific handling
 
-    // 3. MercadoLibre Tools
+    // 4. MercadoLibre Tools (legacy - being phased out)
     if (agentTools.includes('meli_search') || agentTools.some(t => t.startsWith('meli_'))) {
         tools.meli_search = meliTools.meli_search
         tools.meli_price_analysis = meliTools.meli_price_analysis

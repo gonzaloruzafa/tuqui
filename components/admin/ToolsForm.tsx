@@ -33,6 +33,22 @@ const TOOLS: ToolConfig[] = [
         ]
     },
     {
+        slug: 'firecrawl',
+        name: 'Investigador Web',
+        icon: 'Globe',
+        description: 'Extrae y analiza contenido de páginas web específicas.',
+        configFields: [],
+        envNote: 'La API Key se configura via variable de entorno FIRECRAWL_API_KEY'
+    },
+    {
+        slug: 'tavily',
+        name: 'Navegador Web',
+        icon: 'Globe',
+        description: 'Búsqueda web en tiempo real con IA.',
+        configFields: [],
+        envNote: 'La API Key se configura via variable de entorno TAVILY_API_KEY'
+    },
+    {
         slug: 'mercadolibre',
         name: 'MercadoLibre',
         icon: 'ShoppingBag',
@@ -45,14 +61,6 @@ const TOOLS: ToolConfig[] = [
         icon: 'MessageSquare',
         description: 'Integración vía Twilio para respuestas automáticas.',
         configFields: []
-    },
-    {
-        slug: 'tavily',
-        name: 'Tavily Web Search',
-        icon: 'Globe',
-        description: 'Búsqueda web en tiempo real con IA.',
-        configFields: [],
-        envNote: 'La API Key se configura via variable de entorno TAVILY_API_KEY'
     },
 ]
 

@@ -59,7 +59,7 @@ async function searchWeb(
  * Tavily web search tool for AI SDK
  */
 export const tavilySearchTool = tool({
-    description: 'Buscar información actualizada en internet. Útil para noticias, datos actuales, precios, información que cambia frecuentemente.',
+    description: 'Navegador Web: Busca información actualizada en internet. Usa esto para encontrar noticias recientes, preguntas generales, comparar fuentes múltiples.',
     parameters: z.object({
         query: z.string().describe('Términos de búsqueda en español o inglés'),
         search_depth: z.string().optional().describe('Profundidad: basic o advanced'),
