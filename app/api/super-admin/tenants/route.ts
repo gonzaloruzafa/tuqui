@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { createTenant, syncAgentsFromMasters } from '@/lib/tenants/service'
 
 // Platform admins - use env var or hardcode for now
-const PLATFORM_ADMINS = (process.env.PLATFORM_ADMIN_EMAILS || 'gonzaloruzafa@gmail.com').split(',')
+const PLATFORM_ADMINS = (process.env.PLATFORM_ADMIN_EMAILS || 'gr@adhoc.inc').split(',')
 
 function isPlatformAdmin(email?: string | null): boolean {
     return !!email && PLATFORM_ADMINS.includes(email)
