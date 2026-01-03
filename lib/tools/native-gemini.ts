@@ -50,6 +50,30 @@ export async function generateTextNative({
                         required: ['url']
                     }
                 })
+            } else if (name === 'ecommerce_search') {
+                functionDeclarations.push({
+                    name: 'ecommerce_search',
+                    description: tool.description || 'Buscar productos y precios en MercadoLibre',
+                    parameters: {
+                        type: SchemaType.OBJECT,
+                        properties: {
+                            query: { type: SchemaType.STRING, description: 'Producto a buscar (ej: sillón odontológico)' }
+                        },
+                        required: ['query']
+                    }
+                })
+            } else if (name === 'web_scraper') {
+                functionDeclarations.push({
+                    name: 'web_scraper',
+                    description: tool.description || 'Extraer contenido de una página web',
+                    parameters: {
+                        type: SchemaType.OBJECT,
+                        properties: {
+                            url: { type: SchemaType.STRING, description: 'URL de la página a scrapear' }
+                        },
+                        required: ['url']
+                    }
+                })
             } else {
                 // Heuristic conversion for other tools
                 console.warn(`[NativeGemini] Tool ${name} using heuristic conversion`)

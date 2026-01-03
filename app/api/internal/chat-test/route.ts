@@ -80,12 +80,16 @@ export async function POST(req: NextRequest) {
 
         systemPrompt += '\n\nIMPORTANTE: Usa el contexto de mensajes anteriores para entender referencias.'
 
-        // 4. Get RAG context if enabled
+        // 4. Get RAG context if enabled (non-blocking)
         let ragContext = ''
         if (agent.rag_enabled) {
-            const docs = await searchDocuments(tenantId, agent.id, inputContent)
-            if (docs.length > 0) {
-                ragContext = `\n\nCONTEXTO RELEVANTE:\n${docs.map(d => `- ${d.content}`).join('\n')}`
+            try {
+                const docs = await searchDocuments(tenantId, agent.id, inputContent)
+                if (docs.length > 0) {
+                    ragContext = `\n\nCONTEXTO RELEVANTE:\n${docs.map(d => `- ${d.content}`).join('\n')}`
+                }
+            } catch (ragError) {
+                console.warn('[TestChat] RAG search failed (continuing without RAG):', ragError)
             }
         }
 
@@ -115,25 +119,22 @@ export async function POST(req: NextRequest) {
             }
             toolsUsed.push('odoo_intelligent_query')
         } else {
-            // Use standard AI SDK with tools
+            // Use native Gemini with proper tool schema conversion
             const tools = await getToolsForAgent(tenantId, effectiveTools)
+            const { generateTextNative } = await import('@/lib/tools/native-gemini')
             
-            const result = streamText({
-                model: google('gemini-2.0-flash'),
+            const result = await generateTextNative({
+                model: 'gemini-2.0-flash',
                 system: systemPrompt + ragContext,
                 messages: messages.map((m: any) => ({
-                    role: m.role as 'user' | 'assistant',
+                    role: m.role,
                     content: m.content
                 })),
-                tools
+                tools,
+                maxSteps: 5
             })
 
-            // Collect full response
-            for await (const chunk of (await result).textStream) {
-                response += chunk
-            }
-
-            // Track which tools were called
+            response = result.text
             toolsUsed = effectiveTools
         }
 

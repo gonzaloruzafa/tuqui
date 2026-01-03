@@ -1,5 +1,10 @@
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { embed, embedMany } from 'ai'
+
+// Use explicit API key configuration
+const google = createGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY
+})
 
 export async function generateEmbedding(text: string) {
     const { embedding } = await embed({
