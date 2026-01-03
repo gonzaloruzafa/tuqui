@@ -153,20 +153,32 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             // Odoo BI Agent doesn't expose usage yet, using estimate for now
             totalTokens = responseText.length / 3
         } else {
-            // Path B: Standard Agent (AI SDK)
-            console.log('[ChatEngine] Using Standard Agent path')
+            // Path B: Standard Agent with Tools (Native Gemini wrapper)
+            // Using native wrapper because AI SDK has schema conversion issues with Gemini 2.0
+            console.log('[ChatEngine] Using Standard Agent path with native wrapper')
             const tools = await getToolsForAgent(tenantId, effectiveAgent.tools || [])
+            const hasTools = Object.keys(tools).length > 0
 
-            const result = await generateText({
-                model: google('gemini-2.0-flash'),
-                system: systemPrompt,
-                messages: messages as any,
-                tools: tools as any,
-                maxSteps: 5
-            } as any)
-
-            responseText = result.text
-            totalTokens = result.usage.totalTokens || 0
+            if (hasTools) {
+                const { generateTextNative } = await import('@/lib/tools/native-gemini')
+                const result = await generateTextNative({
+                    system: systemPrompt,
+                    messages: messages as any,
+                    tools: tools as any,
+                    maxSteps: 5
+                })
+                responseText = result.text
+                totalTokens = result.usage.totalTokens || 0
+            } else {
+                // No tools - use AI SDK (simpler, works fine without tools)
+                const result = await generateText({
+                    model: google('gemini-2.0-flash'),
+                    system: systemPrompt,
+                    messages: messages as any
+                } as any)
+                responseText = result.text
+                totalTokens = result.usage.totalTokens || 0
+            }
         }
 
         // 6. Track Usage
