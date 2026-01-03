@@ -14,6 +14,7 @@ CREATE OR REPLACE FUNCTION sync_agents_from_masters() RETURNS TABLE (
 DECLARE
     v_tenant RECORD;
     v_count INT;
+    v_insert_count INT;
 BEGIN
     -- Loop through all tenants
     FOR v_tenant IN SELECT t.id, t.name FROM tenants t LOOP
@@ -34,6 +35,7 @@ BEGIN
           AND a.tenant_id = v_tenant.id
           AND a.master_version_synced < m.version;
         
+        v_count := 0;
         GET DIAGNOSTICS v_count = ROW_COUNT;
         
         -- Also instantiate any new master agents that tenant doesn't have yet
@@ -76,7 +78,8 @@ BEGIN
                 AND a.master_agent_id = m.id
           );
         
-        GET DIAGNOSTICS v_count = v_count + ROW_COUNT;
+        GET DIAGNOSTICS v_insert_count = ROW_COUNT;
+        v_count := v_count + v_insert_count;
         
         -- Return row for this tenant
         tenant_id := v_tenant.id;
