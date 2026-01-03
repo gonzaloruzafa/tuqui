@@ -26,16 +26,20 @@ export default function SuperAdminTenantsPage() {
 
     const fetchTenants = async () => {
         setLoading(true)
+        console.log('[SuperAdmin Page] Fetching tenants...')
         try {
             const res = await fetch('/api/super-admin/tenants')
+            console.log('[SuperAdmin Page] Response status:', res.status)
             const data = await res.json()
+            console.log('[SuperAdmin Page] Response data:', data)
             if (res.ok) {
                 setTenants(data)
             } else {
+                console.error('[SuperAdmin Page] Error:', data.error)
                 alert('Error al cargar tenants: ' + data.error)
             }
         } catch (error) {
-            console.error('Error fetching tenants:', error)
+            console.error('[SuperAdmin Page] Fetch error:', error)
         }
         setLoading(false)
     }

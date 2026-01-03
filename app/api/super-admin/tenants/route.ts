@@ -4,35 +4,51 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { createTenant, syncAgentsFromMasters } from '@/lib/tenants/service'
 
 // Platform admins - use env var or hardcode for now
-const PLATFORM_ADMINS = (process.env.PLATFORM_ADMIN_EMAILS || 'gr@adhoc.inc').split(',')
+const PLATFORM_ADMINS = (process.env.PLATFORM_ADMIN_EMAILS || 'gr@adhoc.inc').split(',').map(e => e.trim().toLowerCase())
 
 function isPlatformAdmin(email?: string | null): boolean {
-    return !!email && PLATFORM_ADMINS.includes(email)
+    if (!email) return false
+    return PLATFORM_ADMINS.includes(email.toLowerCase())
 }
 
 export async function GET() {
+    console.log('[SuperAdmin API] GET request received')
+    
     const session = await auth()
+    console.log('[SuperAdmin API] Session email:', session?.user?.email)
+    console.log('[SuperAdmin API] Platform admins:', PLATFORM_ADMINS)
 
     if (!isPlatformAdmin(session?.user?.email)) {
+        console.log('[SuperAdmin API] Unauthorized - email not in platform admins')
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const supabase = supabaseAdmin()
-    const { data: tenants, error } = await supabase
-        .from('tenants')
-        .select(`
-            id,
-            name,
-            created_at,
-            users!inner(email, is_admin)
-        `)
-        .order('created_at', { ascending: false })
+    console.log('[SuperAdmin API] Authorized, fetching tenants...')
+    
+    try {
+        const supabase = supabaseAdmin()
+        const { data: tenants, error } = await supabase
+            .from('tenants')
+            .select(`
+                id,
+                name,
+                created_at,
+                users!inner(email, is_admin)
+            `)
+            .order('created_at', { ascending: false })
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        if (error) {
+            console.error('[SuperAdmin API] Supabase error:', error)
+            return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+
+        console.log('[SuperAdmin API] Found tenants:', tenants?.length || 0)
+        return NextResponse.json(tenants || [])
+    } catch (err: any) {
+        console.error('[SuperAdmin API] Unexpected error:', err)
+        return NextResponse.json({ error: err.message }, { status: 500 })
     }
-
-    return NextResponse.json(tenants || [])
+}
 }
 
 export async function POST(req: Request) {
