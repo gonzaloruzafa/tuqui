@@ -64,7 +64,7 @@ async function scrapeUrl(url: string) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': \`Bearer \${apiKey}\`
+                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify(requestBody)
         })
@@ -72,7 +72,7 @@ async function scrapeUrl(url: string) {
         if (!res.ok) {
             const error = await res.text()
             console.error('[Firecrawl] HTTP Error:', res.status, error)
-            return { error: \`Error \${res.status}: \${error}\` }
+            return { error: `Error ${res.status}: ${error}` }
         }
 
         const data = await res.json()
@@ -125,7 +125,7 @@ function extractPrices(content: string): string[] {
     
     let match
     while ((match = pricePattern.exec(content)) !== null) {
-        const price = \`\$\${match[1]}\`
+        const price = `$${match[1]}`
         // Avoid duplicates and filter out very small numbers (likely not prices)
         if (!prices.includes(price) && parseInt(match[1].replace(/\./g, '')) >= 1000) {
             prices.push(price)
@@ -142,7 +142,7 @@ function extractPrices(content: string): string[] {
  * Used by agents to scrape web pages and extract content
  */
 export const webInvestigatorTool = tool({
-    description: \`Investigador Web: Extrae contenido completo de una URL específica.
+    description: `Investigador Web: Extrae contenido completo de una URL específica.
 
 USO PRINCIPAL: Obtener precios y detalles de productos de MercadoLibre.
 
@@ -150,7 +150,7 @@ TIPOS DE URLs que funcionan bien:
 - Listados de búsqueda: https://listado.mercadolibre.com.ar/termo-stanley
 - Productos específicos: https://articulo.mercadolibre.com.ar/MLA-...
 
-IMPORTANTE: Siempre usa esta herramienta DESPUÉS de web_search para obtener los precios reales de las URLs encontradas.\`,
+IMPORTANTE: Siempre usa esta herramienta DESPUÉS de web_search para obtener los precios reales de las URLs encontradas.`,
     parameters: z.object({
         url: z.string().describe('URL completa a investigar (debe incluir https://)')
     }),

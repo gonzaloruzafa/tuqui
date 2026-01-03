@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
             toolsUsed.push('odoo_intelligent_query')
         } else {
             // Use standard AI SDK with tools
-            const tools = await getToolsForAgent(effectiveTools)
+            const tools = await getToolsForAgent(tenantId, effectiveTools)
             
             const result = streamText({
                 model: google('gemini-2.0-flash'),
@@ -125,8 +125,7 @@ export async function POST(req: NextRequest) {
                     role: m.role as 'user' | 'assistant',
                     content: m.content
                 })),
-                tools,
-                maxSteps: 5
+                tools
             })
 
             // Collect full response
@@ -135,7 +134,6 @@ export async function POST(req: NextRequest) {
             }
 
             // Track which tools were called
-            // (Would need to inspect result.steps for actual tool calls)
             toolsUsed = effectiveTools
         }
 
