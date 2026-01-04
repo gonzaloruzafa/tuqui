@@ -81,6 +81,15 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         // 3. Build System Prompt & Context
         let systemPrompt = agent.system_prompt || 'Sos un asistente útil.'
         
+        // Inject current date for temporal context
+        const currentDate = new Date().toLocaleDateString('es-AR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        })
+        systemPrompt = systemPrompt.replace('{{CURRENT_DATE}}', currentDate)
+        
         // Combine with sub-agent prompt if different specialty
         if (routingResult.selectedAgent && routingResult.selectedAgent.system_prompt && routingResult.confidence !== 'low') {
             systemPrompt = buildCombinedPrompt(
@@ -96,11 +105,8 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             systemPrompt += `\n\nCONTEXTO DE LA EMPRESA:\n${companyContext}`
         }
 
-        // Add context persistence rule
-        systemPrompt += '\n\nIMPORTANTE: Estás en una conversación fluida. Usa siempre los mensajes anteriores para entender referencias. No pidas aclaraciones si el contexto ya está en el historial.'
-
         if (channel === 'whatsapp') {
-            systemPrompt += '\n\nREGLA PARA WHATSAPP: Sé conciso pero útil. Usa formato Markdown simple (negritas, listas). No uses lenguaje excesivamente formal excepto que sea necesario.'
+            systemPrompt += '\n\nREGLA PARA WHATSAPP: Sé conciso. Formato Markdown simple (negritas, listas). Máximo 1500 caracteres por mensaje.'
         }
 
         // 4. RAG Context (using effective agent config)
