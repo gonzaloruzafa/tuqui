@@ -22,6 +22,7 @@ export interface SubAgent {
 // Keywords predefinidos para cada tipo de especialidad
 const SPECIALTY_KEYWORDS: Record<string, string[]> = {
     'erp': [
+        // Ventas
         'venta', 'ventas', 'vendimos', 'factura', 'facturas', 'facturamos',
         'cliente', 'clientes', 'proveedor', 'proveedores', 
         'producto', 'productos', 'stock', 'inventario',
@@ -29,7 +30,22 @@ const SPECIALTY_KEYWORDS: Record<string, string[]> = {
         'cobro', 'cobros', 'cobramos', 'pago', 'pagos', 'pagamos',
         'deuda', 'deudas', 'saldo', 'cuenta corriente',
         'vendedor', 'vendedores', 'trimestre', 'mes pasado', 'este año',
-        'odoo', 'erp', 'sistema'
+        'odoo', 'erp', 'sistema',
+        // CRM / Pipeline
+        'pipeline', 'oportunidad', 'oportunidades', 'lead', 'leads',
+        'prospectos', 'prospecto', 'crm', 'etapa', 'etapas del pipeline',
+        'cerró', 'cerramos', 'ganamos', 'perdimos', 'won', 'lost',
+        // Notas de crédito / débito
+        'nota de crédito', 'notas de crédito', 'nota de débito',
+        'nc', 'nd', 'refund', 'reembolso',
+        // Stock adicional
+        'transferencia', 'transferencias', 'picking', 'pickings',
+        'recepción', 'recepciones', 'despacho', 'despachos', 'almacén',
+        // Términos generales ERP
+        'este mes', 'el mes', 'cuánto', 'cuantas', 'cuántas', 'total de',
+        // Métricas / análisis
+        'margen', 'margen bruto', 'rentabilidad', 'ticket promedio',
+        'porcentaje', 'pareto', 'top 10', 'top 5', 'ranking'
     ],
     'mercado': [
         'mercadolibre', 'meli', 'publicacion', 'publicaciones',
