@@ -4,6 +4,7 @@
  */
 
 import { OdooClient } from './client'
+import { suggestFieldCorrection } from './semantic-layer'
 
 // ============================================
 // TYPES
@@ -19,7 +20,8 @@ export interface OdooSubQuery {
     groupBy?: string[]              // For aggregations
     limit?: number                  // Max records (default 50)
     orderBy?: string                // Sort order
-    compare?: 'mom' | 'yoy'         // Month-over-month or year-over-year comparison
+    compare?: 'mom' | 'yoy'
+    _retried?: boolean         // Month-over-month or year-over-year comparison
 }
 
 export interface QueryResult {
@@ -551,6 +553,30 @@ async function executeSingleQuery(
         }
 
     } catch (error: any) {
+        const errorMsg = error.message || ''
+        
+        // Self-correction: Try to fix field name errors (only once)
+        const fieldErrorMatch = errorMsg.match(/(?:Invalid field|does not exist|unknown field)[:\s]*['"]?(\w+)['"]?/i)
+        
+        if (fieldErrorMatch && !query._retried) {
+            const badField = fieldErrorMatch[1]
+            const suggestion = suggestFieldCorrection(query.model, badField)
+            
+            if (suggestion) {
+                console.log(`[QueryBuilder] Self-correcting: "${badField}" → "${suggestion}" for ${query.model}`)
+                
+                const correctedQuery: OdooSubQuery = {
+                    ...query,
+                    _retried: true,
+                    filters: query.filters?.replace(new RegExp(badField, 'gi'), suggestion),
+                    fields: query.fields?.map(f => f === badField ? suggestion : f),
+                    groupBy: query.groupBy?.map(f => f === badField ? suggestion : f),
+                }
+                
+                return executeSingleQuery(client, tenantId, correctedQuery)
+            }
+        }
+        
         return {
             queryId: query.id,
             success: false,

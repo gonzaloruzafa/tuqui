@@ -1,5 +1,5 @@
 /**
- * Odoo Query Interpreter v2.0
+ * Odoo Query Interpreter v2.1
  * 
  * Primera capa de procesamiento que interpreta la intención del usuario
  * considerando el historial de conversación y produce una query estructurada.
@@ -8,6 +8,7 @@
  */
 
 import { GoogleGenerativeAI, Content } from '@google/generative-ai'
+import { getSchemaForPrompt } from './semantic-layer'
 
 // ============================================
 // TYPES
@@ -30,11 +31,15 @@ export interface InterpretedQuery {
 // ============================================
 // INTERPRETER PROMPT v2.0
 // ============================================
+const SCHEMA_SECTION = getSchemaForPrompt()
+
 
 const INTERPRETER_PROMPT = `Eres un intérprete experto de consultas de negocio para Odoo ERP.
 
 **TU TRABAJO:**
 Analizar el mensaje del usuario junto con el historial de conversación y producir una query estructurada en JSON.
+
+${SCHEMA_SECTION}
 
 ## 🔄 MANEJO DE CONTEXTO CONVERSACIONAL - CRÍTICO
 

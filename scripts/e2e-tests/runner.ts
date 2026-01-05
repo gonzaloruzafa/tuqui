@@ -8,6 +8,7 @@
  *   npx tsx scripts/e2e-tests/runner.ts --env local        # Run against localhost
  *   npx tsx scripts/e2e-tests/runner.ts --suite odoo       # Run only odoo tests
  *   npx tsx scripts/e2e-tests/runner.ts --subset critical  # Run critical subset for CI
+ *   npx tsx scripts/e2e-tests/runner.ts --file semantic-layer-tests  # Use different test file
  */
 
 import 'dotenv/config'
@@ -100,9 +101,9 @@ interface SuiteResult {
 // UTILITIES
 // =============================================================================
 
-function parseArgs(): { env: string; suite?: string; subset?: string; verbose: boolean; concurrent: number } {
+function parseArgs(): { env: string; suite?: string; subset?: string; verbose: boolean; concurrent: number; file: string } {
     const args = process.argv.slice(2)
-    const result = { env: 'prod', suite: undefined as string | undefined, subset: undefined as string | undefined, verbose: false, concurrent: 1 }
+    const result = { env: 'prod', suite: undefined as string | undefined, subset: undefined as string | undefined, verbose: false, concurrent: 1, file: 'cedent-test-suite' }
     
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--env' && args[i + 1]) {
@@ -116,6 +117,9 @@ function parseArgs(): { env: string; suite?: string; subset?: string; verbose: b
             i++
         } else if (args[i] === '--concurrent' && args[i + 1]) {
             result.concurrent = parseInt(args[i + 1], 10) || 1
+            i++
+        } else if (args[i] === '--file' && args[i + 1]) {
+            result.file = args[i + 1].replace('.json', '')
             i++
         } else if (args[i] === '--verbose' || args[i] === '-v') {
             result.verbose = true
@@ -445,7 +449,13 @@ async function main() {
     }
     
     // Load test suite
-    const suitePath = path.join(__dirname, 'cedent-test-suite.json')
+    const suitePath = path.join(__dirname, `${args.file}.json`)
+    if (!fs.existsSync(suitePath)) {
+        console.error(`\n❌ ERROR: Test suite file not found: ${suitePath}`)
+        process.exit(1)
+    }
+    console.log(`📁 Suite file: ${args.file}.json`)
+    
     const suiteData = JSON.parse(fs.readFileSync(suitePath, 'utf8'))
     
     // Get tenant ID
