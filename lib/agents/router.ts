@@ -111,7 +111,12 @@ const MELI_OVERRIDE_KEYWORDS = [
     'buscame en', 'buscá en', 'chequeame en', 'fijate en',
     'en el mercado', 'vs mercado', 'vs la competencia',
     'estoy caro', 'estoy barato', 'bien de precio',
-    'puedo subir', 'hay espacio', 'caro comparado', 'barato comparado'
+    'puedo subir', 'hay espacio', 'caro comparado', 'barato comparado',
+    // Pricing questions que implican comparación
+    'buen precio', 'mal precio', 'estoy regalando', 'regalando',
+    'debería subir', 'debería bajar', 'debería mantener',
+    'subir precio', 'bajar precio', 'precio competitivo',
+    'más barato', 'más caro', 'el más barato'
 ]
 
 /**
