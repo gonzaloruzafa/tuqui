@@ -50,6 +50,12 @@ const GENERIC_SPANISH_NAMES = [
   /Sofía\s+Fernández/i,
   /Diego\s+Torres/i,
   /Valentina\s+Ramírez/i,
+  // Variantes detectadas en producción
+  /Carlos\s+Rodriguez/i,
+  /Maria\s+Gimenez/i,
+  /Juan\s+Perez/i,
+  /Lucía\s+Fernández/i,
+  /José\s+Martinez/i,
 ]
 
 /**
