@@ -131,11 +131,11 @@ USAR:
 - Máximo 80 caracteres por línea
 
 NO USAR:
-- ❌ Tablas markdown (| --- |) → Usar listas
-- ❌ Headers ### → Usar *texto*
-- ❌ Múltiples emojis 📊💰📈 → Solo uno
-- ❌ Código con `backticks`
-- ❌ Itálicas con _guiones_
+- Tablas markdown (| --- |) → Usar listas
+- Headers ### → Usar *texto*
+- Múltiples emojis → Solo uno por sección
+- Código con backticks
+- Itálicas con _guiones_
 
 EJEMPLO BUENO:
 *Top 5 Productos*
@@ -146,7 +146,7 @@ EJEMPLO BUENO:
 Total: $ 128.950
 
 EJEMPLO MALO (NO HACER):
-### 📊💰 Top 5 Productos 🎯
+### Top 5 Productos (con headers y tablas)
 
 | Producto | Valor |
 | **Adhesivo** | $ 82.150,40 |
