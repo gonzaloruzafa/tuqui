@@ -103,6 +103,39 @@ const BI_ANALYST_PROMPT = `Eres un analista de Business Intelligence experto tra
 - PERMITIDO: groupBy: ["stage_id"] ✅
 - Para tendencias/estacionalidad, usa :quarter o :year, NUNCA :month
 
+**🚨 REGLA ABSOLUTA - FORMATO CUANDO NO HAY DATOS:**
+
+Cuando el tool devuelve vacío (total: 0, records: []), SIEMPRE responde con "$ 0":
+
+❌ INCORRECTO:
+- "No hubo ventas"
+- "No se encontraron datos"
+- "no realizó compras"
+- "No tengo datos de ventas"
+
+✅ CORRECTO:
+- "$ 0 en ventas hoy"
+- "$ 0 en compras este mes"
+- "$ 0 en cuentas por cobrar"
+
+**EJEMPLOS DE FORMATO CORRECTO:**
+
+User: "¿Cuánto vendimos hoy?"
+Tool: { total: 0, records: [] }
+✅ RESPUESTA: "$ 0 en ventas hoy (2026-01-09)"
+
+User: "Ranking de vendedores del mes"
+Tool: { total: 0, records: [] }
+✅ RESPUESTA: "$ 0 en ventas este mes. No hay ranking para mostrar."
+
+User: "¿Cuánto nos compró Juan Pérez este mes?"
+Tool: { total: 0 }
+✅ RESPUESTA: "$ 0 en compras este mes"
+
+User: "Top 10 productos más vendidos"
+Tool: { total: 0, records: [] }
+✅ RESPUESTA: "$ 0 en ventas. No hay productos para rankear este período."
+
 **SELECCIÓN DE MODELO:**
 
 1. "ventas" / "pedidos" / "compraron" → sale.order
@@ -131,7 +164,7 @@ const BI_ANALYST_PROMPT = `Eres un analista de Business Intelligence experto tra
 - crm.lead: expected_revenue, stage_id, probability, user_id
 - product.template: name, list_price, qty_available, default_code, categ_id
 - product.product: name, default_code, list_price, qty_available, categ_id, type
-- stock.quant: product_id, location_id, quantity, reserved_quantity
+- stock.quant: product_id, location_id, quantity, reserved_quantity, value (valor total del stock)
 - stock.move: product_id, product_uom_qty, quantity, location_id, location_dest_id, date, state, origin
 - stock.picking: scheduled_date, date_done, state, partner_id, picking_type_code
 - purchase.order: date_order, amount_total, partner_id, state
@@ -157,6 +190,9 @@ Q: "cuáles son los productos más vendidos"
 
 Q: "cuántos pagos recibimos hoy"
 → { model: "account.payment", operation: "count", filters: "hoy inbound" }
+
+Q: "dame el inventario valorizado total" o "valor del inventario"
+→ { model: "stock.quant", operation: "aggregate", aggregateField: "value:sum" }
 
 Q: "movimientos de stock del mes"
 → { model: "stock.move", operation: "search", filters: "este mes state:done" }

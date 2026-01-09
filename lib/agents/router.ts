@@ -24,7 +24,7 @@ const SPECIALTY_KEYWORDS: Record<string, string[]> = {
     'erp': [
         // Ventas
         'venta', 'ventas', 'vendimos', 'factura', 'facturas', 'facturamos',
-        'cliente', 'clientes', 'proveedor', 'proveedores', 
+        'cliente', 'clientes', 'proveedor', 'proveedores',
         'compra', 'compras', 'compramos', 'pedido', 'pedidos',
         'cobro', 'cobros', 'cobramos', 'pago', 'pagos', 'pagamos',
         'deuda', 'deudas', 'saldo', 'cuenta corriente',
@@ -37,9 +37,37 @@ const SPECIALTY_KEYWORDS: Record<string, string[]> = {
         // Notas de crédito / débito
         'nota de crédito', 'notas de crédito', 'nota de débito',
         'nc', 'nd', 'refund', 'reembolso',
-        // Stock adicional
+        // Stock e Inventario (CRÍTICO - agregado)
+        'stock', 'inventario', 'existencias', 'sin stock', 'bajo stock',
+        'quedarse sin', 'quedándose sin', 'productos disponibles',
+        'inventario valorizado', 'valor del inventario', 'valorización',
+        'cantidad disponible', 'crítico de stock', 'falta de stock',
         'transferencia', 'transferencias', 'picking', 'pickings',
         'recepción', 'recepciones', 'despacho', 'despachos', 'almacén',
+        // Cash Flow y Tesorería (CRÍTICO - agregado)
+        'caja', 'efectivo', 'cash', 'tesorería', 'disponible',
+        'plata disponible', 'dinero disponible', 'fondos',
+        'cuánta plata', 'cuanto dinero', 'tenemos en caja',
+        'plata tenemos', 'plata disponible', 'dinero disponible',
+        'disponible en caja', 'disponible hoy', 'tenemos disponible',
+        'flujo de caja', 'cash flow', 'liquidez',
+        'nos deben', 'por cobrar', 'cuentas por cobrar',
+        'vencidas', 'facturas vencidas', 'facturas pendientes',
+        // Dashboard Ejecutivo (CRÍTICO - agregado)
+        'resumen ejecutivo', 'dashboard', 'panel', 'kpi', 'kpis',
+        'números importantes', 'métricas importantes', 'indicadores',
+        'más importantes', 'debo saber', 'números clave',
+        '3 números', 'tres números', 'números que debo', 'que debo saber',
+        'nuestros precios', 'nuestro precio', 'precios nuestros',
+        'cómo estamos', 'como andamos', 'situación actual',
+        'comparativo', 'comparación', 'vs mes pasado', 'vs año pasado',
+        'mejor que', 'peor que', 'subimos', 'bajamos',
+        // Análisis y Drill-down (CRÍTICO - agregado)
+        'mejor cliente', 'peor cliente', 'top clientes',
+        'más vendido', 'menos vendido', 'más comprado',
+        'drill down', 'detalle de', 'desglose', 'breakdown',
+        'qué productos', 'cuáles productos', 'qué clientes', 'cuáles clientes',
+        'ese vendedor', 'esa persona', 'ese cliente', 'ese producto',
         // Términos generales ERP
         'este mes', 'el mes', 'total de',
         // Métricas / análisis
@@ -49,12 +77,15 @@ const SPECIALTY_KEYWORDS: Record<string, string[]> = {
     'mercado': [
         // Explícitos MercadoLibre (alta prioridad)
         'mercadolibre', 'meli', 'mercado libre', 'en meli', 'en mercadolibre',
+        'mercado libre', 'en mercadolibre', 'precios mercadolibre',
         // Búsqueda de precios de mercado
-        'precio de mercado', 'precios de mercado', 'precio mercado', 
+        'precio de mercado', 'precios de mercado', 'precio mercado',
         'en el mercado', 'del mercado', 'vs mercado', 'versus mercado',
-        // Acciones de búsqueda
-        'buscame', 'buscá', 'busca', 'chequeame', 'chequeá', 'chequea', 
+        // Acciones de búsqueda (CRÍTICO - más específico)
+        'buscame', 'buscá', 'busca precio', 'busca precios',
+        'chequeame', 'chequeá', 'chequea',
         'fijate', 'fijá', 'validame', 'validá',
+        'buscar en', 'busca en', 'fijate en',
         // Comparación de precios
         'comparar precio', 'comparar precios', 'comparar con',
         'caro', 'barato', 'competitivo', 'competencia',
@@ -62,10 +93,10 @@ const SPECIALTY_KEYWORDS: Record<string, string[]> = {
         // Intención de pricing
         'puedo subir', 'puedo bajar', 'espacio en el mercado',
         'hay espacio', 'rango de precios', 'precio mínimo', 'precio máximo',
-        // Preguntas de precio
+        // Preguntas de precio EXTERNO (no confundir con ventas internas)
         'cuanto cuesta', 'cuánto cuesta', 'cuanto sale', 'cuánto sale',
         'cuanto vale', 'cuánto vale', 'a cuánto', 'a cuanto',
-        'cuanto piden', 'cuánto piden'
+        'cuanto piden', 'cuánto piden', 'cuánto están', 'cuanto están'
     ],
     'legal': [
         'ley', 'leyes', 'legal', 'contrato', 'contratos',
@@ -120,6 +151,51 @@ const MELI_OVERRIDE_KEYWORDS = [
 ]
 
 /**
+ * Detecta si una pregunta de precio es sobre mercado EXTERNO o datos INTERNOS
+ * Returns: 'external' | 'internal' | 'ambiguous'
+ */
+function detectPriceIntention(message: string): 'external' | 'internal' | 'ambiguous' {
+    const msgLower = message.toLowerCase()
+
+    // Indicadores FUERTES de búsqueda EXTERNA (MeLi)
+    const externalIndicators = [
+        /buscame|buscá|busca|chequeame|fijate/i,
+        /mercadolibre|meli|mercado libre/i,
+        /en el mercado|del mercado|vs mercado/i,
+        /precio de mercado|precios de mercado/i,
+        /cuánto (cuesta|sale|vale)(?!.*vendimos|facturamos|nuestro)/i,  // Sin referencia interna
+        /ahora buscame|ahora busca/i,
+        /busca.*precio/i,  // "busca precios de X"
+        /busca.*cuanto/i   // "busca cuanto sale X"
+    ]
+
+    // Indicadores FUERTES de consulta INTERNA (Odoo)
+    const internalIndicators = [
+        /a cuánto vendemos|vendemos|vendimos|facturamos/i,
+        /nuestro precio|precio nuestro/i,
+        /cuánto le vendimos|le cobramos/i,
+        /precio de venta|lista de precio/i
+    ]
+
+    // Check externos primero (más prioritario)
+    if (externalIndicators.some(pattern => pattern.test(msgLower))) {
+        return 'external'
+    }
+
+    // Check internos
+    if (internalIndicators.some(pattern => pattern.test(msgLower))) {
+        return 'internal'
+    }
+
+    // Si tiene "cuanto cuesta/sale" sin contexto, es ambiguo pero probablemente externo
+    if (/cuánto (cuesta|sale|vale)/i.test(msgLower)) {
+        return 'ambiguous'  // Dejar que el scoring decida
+    }
+
+    return 'ambiguous'
+}
+
+/**
  * Analiza el mensaje y retorna scores por especialidad
  */
 function analyzeMessage(message: string): Record<string, number> {
@@ -131,12 +207,29 @@ function analyzeMessage(message: string): Record<string, number> {
         for (const keyword of keywords) {
             if (msgLower.includes(keyword)) {
                 // Keyword más largo = más específico = más puntos
-                score += keyword.split(' ').length
+                const baseScore = keyword.split(' ').length
+
+                // Boost moderado para keywords de ERP
+                const multiplier = specialty === 'erp' ? 2 : 1
+                score += baseScore * multiplier
             }
         }
         if (score > 0) {
             scores[specialty] = score
         }
+    }
+
+    // AJUSTE CRÍTICO: Detectar intención de precio
+    const priceIntention = detectPriceIntention(message)
+    if (priceIntention === 'external') {
+        // Boost FUERTE para búsquedas externas claras
+        // Si no hay score de mercado, lo creamos
+        scores['mercado'] = (scores['mercado'] || 0) + 15
+        console.log('[Router] Detected EXTERNAL price query, boosting mercado score')
+    } else if (priceIntention === 'internal' && scores['erp']) {
+        // Boost para consultas internas claras
+        scores['erp'] += 5
+        console.log('[Router] Detected INTERNAL price query, boosting erp score')
     }
 
     return scores
@@ -223,12 +316,13 @@ export async function routeMessage(
         }
     }
 
-    // 2. PRIMERO: Chequear si el mensaje actual tiene keywords de override MeLi
+    // 2. Chequear keywords de override (solo MeLi)
     const msgLower = message.toLowerCase()
+
+    // Check MeLi override
     const hasMeliOverride = MELI_OVERRIDE_KEYWORDS.some(kw => msgLower.includes(kw))
-    
     if (hasMeliOverride) {
-        console.log('[Router] MeLi override keyword detected in current message:', message.substring(0, 50))
+        console.log('[Router] MeLi override keyword detected:', message.substring(0, 50))
         const meliAgent = subAgents.find(a => a.slug === 'meli')
         if (meliAgent) {
             return {

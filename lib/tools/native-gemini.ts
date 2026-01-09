@@ -25,53 +25,16 @@ export async function generateTextNative({
     if (tools) {
         for (const [name, tool] of Object.entries(tools)) {
             // Manual conversion for each tool type
-            // Aliases: tavily -> web_search, firecrawl -> web_investigator
-            if (name === 'web_search' || name === 'tavily') {
+            if (name === 'web_search') {
                 functionDeclarations.push({
                     name,
-                    description: tool.description || 'Buscar información en internet',
+                    description: tool.description || 'Buscar información en internet (Tavily + Google Grounding)',
                     parameters: {
                         type: SchemaType.OBJECT,
                         properties: {
                             query: { type: SchemaType.STRING, description: 'Términos de búsqueda' }
                         },
                         required: ['query']
-                    }
-                })
-            } else if (name === 'web_investigator' || name === 'firecrawl') {
-                functionDeclarations.push({
-                    name: 'web_investigator', // Standardize name
-                    description: tool.description || 'Extraer contenido de una página web',
-                    parameters: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            url: { type: SchemaType.STRING, description: 'URL completa a investigar (incluir https://)' }
-                        },
-                        required: ['url']
-                    }
-                })
-            } else if (name === 'ecommerce_search') {
-                functionDeclarations.push({
-                    name: 'ecommerce_search',
-                    description: tool.description || 'Buscar productos y precios en MercadoLibre',
-                    parameters: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            query: { type: SchemaType.STRING, description: 'Producto a buscar (ej: sillón odontológico)' }
-                        },
-                        required: ['query']
-                    }
-                })
-            } else if (name === 'web_scraper') {
-                functionDeclarations.push({
-                    name: 'web_scraper',
-                    description: tool.description || 'Extraer contenido de una página web',
-                    parameters: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            url: { type: SchemaType.STRING, description: 'URL de la página a scrapear' }
-                        },
-                        required: ['url']
                     }
                 })
             } else {

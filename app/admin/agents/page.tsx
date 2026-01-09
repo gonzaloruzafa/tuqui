@@ -92,9 +92,7 @@ export default function AdminAgentsPage() {
     }, [])
 
     const availableTools = [
-        { id: 'web_search', name: 'Navegador Web', icon: '🌐', description: 'Buscar en internet (Tavily)' },
-        { id: 'web_scraper', name: 'Investigador Web', icon: '🔍', description: 'Extraer contenido de páginas (Firecrawl)' },
-        { id: 'ecommerce_search', name: 'Investigador Ecommerce', icon: '🛒', description: 'Precios reales de MercadoLibre/Amazon' },
+        { id: 'web_search', name: 'Búsqueda Web', icon: '🌐', description: 'TODO-EN-UNO: Tavily + Google Grounding' },
         { id: 'odoo_intelligent_query', name: 'Odoo ERP', icon: '📊', description: 'Consultar datos del ERP' },
     ]
 

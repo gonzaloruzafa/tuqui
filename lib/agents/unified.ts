@@ -26,8 +26,7 @@ export const TUQUI_UNIFIED = {
     // Todas las tools disponibles (nombres estandarizados)
     tools: [
         'odoo_intelligent_query',  // Odoo BI Agent
-        'web_search',              // Navegador Web (búsqueda via Tavily)
-        'web_investigator',        // Investigador Web (scraping via Firecrawl)
+        'web_search',              // Búsqueda Web Unificada (Tavily + Google Grounding)
     ],
     
     // RAG siempre habilitado
@@ -132,9 +131,9 @@ El contexto de documentos se inyecta automáticamente.
 - Para comparaciones usá: "X tiene $Y (Z días)" en vez de tablas
 
 ## 🔗 LINKS
-Cuando muestres productos de ecommerce_search:
-- USA EXACTAMENTE las URLs del campo products[].url
-- Si products está vacío o success=false, decí "No encontré resultados"
+Cuando muestres productos de web_search:
+- USA EXACTAMENTE las URLs del campo sources[].url
+- Si sources está vacío o success=false, decí "No encontré resultados"
 - NUNCA construyas URLs como mercadolibre.com.ar/MLA-XXXXX
 
 ## 🛡️ LÍMITES
