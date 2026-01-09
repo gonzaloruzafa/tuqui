@@ -241,12 +241,11 @@ export class PreSendValidator {
   // ============================================
 
   private static isEmptyResult(result: ToolResult): boolean {
-    return (
-      !result.success ||
-      (result.total !== undefined && result.total === 0) ||
-      (Array.isArray(result.data) && result.data.length === 0) ||
-      (result.grouped && Object.keys(result.grouped).length === 0)
-    )
+    if (!result.success) return true
+    if (result.total !== undefined && result.total === 0) return true
+    if (Array.isArray(result.data) && result.data.length === 0) return true
+    if (result.grouped !== undefined && Object.keys(result.grouped).length === 0) return true
+    return false
   }
 
   private static hasRealData(toolResults: ToolResult[]): boolean {
