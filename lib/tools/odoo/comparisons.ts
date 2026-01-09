@@ -3,6 +3,8 @@
  * Supports month-over-month (MoM) and year-over-year (YoY) comparisons
  */
 
+import { DateService } from '@/lib/date/service'
+
 // ============================================
 // TYPES
 // ============================================
@@ -47,7 +49,7 @@ export interface DecreasingItem {
  * Get comparison periods based on a reference date and comparison type
  */
 export function getComparisonPeriods(
-    baseDate: Date = new Date(),
+    baseDate: Date = DateService.now(),
     type: 'mom' | 'yoy' = 'mom'
 ): ComparisonPeriods {
     const year = baseDate.getFullYear()

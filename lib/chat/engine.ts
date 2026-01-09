@@ -80,14 +80,10 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
 
         // 3. Build System Prompt & Context
         let systemPrompt = agent.system_prompt || 'Sos un asistente útil.'
-        
-        // Inject current date for temporal context
-        const currentDate = new Date().toLocaleDateString('es-AR', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        })
+
+        // Inject current date for temporal context (usando DateService)
+        const { DateService } = await import('@/lib/date/service')
+        const currentDate = DateService.formatted()
         systemPrompt = systemPrompt.replace('{{CURRENT_DATE}}', currentDate)
         
         // Combine with sub-agent prompt if different specialty

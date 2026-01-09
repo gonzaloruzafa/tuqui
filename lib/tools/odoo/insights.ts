@@ -4,14 +4,15 @@
  */
 
 import { QueryResult } from './query-builder'
-import { 
-    calculateVariation, 
-    detectDecreasing, 
-    detectLost, 
+import {
+    calculateVariation,
+    detectDecreasing,
+    detectLost,
     detectNew,
     analyzeTrend,
     ComparisonResult
 } from './comparisons'
+import { DateService } from '@/lib/date/service'
 
 // ============================================
 // TYPES
@@ -269,7 +270,7 @@ function generateCRMInsights(result: QueryResult, context: InsightContext): Insi
         }
         
         // Check for stale opportunities
-        const today = new Date()
+        const today = DateService.now()
         const staleLeads = result.data.filter((lead: any) => {
             if (!lead.create_date) return false
             const created = new Date(lead.create_date)
@@ -324,10 +325,10 @@ function generateCRMInsights(result: QueryResult, context: InsightContext): Insi
  */
 function generateUserInsights(result: QueryResult, context: InsightContext): Insight[] {
     const insights: Insight[] = []
-    
+
     if (result.data && result.data.length > 0) {
-        const today = new Date()
-        
+        const today = DateService.now()
+
         // Inactive users (haven't logged in for 30+ days)
         const inactiveUsers = result.data.filter((user: any) => {
             if (!user.login_date) return true
@@ -372,11 +373,11 @@ function generateUserInsights(result: QueryResult, context: InsightContext): Ins
  */
 function generateActivityInsights(result: QueryResult, context: InsightContext): Insight[] {
     const insights: Insight[] = []
-    
+
     if (result.data && result.data.length > 0) {
-        const today = new Date()
+        const today = DateService.now()
         today.setHours(0, 0, 0, 0)
-        
+
         // Overdue activities
         const overdue = result.data.filter((act: any) => {
             if (!act.date_deadline) return false

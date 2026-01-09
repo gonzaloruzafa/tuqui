@@ -1,12 +1,13 @@
 import { getTenantClient } from '@/lib/supabase/client'
 import { getTenantPlan, USAGE_LIMITS } from './limits'
+import { DateService } from '@/lib/date/service'
 
 export async function checkUsageLimit(tenantId: string, userEmail: string, estimatedTokens: number) {
     const plan = await getTenantPlan(tenantId)
     const db = await getTenantClient(tenantId)
 
-    // Get current usage for month
-    const currentMonth = new Date().toISOString().slice(0, 7) // 2025-12
+    // Get current usage for month (usando DateService)
+    const currentMonth = DateService.currentMonth()
     const { data: usage } = await db
         .from('usage_stats')
         .select('total_tokens')

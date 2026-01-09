@@ -34,6 +34,7 @@ import {
     Insight,
     InsightContext
 } from './odoo/insights'
+import { getMetricsPromptSnippet } from '../odoo/metrics-dictionary'
 
 // ============================================
 // TYPES
@@ -213,16 +214,33 @@ Q: "movimientos de stock del mes"
 Q: "ajustes de inventario"
 → { model: "stock.move", operation: "search", filters: "location_id.usage:inventory" }
 
-**FORMATO DE RESPUESTA:**
-- Responde en español, claro y conciso
-- Montos en formato argentino: $ 1.234.567,89
-- Emojis para tendencias: 📈 subió, 📉 bajó
-- Tablas Markdown para rankings
+**FORMATO DE RESPUESTA (CRÍTICO - WhatsApp + Web):**
+- Negritas solo con *asterisco* (NO **)
+- Un emoji por sección máximo (📈 o 📉 para tendencias)
+- Precios sin céntimos: $ 123.456 (NO $ 123.456,89)
+- Listas simples (NO tablas markdown)
 - USA LOS NOMBRES REALES de productos/clientes/etc que vienen en "grouped"
+
+EJEMPLO BUENO:
+*Top 5 Productos*
+
+1. *[C001063] Adhesivo Adper* - $ 82.150
+2. *Filtek Z350* - $ 46.800
+
+Total: $ 128.950
+
+EJEMPLO MALO (NO HACER):
+### 📊 Top 5 Productos 💰
+
+| Producto | Valor |
+| Adhesivo | $ 82.150,40 |
 
 **EJEMPLO DE RESPUESTA CON DATOS REALES:**
 Si grouped = {"[C001063] Adhesivo Adper": {count: 12, total: 90420017.8}}
-Tu respuesta debe mostrar "[C001063] Adhesivo Adper" NO "Producto A"`
+Tu respuesta debe mostrar "[C001063] Adhesivo Adper" NO "Producto A"
+
+${getMetricsPromptSnippet(['ventas_totales', 'ventas_netas', 'margen_bruto', 'stock_disponible', 'caja_disponible', 'ticket_promedio'])}
+`
 
 // ============================================
 // INTELLIGENT QUERY TOOL

@@ -5,6 +5,7 @@
 
 import { OdooClient } from './client'
 import { suggestFieldCorrection } from './semantic-layer'
+import { DateService } from '@/lib/date/service'
 
 // ============================================
 // TYPES
@@ -207,7 +208,7 @@ export function buildDomain(filters: string, model: string): any[] {
     const dateField = config.dateField
 
     // ---- DATE PATTERNS ----
-    const now = new Date()
+    const now = DateService.now()
     const currentYear = now.getFullYear()
     const currentMonth = now.getMonth() + 1
 
@@ -274,7 +275,7 @@ export function buildDomain(filters: string, model: string): any[] {
     const lastDaysMatch = filters.match(/(?:ultimos?|últimos?|last)\s*(\d+)\s*(?:dias?|days)/i)
     if (!dateMatched && lastDaysMatch) {
         const days = parseInt(lastDaysMatch[1])
-        const startDate = new Date()
+        const startDate = DateService.now()
         startDate.setDate(startDate.getDate() - days)
         domain.push([dateField, '>=', startDate.toISOString().split('T')[0]])
         dateMatched = true
@@ -330,7 +331,7 @@ export function buildDomain(filters: string, model: string): any[] {
     // ---- USER ACTIVITY FILTERS ----
     if (model === 'res.users') {
         if (/inactiv|sin conectar|no conecta|mucho.*que.*no/i.test(filters)) {
-            const thirtyDaysAgo = new Date()
+            const thirtyDaysAgo = DateService.now()
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
             domain.push(['login_date', '<', thirtyDaysAgo.toISOString().split('T')[0]])
             domain.push(['active', '=', true])
@@ -410,7 +411,7 @@ export function buildDomain(filters: string, model: string): any[] {
 
     // ---- TODAY FILTER (moved here to allow combinations) ----
     if (/hoy|today/i.test(filters)) {
-        const today = new Date().toISOString().split('T')[0]
+        const today = DateService.isoDate()
         domain.push([dateField, '>=', today])
         domain.push([dateField, '<=', today])
     }

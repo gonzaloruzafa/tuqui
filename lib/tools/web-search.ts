@@ -1,6 +1,8 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { MLCache } from '@/lib/mercadolibre/cache'
+import { MLLinkValidator } from '@/lib/mercadolibre/link-validator'
 
 /**
  * Unified Web Search Tool
@@ -361,9 +363,22 @@ Ejemplos:
     execute: async ({ query }: { query: string }) => {
         const startTime = Date.now()
 
+        // Check cache primero (solo para búsquedas de marketplace)
+        const marketplace = detectMarketplace(query)
+        if (marketplace) {
+            const cached = MLCache.get(query)
+            if (cached) {
+                console.log('[WebSearch] Cache HIT para:', query)
+                return {
+                    ...cached,
+                    fromCache: true,
+                    executionTime: Date.now() - startTime
+                }
+            }
+        }
+
         // Detectar tipo de búsqueda
         const isPrice = isPriceQuery(query)
-        const marketplace = detectMarketplace(query)
 
         console.log(`[WebSearch] Query: "${query}" | Price: ${isPrice} | Marketplace: ${marketplace || 'none'}`)
 
@@ -444,13 +459,34 @@ ${linksSection}
             }
         }
 
-        return {
+        // Validar y filtrar links de MercadoLibre si hay sources
+        let validatedSources = result.sources || []
+        if (marketplace && validatedSources.length > 0) {
+            const urls = validatedSources.map((s: any) => s.url)
+            const validURLs = MLLinkValidator.filterValidURLs(urls)
+
+            // Filtrar solo sources con URLs válidas
+            validatedSources = validatedSources.filter((s: any) =>
+                validURLs.includes(s.url)
+            )
+
+            console.log(`[WebSearch] Link validation: ${urls.length} total → ${validURLs.length} valid`)
+        }
+
+        const finalResult = {
             query,
             method: result.method,
             answer: result.answer,
-            sources: result.sources || [],
+            sources: validatedSources,
             searchQueries: result.searchQueries,
             latency
         }
+
+        // Guardar en cache si es búsqueda de marketplace
+        if (marketplace) {
+            MLCache.set(query, finalResult)
+        }
+
+        return finalResult
     }
 } as any)

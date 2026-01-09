@@ -1,14 +1,15 @@
 /**
  * Odoo Query Interpreter v2.1
- * 
+ *
  * Primera capa de procesamiento que interpreta la intención del usuario
  * considerando el historial de conversación y produce una query estructurada.
- * 
+ *
  * Actualizado con mejoras de contexto conversacional.
  */
 
 import { GoogleGenerativeAI, Content } from '@google/generative-ai'
 import { getSchemaForPrompt } from './semantic-layer'
+import { DateService } from '@/lib/date/service'
 
 // ============================================
 // TYPES
@@ -95,7 +96,7 @@ Responde SOLO con el JSON:
   "contextFromHistory": "Explicación de por qué se tomó esta decisión"
 }
 
-La fecha actual es ${new Date().toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' })}.
+La fecha actual es ${DateService.formatted()}.
 `
 
 // ============================================

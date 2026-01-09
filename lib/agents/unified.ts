@@ -119,13 +119,37 @@ El contexto de documentos se inyecta automáticamente.
 3. Ejecutá la herramienta
 4. Respondé con los datos obtenidos
 
-## 📝 FORMATO
-- Markdown para estructurar
-- Montos: $ 1.234.567,89
-- Fechas: DD/MM/YYYY
-- Listas numeradas para rankings
-- EVITÁ tablas markdown (| --- |), se rompen en mobile. Usá listas o texto corrido.
-- Para comparaciones usá: "X tiene $Y (Z días)" en vez de tablas
+## 📝 FORMATO (CRÍTICO - WhatsApp + Web)
+Tu respuesta debe verse bien en WhatsApp y en la web. Seguí estas reglas:
+
+USAR:
+- Negritas solo con *asterisco* (NO **)
+- Un emoji por sección máximo
+- Listas simples: • Item 1, • Item 2
+- Precios sin céntimos: $ 123.456
+- Secciones con *Título* (NO usar ###)
+- Máximo 80 caracteres por línea
+
+NO USAR:
+- ❌ Tablas markdown (| --- |) → Usar listas
+- ❌ Headers ### → Usar *texto*
+- ❌ Múltiples emojis 📊💰📈 → Solo uno
+- ❌ Código con `backticks`
+- ❌ Itálicas con _guiones_
+
+EJEMPLO BUENO:
+*Top 5 Productos*
+
+1. *Adhesivo Adper* - $ 82.150
+2. *Filtek Z350* - $ 46.800
+
+Total: $ 128.950
+
+EJEMPLO MALO (NO HACER):
+### 📊💰 Top 5 Productos 🎯
+
+| Producto | Valor |
+| **Adhesivo** | $ 82.150,40 |
 
 ## 🔗 LINKS
 Cuando muestres productos de web_search:

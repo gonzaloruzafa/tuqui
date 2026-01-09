@@ -8,6 +8,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
 import { getClient } from '@/lib/supabase/client'
 import { routeMessage, buildCombinedPrompt } from '@/lib/agents/router'
+import { ResponseGuard } from '@/lib/validation/response-guard'
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -296,8 +297,21 @@ export async function POST(req: Request) {
                 })),
                 onFinish: async (event: any) => {
                     try {
-                        const { usage } = event
+                        const { usage, text } = event
                         console.log('[Chat] Stream finished. Usage:', usage)
+
+                        // Validar respuesta con ResponseGuard
+                        if (text) {
+                            const validation = ResponseGuard.validateResponse(text)
+                            if (!validation.valid) {
+                                console.warn('[Chat] Response validation warnings:', validation.warnings)
+                                // Log para debugging pero no bloquear (para no interrumpir conversación)
+                                if (validation.score < 50) {
+                                    console.error('[Chat] Low confidence response (score:', validation.score, ')')
+                                }
+                            }
+                        }
+
                         if (usage) {
                             await trackUsage(tenantId, session.user.email!, usage.totalTokens || 0)
                         }
