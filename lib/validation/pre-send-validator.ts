@@ -243,9 +243,10 @@ export class PreSendValidator {
   private static isEmptyResult(result: ToolResult): boolean {
     return (
       !result.success ||
-      result.total === 0 ||
+      (result.total !== undefined && result.total === 0) ||
       (Array.isArray(result.data) && result.data.length === 0) ||
-      (result.grouped && Object.keys(result.grouped).length === 0)
+      (result.grouped && Object.keys(result.grouped).length === 0) ||
+      (result.count !== undefined && result.count === 0)
     )
   }
 
