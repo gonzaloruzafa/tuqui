@@ -283,15 +283,39 @@ Ejemplos:
 
         console.log(`[WebSearch] Query: "${query}" | Price: ${isPrice} | Marketplace: ${marketplace || 'none'}`)
 
-        // ESTRATEGIA: Usar Grounding para precios, Tavily para lo demás
-        let result
+        // ESTRATEGIA: Usar Grounding para precios, Tavily para lo demás.
+        // Si es marketplace (MeLi), usamos AMBOS en paralelo para tener análisis (Grounding) y links directos (Tavily).
+        let result: any
 
         if (isPrice && marketplace) {
-            // Precios en ecommerce → Google Grounding (más rápido, más barato, mejor)
-            result = await searchWithGrounding(query, {
-                site_filter: marketplace,
-                max_results: 5
-            })
+            console.log('[WebSearch] Multi-source strategy: Grounding + Tavily for marketplace prices')
+            const [groundingRes, tavilyRes] = await Promise.all([
+                searchWithGrounding(query, {
+                    site_filter: marketplace,
+                    max_results: 5
+                }),
+                searchWithTavily(query, {
+                    site_filter: marketplace,
+                    max_results: 5
+                })
+            ])
+
+            // Combinar: Usamos el answer de Grounding (es mejor comparando) 
+            // y combinamos las sources priorizando las de Tavily (suelen ser links más directos)
+            const combinedSources = [...(tavilyRes.sources || [])]
+            
+            // Agregar sources de grounding que no estén ya (mejor filtrar por URL base)
+            const groundingSources = (groundingRes.sources || []).filter((gs: any) => 
+                !combinedSources.some(ts => ts.url === gs.url)
+            )
+            combinedSources.push(...groundingSources)
+
+            result = {
+                method: 'hybrid (grounding+tavily)',
+                answer: groundingRes.answer,
+                sources: combinedSources,
+                searchQueries: [...(groundingRes.searchQueries || []), ...(tavilyRes.searchQueries || [])]
+            }
         } else if (marketplace) {
             // Menciona ecommerce pero no es precio → Tavily con site filter
             result = await searchWithTavily(query, {
