@@ -7,14 +7,18 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
  *
  * Combina 3 métodos de búsqueda en uno solo:
  * 1. Tavily: Búsqueda web general (noticias, info general)
- * 2. Google Grounding: Búsqueda con Gemini + Google Search (precios ecommerce, info actualizada)
- * 3. Firecrawl (DEPRECATED): Solo mantiene backward compatibility, será eliminado
+ * 2. Serper.dev: Links directos a productos en marketplaces (MercadoLibre, etc)
+ * 3. Google Grounding: Análisis de precios con Gemini + Google Search
  *
- * Google Grounding reemplaza a Firecrawl porque:
- * - 20x más barato ($0.15 vs $4.00 por 1000 queries)
- * - 6-7x más rápido (5-8s vs 30-40s)
- * - 100% success rate en PoC
- * - No requiere stealth mode ni bypass de login walls
+ * Estrategia Híbrida para Ecommerce:
+ * - Grounding: Análisis y comparación de precios (mejor razonamiento)
+ * - Serper: Links directos a productos (/articulo) vs listados (/listado)
+ * - Resultado: Mejor análisis + Links correctos
+ *
+ * Costos:
+ * - Serper: $2.50 / 1000 queries (2500 gratis/mes)
+ * - Grounding: $0.15 / 1000 queries
+ * - Total combinado: ~$2.65 / 1000 queries (vs Firecrawl $4.00)
  */
 
 /**
@@ -85,7 +89,84 @@ async function searchWithTavily(
 }
 
 /**
- * Método 2: Google Grounding (Gemini con Google Search)
+ * Método 2: Serper.dev (Google Search API especializado en ecommerce)
+ * Mejor para obtener links directos a productos en MercadoLibre
+ */
+async function searchWithSerper(
+    query: string,
+    options?: {
+        site_filter?: string
+        max_results?: number
+    }
+) {
+    const SERPER_API_KEY = process.env.SERPER_API_KEY
+    if (!SERPER_API_KEY) {
+        console.error('[WebSearch/Serper] SERPER_API_KEY no configurada')
+        return { error: 'SERPER_API_KEY no configurada' }
+    }
+
+    console.log('[WebSearch/Serper] Searching:', query)
+
+    try {
+        // Construir query optimizada para productos directos
+        let searchQuery = query
+        if (options?.site_filter?.includes('mercadolibre')) {
+            // Forzar búsqueda en URLs de productos directos
+            searchQuery = `${query} site:articulo.mercadolibre.com.ar OR site:mercadolibre.com.ar/p/`
+        } else if (options?.site_filter) {
+            searchQuery = `${query} site:${options.site_filter}`
+        }
+
+        const res = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: {
+                'X-API-KEY': SERPER_API_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                q: searchQuery,
+                num: options?.max_results || 5,
+                gl: 'ar',  // Argentina
+                hl: 'es'   // Español
+            })
+        })
+
+        if (!res.ok) {
+            const error = await res.text()
+            console.error('[WebSearch/Serper] Error response:', res.status, error)
+            return { error: `Serper error (${res.status}): ${error}` }
+        }
+
+        const data = await res.json()
+        console.log('[WebSearch/Serper] Success, organic results:', data.organic?.length || 0)
+
+        // Extraer resultados orgánicos
+        const sources = (data.organic || []).map((r: any) => ({
+            title: r.title,
+            url: r.link,
+            snippet: r.snippet || ''
+        }))
+
+        // Extraer precios si están disponibles (Serper detecta precios automáticamente)
+        let priceInfo = ''
+        if (data.answerBox?.price) {
+            priceInfo = `Precio destacado: ${data.answerBox.price}\n`
+        }
+
+        return {
+            method: 'serper',
+            answer: priceInfo || null,
+            sources,
+            searchQueries: [searchQuery]
+        }
+    } catch (error: any) {
+        console.error('[WebSearch/Serper] Exception:', error.message)
+        return { error: error.message }
+    }
+}
+
+/**
+ * Método 3: Google Grounding (Gemini con Google Search)
  */
 async function searchWithGrounding(
     query: string,
@@ -286,35 +367,35 @@ Ejemplos:
 
         console.log(`[WebSearch] Query: "${query}" | Price: ${isPrice} | Marketplace: ${marketplace || 'none'}`)
 
-        // ESTRATEGIA: Usar Grounding para precios, Tavily para lo demás.
-        // Si es marketplace (MeLi), usamos AMBOS en paralelo para tener análisis (Grounding) y links directos (Tavily).
+        // ESTRATEGIA: Usar Grounding para análisis, Serper para links directos.
+        // Serper.dev devuelve links de productos reales (/articulo) vs listados (/listado)
         let result: any
 
         if (isPrice && marketplace) {
-            console.log('[WebSearch] Multi-source strategy: Grounding + Tavily for marketplace prices')
-            const [groundingRes, tavilyRes] = await Promise.all([
+            console.log('[WebSearch] Multi-source strategy: Grounding + Serper for marketplace prices')
+            const [groundingRes, serperRes] = await Promise.all([
                 searchWithGrounding(query, {
                     site_filter: marketplace,
                     max_results: 5
                 }),
-                searchWithTavily(query, {
+                searchWithSerper(query, {
                     site_filter: marketplace,
                     max_results: 5
                 })
             ])
 
-            // ESTRATEGIA ANTI-ALUCINACIÓN:
+            // ESTRATEGIA ANTI-ALUCINACIÓN V2:
             // 1. Usamos análisis de Grounding (mejor para comparar precios)
-            // 2. PERO: Reemplazamos los links de Grounding por los de Tavily
-            // 3. Tavily devuelve links directos a productos (/articulo) vs listados (/listado)
+            // 2. Usamos links de Serper (más precisos que Tavily, apuntan a /articulo)
+            // 3. Serper usa Google Search con filtros optimizados para productos
 
-            const tavilySources = tavilyRes.sources || []
+            const serperSources = serperRes.sources || []
             const groundingText = groundingRes.answer || ''
 
-            // Si Tavily encontró links, son los ÚNICOS que debe usar
-            if (tavilySources.length > 0) {
-                // Construir respuesta híbrida: análisis de Grounding + links MANDATORIOS de Tavily
-                const linksSection = tavilySources
+            // Si Serper encontró links, son los ÚNICOS que debe usar
+            if (serperSources.length > 0) {
+                // Construir respuesta híbrida: análisis de Grounding + links VERIFICADOS de Serper
+                const linksSection = serperSources
                     .map((s: any, i: number) => `[${i+1}] ${s.title}\n   URL: ${s.url}`)
                     .join('\n\n')
 
@@ -329,14 +410,14 @@ ${linksSection}
 ⚠️ IMPORTANTE: Los links arriba son los ÚNICOS correctos. No usar otros URLs.`
 
                 result = {
-                    method: 'hybrid (grounding+tavily)',
+                    method: 'hybrid (grounding+serper)',
                     answer: hybridAnswer,
-                    sources: tavilySources,  // SOLO Tavily sources (son los correctos)
-                    searchQueries: [...(groundingRes.searchQueries || []), ...(tavilyRes.searchQueries || [])]
+                    sources: serperSources,  // SOLO Serper sources (links directos)
+                    searchQueries: [...(groundingRes.searchQueries || []), ...(serperRes.searchQueries || [])]
                 }
             } else {
-                // Fallback: Solo Grounding (si Tavily falló)
-                console.log('[WebSearch] Tavily returned no results, using Grounding only')
+                // Fallback: Solo Grounding (si Serper falló)
+                console.log('[WebSearch] Serper returned no results, using Grounding only')
                 result = groundingRes
             }
         } else if (marketplace) {

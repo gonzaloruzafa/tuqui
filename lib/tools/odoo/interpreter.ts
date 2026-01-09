@@ -71,7 +71,8 @@ Cuando el usuario dice:
 - "compras" / "proveedores" / "qué compramos" → purchase.order
 - "productos vendidos" / "qué se vendió" / "qué vendió [nombre]" → sale.order.line (para detalle de líneas)
 - "facturas" → account.move
-- "stock" → stock.quant
+- "stock" / "inventario" → stock.quant
+- "caja" / "plata disponible" / "saldo banco" / "cuánta plata tenemos" → account.journal (usar metric: "default_account_id.current_balance:sum", filters: "type: bank")
 
 ### 7. EVITAR CLARIFICACIONES INNECESARIAS
 NUNCA pidas clarificación si:
