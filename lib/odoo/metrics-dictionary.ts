@@ -215,8 +215,10 @@ export function formatMetric(
   }
 
   // Agregar contexto de IVA si aplica
-  const vatSuffix = metric.includesVAT !== undefined ?
-    (metric.includesVAT ? ' (con IVA)' : ' (sin IVA)') : ''
+  const vatSuffix =
+    'includesVAT' in metric && metric.includesVAT !== undefined
+      ? (metric.includesVAT ? ' (con IVA)' : ' (sin IVA)')
+      : ''
 
   return `${formattedValue}${vatSuffix}`
 }
@@ -246,8 +248,10 @@ export function getMetricsPromptSnippet(metricNames?: Array<keyof typeof CANONIC
 
   const snippets = metricsToInclude.map((name) => {
     const metric = CANONICAL_METRICS[name]
-    const vatInfo = metric.includesVAT !== undefined ?
-      (metric.includesVAT ? ' (CON IVA)' : ' (SIN IVA)') : ''
+    const vatInfo =
+      'includesVAT' in metric && metric.includesVAT !== undefined
+        ? (metric.includesVAT ? ' (CON IVA)' : ' (SIN IVA)')
+        : ''
     return `- **${name}**: ${metric.definition}${vatInfo}`
   })
 
