@@ -607,7 +607,11 @@ function getQueryType(model: string): InsightContext['queryType'] {
 // ============================================
 
 /**
- * Chat with Odoo using the BI Agent
+ * Chat with Odoo using the BI Agent (non-streaming)
+ * 
+ * IMPORTANTE: Esta función consume internamente streamChatWithOdoo
+ * para garantizar que Web y WhatsApp usen EXACTAMENTE el mismo código.
+ * Cualquier mejora en streamChatWithOdoo aplica automáticamente a ambos canales.
  */
 export async function chatWithOdoo(
     tenantId: string,
@@ -615,121 +619,17 @@ export async function chatWithOdoo(
     userMessage: string,
     history: Content[] = []
 ): Promise<GeminiOdooResponse> {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-
-    // ============================================
-    // PASO 1: INTERPRETAR LA CONSULTA
-    // ============================================
-    const { interpretQuery } = await import('./odoo/interpreter')
-    const interpreted = await interpretQuery(userMessage, history)
-
-    if (interpreted.intent === 'clarify') {
-        return { text: interpreted.needsClarification || interpreted.description }
+    console.log('[OdooBIAgent/chatWithOdoo] Using unified flow via streamChatWithOdoo')
+    
+    let fullText = ''
+    
+    // Consume the streaming generator and collect all text
+    for await (const chunk of streamChatWithOdoo(tenantId, systemPrompt, userMessage, history)) {
+        fullText += chunk
     }
-
-    // ============================================
-    // PASO 2: EJECUTAR LA CONSULTA
-    // ============================================
-    // Merge custom system prompt with BI analyst prompt and interpretation
-    const executorPrompt = `${BI_ANALYST_PROMPT}
-
-**CONSULTA INTERPRETADA:**
-${JSON.stringify(interpreted, null, 2)}
-
-**INSTRUCCIONES:**
-- Usa odoo_intelligent_query para ejecutar esta consulta
-- La interpretación ya analizó el contexto y el historial
-- Responde de forma clara y concisa con los datos obtenidos
-- Formato: español, montos legibles, emojis para tendencias
-
-${systemPrompt}`
-
-    const model = genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
-        tools: [{ functionDeclarations: [odooIntelligentQueryDeclaration] }],
-        toolConfig: {
-            functionCallingConfig: {
-                mode: 'AUTO' as any
-            }
-        },
-        systemInstruction: {
-            role: 'user',
-            parts: [{ text: executorPrompt }]
-        }
-    })
-
-    const chat = model.startChat({
-        history
-    })
-
-    const enhancedMessage = `Consulta del usuario: "${userMessage}"
-
-Interpretación: ${interpreted.description}
-Modelo: ${interpreted.model}
-Operación: ${interpreted.intent}
-${interpreted.period ? `Período: ${interpreted.period}` : ''}
-${interpreted.groupBy ? `Agrupar por: ${interpreted.groupBy.join(', ')}` : ''}
-${interpreted.metric ? `Métrica: ${interpreted.metric}` : ''}
-${interpreted.contextFromHistory ? `Contexto: ${interpreted.contextFromHistory}` : ''}
-
-Ejecuta la consulta y responde al usuario.`
-
-    // First turn - enhanced message
-    let result = await chat.sendMessage(enhancedMessage)
-    let response = result.response
-
-    const toolCalls: ToolCall[] = []
-    const toolResults: OdooToolResult[] = []
-
-    // Process function calls (up to 5 iterations for complex queries)
-    for (let i = 0; i < 5; i++) {
-        const candidate = response.candidates?.[0]
-        const functionCall = candidate?.content?.parts?.find(
-            (part): part is Part & { functionCall: { name: string; args: Record<string, any> } } =>
-                'functionCall' in part
-        )
-
-        if (!functionCall) break
-
-        const { name, args } = functionCall.functionCall
-        console.log(`[OdooBIAgent] Tool call: ${name}`, JSON.stringify(args, null, 2))
-
-        toolCalls.push({ name, args })
-
-        // Execute the tool
-        const toolResult = await executeIntelligentQuery(tenantId, args as any)
-
-        toolResults.push(toolResult)
-
-        console.log(`[OdooBIAgent] Tool result: success=${toolResult.success}, count=${toolResult.count}, cached=${toolResult.cached}, ms=${toolResult.executionMs}`)
-
-        // Prepare response for model (include insights text if available)
-        const responseForModel: any = { ...toolResult }
-        if (toolResult.insights && toolResult.insights.length > 0) {
-            responseForModel.insights_text = formatInsightsAsText(toolResult.insights)
-        }
-
-        // Send function response back to model
-        result = await chat.sendMessage([{
-            functionResponse: {
-                name,
-                response: responseForModel
-            }
-        }])
-        response = result.response
-    }
-
-    // ============================================
-    // ANTI-HALLUCINATION VALIDATION
-    // ============================================
-    const rawText = response.text()
-    const validated = validateAndCleanResponse(rawText, toolResults, userMessage)
-
+    
     return {
-        text: validated.text,
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-        toolResults: toolResults.length > 0 ? toolResults : undefined,
-        hallucinationDetected: validated.hallucinationDetected
+        text: fullText
     }
 }
 

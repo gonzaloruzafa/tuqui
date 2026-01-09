@@ -432,6 +432,22 @@ async function executeSingleQuery(
     query: OdooSubQuery
 ): Promise<QueryResult> {
     const startTime = Date.now()
+    
+    // ============================================
+    // AUTO-CORRECTION: Use correct model for groupBy
+    // ============================================
+    // When grouping by product_id on sale.order, we MUST use sale.order.line
+    // because sale.order doesn't have product_id (products are in the lines)
+    if (query.model === 'sale.order' && query.groupBy?.includes('product_id')) {
+        console.log('[QueryBuilder] Auto-correcting: sale.order with product_id groupBy → sale.order.line')
+        query.model = 'sale.order.line'
+    }
+    // Same for purchase.order → purchase.order.line
+    if (query.model === 'purchase.order' && query.groupBy?.includes('product_id')) {
+        console.log('[QueryBuilder] Auto-correcting: purchase.order with product_id groupBy → purchase.order.line')
+        query.model = 'purchase.order.line'
+    }
+    
     const cacheKey = getCacheKey(tenantId, query)
 
     // Check cache
