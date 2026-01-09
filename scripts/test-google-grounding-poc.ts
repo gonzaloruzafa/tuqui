@@ -69,7 +69,12 @@ IMPORTANTE:
 
     // Extraer info
     const text = response.text()
-    const groundingMetadata = (response as any).groundingMetadata
+    // Intenta buscar groundingMetadata en distintos lugares
+    const groundingMetadata = (response as any).groundingMetadata || 
+                             (result as any).groundingMetadata ||
+                             (response.candidates?.[0] as any)?.groundingMetadata;
+
+    console.log('Grounding Metadata found?', !!groundingMetadata)
 
     // Contar precios encontrados
     const priceMatches = text.match(/\$\s*[\d.,]+/g) || []
@@ -78,10 +83,10 @@ IMPORTANTE:
     // Resultados
     console.log(`⏱️  Latencia: ${latencyMs}ms`)
     console.log(`💰 Precios encontrados: ${uniquePrices.length}`)
-    console.log(`\n📝 Respuesta:\n${text}`)
+    // console.log(`\n📝 Respuesta:\n${text}`)
 
     if (groundingMetadata) {
-      console.log(`\n🔗 Sources:`)
+      console.log(`\n🔍 Grounding Metadata Structure:`, JSON.stringify(groundingMetadata, null, 2))
       const searches = groundingMetadata.webSearchQueries || []
       const retrievalMetadata = groundingMetadata.retrievalMetadata || []
 
@@ -125,11 +130,7 @@ async function main() {
 `)
 
   const testQueries = [
-    'sillón odontológico',
-    'autoclave 18 litros',
-    'compresor odontológico silencioso',
-    'termo stanley 1 litro',
-    'notebook lenovo'
+    'sillón odontológico'
   ]
 
   const results = []

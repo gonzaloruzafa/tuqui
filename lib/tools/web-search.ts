@@ -156,8 +156,18 @@ IMPORTANTE:
         // Extraer sources del metadata (Gemini 2.0 tiene un formato diferente)
         let sources = []
         
-        // Formato 1: retrievalMetadata (Vertex AI)
-        if (groundingMetadata?.retrievalMetadata) {
+        // Formato Gemini 2.0 (Google AI SDK)
+        if (groundingMetadata?.groundingChunks) {
+            console.log('[WebSearch/Grounding] Mapping groundingChunks to sources')
+            sources = (groundingMetadata as any).groundingChunks
+                ?.map((chunk: any) => ({
+                    title: chunk.web?.title || 'Google Search',
+                    url: chunk.web?.uri
+                }))
+                .filter((s: any) => s.url) || []
+        }
+        // Formato Vertex AI / Legacy
+        else if (groundingMetadata?.retrievalMetadata) {
             sources = groundingMetadata.retrievalMetadata.map((meta: any) => ({
                 title: meta.title || 'Sin título',
                 url: meta.uri,
