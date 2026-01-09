@@ -166,6 +166,7 @@ export default function ChatPage() {
     const [lastTranscript, setLastTranscript] = useState('')
     const [isVoiceOpen, setIsVoiceOpen] = useState(false)
     const transcriptRef = useRef('')
+    const skipMessagesLoadRef = useRef(false)
 
     // Setup Speech Recognition
     useEffect(() => {
@@ -306,6 +307,14 @@ export default function ChatPage() {
     useEffect(() => {
         if (sessionIdParam) {
             setCurrentSessionId(sessionIdParam)
+            
+            // Skip loading if we just created this session in handleSend
+            if (skipMessagesLoadRef.current) {
+                console.log('[Chat] Skipping initial message load for new session')
+                skipMessagesLoadRef.current = false
+                return
+            }
+
             fetch(`/api/chat-sessions?sessionId=${sessionIdParam}`)
                 .then(res => res.ok ? res.json() : [])
                 .then(async (msgs: any[]) => {
@@ -352,6 +361,9 @@ export default function ChatPage() {
                 if (!res.ok) throw new Error('Failed to create session')
                 const session = await res.json()
                 sid = session.id
+                
+                // Prevent useEffect from wiping our optimistic message
+                skipMessagesLoadRef.current = true
                 setCurrentSessionId(sid)
                 router.push(`/chat/${agentSlug}?session=${sid}`, { scroll: false })
             }

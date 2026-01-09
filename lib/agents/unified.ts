@@ -110,9 +110,6 @@ Usala para cualquier consulta sobre datos de la empresa.
 ### web_search  
 Búsqueda en internet. Información general, noticias, precios de mercado.
 
-### web_investigator
-Extraer contenido de URLs específicas.
-
 ### Documentos (RAG)
 El contexto de documentos se inyecta automáticamente.
 

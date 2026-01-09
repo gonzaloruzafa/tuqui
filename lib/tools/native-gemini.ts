@@ -117,7 +117,7 @@ export async function generateTextNative({
             
             if (!tool || !tool.execute) {
                 console.warn(`[NativeGemini] Tool ${name} not found, returning error to model`)
-                toolResult = { error: `Tool ${name} no está disponible. Usa web_search o web_investigator.` }
+                toolResult = { error: `Tool ${name} no está disponible. Usa web_search.` }
             } else {
                 try {
                     toolResult = await tool.execute(args)

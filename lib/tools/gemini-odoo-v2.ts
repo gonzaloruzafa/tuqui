@@ -61,6 +61,12 @@ export interface OdooToolResult {
     chartData?: ChartData
     cached?: boolean
     executionMs?: number
+    query_metadata?: Array<{
+        id: string
+        model: string
+        filters?: string
+        interpretation?: string
+    }>
 }
 
 export interface GeminiOdooResponse {
@@ -450,7 +456,13 @@ async function executeIntelligentQuery(
             insights,
             chartData,
             cached: results.some(r => r.cached),
-            executionMs: Date.now() - startTime
+            executionMs: Date.now() - startTime,
+            query_metadata: subQueries.map(q => ({
+                id: q.id,
+                model: q.model,
+                filters: q.filters,
+                interpretation: q.domain ? JSON.stringify(q.domain) : undefined
+            }))
         }
 
     } catch (error: any) {

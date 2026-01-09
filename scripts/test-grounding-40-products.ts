@@ -99,8 +99,8 @@ async function testProduct(product: string): Promise<TestResult> {
       model: 'gemini-2.0-flash-exp',
       tools: [
         {
-          googleSearchRetrieval: {}
-        }
+          googleSearch: {}
+        } as any
       ]
     })
 

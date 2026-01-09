@@ -40,8 +40,8 @@ async function testGroundingSearch(productQuery: string) {
       model: 'gemini-2.0-flash-exp',
       tools: [
         {
-          googleSearchRetrieval: {}  // ← Activa grounding con Google Search
-        }
+          googleSearch: {}  // ← Activa grounding con Google Search
+        } as any
       ]
     })
 

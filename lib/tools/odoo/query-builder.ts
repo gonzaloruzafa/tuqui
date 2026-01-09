@@ -229,9 +229,13 @@ export function buildDomain(filters: string, model: string): any[] {
 
     let dateMatched = false
 
+    // Try to detect year in filters (e.g., "2024", "del 2023")
+    const yearMatch = filters.match(/\b(202[0-9])\b/)
+    const specifiedYear = yearMatch ? parseInt(yearMatch[1]) : null
+
     for (const { regex, month } of monthPatterns) {
         if (regex.test(filters)) {
-            const year = month > currentMonth ? currentYear - 1 : currentYear
+            const year = specifiedYear || (month > currentMonth ? currentYear - 1 : currentYear)
             const startDate = `${year}-${String(month).padStart(2, '0')}-01`
             const endDay = new Date(year, month, 0).getDate()
             const endDate = `${year}-${String(month).padStart(2, '0')}-${endDay}`

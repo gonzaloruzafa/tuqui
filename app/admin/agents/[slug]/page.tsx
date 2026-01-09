@@ -127,7 +127,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
 
     const AVAILABLE_TOOLS = [
         { slug: 'web_search', label: 'Búsqueda Web', description: 'TODO-EN-UNO: Tavily + Google Grounding (precios, noticias, info general)' },
-        { slug: 'odoo', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' }
+        { slug: 'odoo_intelligent_query', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' }
     ]
 
     return (

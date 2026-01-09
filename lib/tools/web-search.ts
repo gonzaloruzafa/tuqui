@@ -110,8 +110,8 @@ async function searchWithGrounding(
             model: 'gemini-2.0-flash-exp',
             tools: [
                 {
-                    googleSearchRetrieval: {}  // Activa grounding con Google Search
-                }
+                    googleSearch: {}  // Activa grounding con Google Search (Gemini 2.0)
+                } as any
             ]
         })
 
