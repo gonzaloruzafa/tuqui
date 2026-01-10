@@ -54,7 +54,7 @@ export interface StrictValidation {
   hasWrongPeriod: boolean
   hasInventedAmounts: boolean
   hasEnglishThinking: boolean
-  hasAbsurdUnassigned: boolean
+  hasAbsurdAmounts: boolean  // Renamed: detects any absurd amounts, not just unassigned
   fakeNamesFound: string[]
   realNamesFromTool: string[]
   suggestedResponse: string | null
@@ -135,15 +135,15 @@ export class StrictValidator {
       issues.push('Montos que no corresponden con datos reales')
     }
 
-    // 8. Detectar montos absurdos en "Sin asignar"
-    const hasAbsurdUnassigned = this.detectAbsurdUnassigned(toolResult)
-    if (hasAbsurdUnassigned) {
-      issues.push('Monto absurdo detectado en "Sin asignar" - posible error de datos')
+    // 8. Detectar montos absurdos (cualquier monto > 100 mil millones es sospechoso)
+    const hasAbsurdAmounts = this.detectAbsurdAmounts(toolResult)
+    if (hasAbsurdAmounts) {
+      issues.push('Monto absurdo detectado - posible error de consulta o datos')
     }
 
     // 9. Generar respuesta sugerida si hay problemas
     let suggestedResponse: string | null = null
-    if (fakeNamesFound.length > 0 || hasWrongPeriod || hasInventedAmounts || hasEnglishThinking || hasAbsurdUnassigned) {
+    if (fakeNamesFound.length > 0 || hasWrongPeriod || hasInventedAmounts || hasEnglishThinking || hasAbsurdAmounts) {
       suggestedResponse = this.generateCleanResponse(toolResult, context)
     }
 
@@ -153,7 +153,7 @@ export class StrictValidator {
       hasWrongPeriod,
       hasInventedAmounts,
       hasEnglishThinking,
-      hasAbsurdUnassigned,
+      hasAbsurdAmounts,
       fakeNamesFound,
       realNamesFromTool: realNames,
       suggestedResponse,
@@ -264,22 +264,24 @@ export class StrictValidator {
   }
 
   /**
-   * Detecta montos absurdos en "Sin asignar" o categorías vacías
-   * Estos suelen indicar error de agrupación o datos corruptos
+   * Detecta montos absurdos en el resultado
+   * Montos > 100 mil millones de pesos son sospechosos para una empresa típica
+   * Esto suele indicar que falta un filtro de fecha
    */
-  private static detectAbsurdUnassigned(toolResult: ToolResultData): boolean {
-    if (!toolResult.grouped) return false
+  private static detectAbsurdAmounts(toolResult: ToolResultData): boolean {
+    // Umbral: 100 mil millones de pesos (ninguna empresa argentina factura eso en un período típico)
+    const ABSURD_THRESHOLD = 100_000_000_000 // 100 billion
+    
+    // Check total
+    if (toolResult.total && toolResult.total > ABSURD_THRESHOLD) {
+      console.warn(`[StrictValidator] Absurd total amount: $${toolResult.total.toLocaleString()}`)
+      return true
+    }
 
-    // Umbral: si "Sin asignar" o similar tiene más de 1 billón, es sospechoso
-    const ABSURD_THRESHOLD = 1_000_000_000_000 // 1 trillion
-    const suspiciousKeys = ['sin asignar', 'false', 'undefined', 'null', 'n/a', '']
-
-    for (const [key, value] of Object.entries(toolResult.grouped)) {
-      const keyLower = key.toLowerCase().trim()
-      const isUnassigned = suspiciousKeys.some(s => keyLower === s || keyLower.includes('sin asignar'))
-      
-      if (isUnassigned && typeof value === 'object' && value.total) {
-        if (value.total > ABSURD_THRESHOLD) {
+    // Check grouped values
+    if (toolResult.grouped) {
+      for (const [key, value] of Object.entries(toolResult.grouped)) {
+        if (typeof value === 'object' && value.total && value.total > ABSURD_THRESHOLD) {
           console.warn(`[StrictValidator] Absurd amount in "${key}": $${value.total.toLocaleString()}`)
           return true
         }
