@@ -161,7 +161,14 @@ export async function POST(req: Request) {
                         try {
                             const tools = typeof m.tool_calls === 'string' ? JSON.parse(m.tool_calls) : m.tool_calls
                             if (Array.isArray(tools) && tools.length > 0) {
-                                content = `🔧 [Búsqueda Odoo: ${tools.map((t: any) => t.name).join(', ')}]\n\n${content}`
+                                // Include REAL DATA in history so LLM has source of truth
+                                const toolSummaries = tools.map((t: any) => {
+                                    if (t.result_summary) {
+                                        return `[${t.name}] ${t.result_summary}`
+                                    }
+                                    return `[${t.name}]`
+                                }).join('\\n')
+                                content = `🔧 DATOS REALES DE ODOO:\\n${toolSummaries}\\n\\nRESPUESTA: ${content}`
                             }
                         } catch (e) {
                             console.warn('[Chat] Failed to parse tool_calls for history enrichment')

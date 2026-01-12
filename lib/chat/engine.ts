@@ -13,6 +13,37 @@ const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
 })
 
+/**
+ * Format tool result into a detailed summary for history persistence.
+ * This ensures the LLM has access to REAL data in subsequent turns.
+ */
+function formatToolResultSummary(toolResult: any): string {
+    const parts: string[] = []
+    
+    // Include grouped data (most important for preventing hallucination)
+    if (toolResult.grouped && Object.keys(toolResult.grouped).length > 0) {
+        const entries = Object.entries(toolResult.grouped)
+            .sort((a: any, b: any) => (b[1].total || 0) - (a[1].total || 0))
+            .slice(0, 15) // Top 15 to keep context reasonable
+        
+        const dataLines = entries.map(([name, data]: [string, any]) => 
+            `${name}: $${Math.round(data.total || 0).toLocaleString('es-AR')}`
+        )
+        parts.push(`DATOS: ${dataLines.join(' | ')}`)
+    }
+    
+    // Include totals
+    if (toolResult.total) {
+        parts.push(`TOTAL: $${Math.round(toolResult.total).toLocaleString('es-AR')}`)
+    }
+    
+    if (toolResult.count) {
+        parts.push(`(${toolResult.count} registros)`)
+    }
+    
+    return parts.join(' - ') || 'sin datos'
+}
+
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system'
     content: string
@@ -169,14 +200,14 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             // Odoo BI Agent doesn't expose usage yet, using estimate for now
             totalTokens = responseText.length / 3
             
-            // Extract tool calls for persistence
+            // Extract tool calls for persistence with FULL data summary
             if (odooRes.toolCalls && odooRes.toolCalls.length > 0) {
                 responseToolCalls = odooRes.toolCalls.map(tc => ({
                     name: tc.name,
                     args: tc.args,
-                    // Create a summary of the result for context
+                    // Create DETAILED summary with actual data for context persistence
                     result_summary: odooRes.toolResults?.[0] ? 
-                        `${odooRes.toolResults[0].count || 0} registros, total: ${odooRes.toolResults[0].total || 0}` : 
+                        formatToolResultSummary(odooRes.toolResults[0]) : 
                         undefined
                 }))
             }
