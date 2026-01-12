@@ -371,11 +371,35 @@ export function buildDomain(filters: string, model: string): any[] {
         }
     }
 
+    // ---- SALE ORDER FILTERS ----
+    if (model === 'sale.order') {
+        // Default to confirmed orders (exclude drafts, sent, cancelled)
+        if (!domain.some(d => d[0] === 'state')) {
+            domain.push(['state', 'in', ['sale', 'done']])
+        }
+    }
+
     // ---- SALE ORDER LINE FILTERS ----
     if (model === 'sale.order.line') {
         // Default to confirmed orders
         if (!domain.some(d => d[0] === 'state')) {
             domain.push(['state', 'in', ['sale', 'done']])
+        }
+    }
+
+    // ---- PURCHASE ORDER FILTERS ----
+    if (model === 'purchase.order') {
+        // Default to confirmed orders (exclude drafts, sent, cancelled)
+        if (!domain.some(d => d[0] === 'state')) {
+            domain.push(['state', 'in', ['purchase', 'done']])
+        }
+    }
+
+    // ---- STOCK PICKING FILTERS ----
+    if (model === 'stock.picking') {
+        // Default to operational states (exclude drafts, cancelled)
+        if (!domain.some(d => d[0] === 'state')) {
+            domain.push(['state', 'in', ['assigned', 'done', 'confirmed', 'waiting']])
         }
     }
 
