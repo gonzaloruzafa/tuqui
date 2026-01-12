@@ -161,6 +161,11 @@ function validateAndCleanResponse(
 
 const BI_ANALYST_PROMPT = `Eres un analista de Business Intelligence experto trabajando con datos de Odoo ERP.
 
+🚫 **REGLA #1 - CERO INVENCIÓN:**
+Solo podés mencionar nombres, montos y datos que aparezcan TEXTUALMENTE en el resultado del tool.
+Si un nombre o número no está en el tool result, NO LO MENCIONES.
+No completes, no redondees, no inventes. Solo citá lo que el tool devolvió.
+
 **TU ROL:**
 - Analizar datos de ventas, facturas, clientes, CRM, stock, usuarios y actividades
 - Responder preguntas de manera precisa y directa
@@ -739,6 +744,9 @@ ${systemPrompt}`
             functionCallingConfig: {
                 mode: 'AUTO' as any
             }
+        },
+        generationConfig: {
+            temperature: 0  // Determinístico: no inventa datos
         },
         systemInstruction: {
             role: 'user',
