@@ -778,9 +778,10 @@ ${systemPrompt}`
         // Track the tool call
         collectedToolCalls.push({ name, args })
 
-        // Show progress indicator
+        // Show progress indicator - ejecutando tool
         const queryCount = (args as any).queries?.length || 1
-        yield `🔧 Analizando datos (${queryCount} consulta${queryCount > 1 ? 's' : ''})...\n\n`
+        const queryModels = (args as any).queries?.map((q: any) => q.model).join(', ') || 'datos'
+        yield `🔍 *Consultando:* ${queryModels}...\n`
 
         // Timing: Tool execution
         const toolStartTime = Date.now()
@@ -788,7 +789,11 @@ ${systemPrompt}`
         // Execute the tool
         const toolResult = await executeIntelligentQuery(tenantId, args as any)
         
-        console.log(`[OdooBIAgent] Tool execution: ${Date.now() - toolStartTime}ms`)
+        const toolTime = Date.now() - toolStartTime
+        console.log(`[OdooBIAgent] Tool execution: ${toolTime}ms`)
+        
+        // Show progress indicator - generando respuesta
+        yield `✍️ *Generando respuesta...* (${toolResult.count || 0} registros)\n\n`
 
         collectedToolResults.push(toolResult)
 

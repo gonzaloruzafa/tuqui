@@ -399,35 +399,50 @@ Ejemplos:
                 })
             ])
 
-            // ESTRATEGIA ANTI-ALUCINACIÓN V2:
+            // ESTRATEGIA ANTI-ALUCINACIÓN V3:
             // 1. Usamos análisis de Grounding (mejor para comparar precios)
-            // 2. Usamos links de Serper (más precisos que Tavily, apuntan a /articulo)
-            // 3. Serper usa Google Search con filtros optimizados para productos
+            // 2. Usamos links de Serper (más precisos, apuntan a /articulo)
+            // 3. Devolvemos productos como JSON estructurado para que el LLM NO invente URLs
 
             const serperSources = serperRes.sources || []
             const groundingText = groundingRes.answer || ''
 
             // Si Serper encontró links, son los ÚNICOS que debe usar
             if (serperSources.length > 0) {
-                // Construir respuesta híbrida: análisis de Grounding + links VERIFICADOS de Serper
-                const linksSection = serperSources
-                    .map((s: any, i: number) => `[${i+1}] ${s.title}\n   URL: ${s.url}`)
-                    .join('\n\n')
+                // Construir productos estructurados para que el LLM copie URLs exactas
+                const products = serperSources.map((s: any, i: number) => ({
+                    numero: i + 1,
+                    titulo: s.title,
+                    url_verificada: s.url,
+                    descripcion: s.snippet?.substring(0, 150) || ''
+                }))
+
+                const productsJSON = JSON.stringify(products, null, 2)
 
                 const hybridAnswer = `${groundingText}
 
-━━━━━━━━━━━━━━━━━━━━━━
-🔗 LINKS VERIFICADOS (usar ESTOS únicamente):
-━━━━━━━━━━━━━━━━━━━━━━
+════════════════════════════════════════════════════════
+🛒 PRODUCTOS ENCONTRADOS (DATOS VERIFICADOS)
+════════════════════════════════════════════════════════
 
-${linksSection}
+${productsJSON}
 
-⚠️ IMPORTANTE: Los links arriba son los ÚNICOS correctos. No usar otros URLs.`
+════════════════════════════════════════════════════════
+⚠️ INSTRUCCIONES OBLIGATORIAS PARA TU RESPUESTA:
+════════════════════════════════════════════════════════
+
+1. Usá ÚNICAMENTE las URLs del campo "url_verificada" de arriba
+2. Copiá la URL EXACTA - no modifiques ni un caracter
+3. Formato de link: [Ver en MercadoLibre](URL_EXACTA)
+4. Si no hay URL para algo, NO inventes - decí que no encontraste
+5. PROHIBIDO construir URLs como "articulo.mercadolibre.com.ar/MLA-XXXXX"
+
+❌ Si inventás una URL, el usuario verá ERROR 404`
 
                 result = {
                     method: 'hybrid (grounding+serper)',
                     answer: hybridAnswer,
-                    sources: serperSources,  // SOLO Serper sources (links directos)
+                    sources: serperSources,
                     searchQueries: [...(groundingRes.searchQueries || []), ...(serperRes.searchQueries || [])]
                 }
             } else {

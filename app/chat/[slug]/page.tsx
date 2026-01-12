@@ -15,6 +15,21 @@ import {
 import { marked } from 'marked'
 import { VoiceChat } from '@/components/chat/VoiceChat'
 
+// Configure marked to open external links in new tab
+const renderer = new marked.Renderer()
+const originalLinkRenderer = renderer.link.bind(renderer)
+renderer.link = function(link: any) {
+    const { href, title, tokens } = link
+    const text = this.parser.parseInline(tokens)
+    const isExternal = href && (href.startsWith('http://') || href.startsWith('https://'))
+    if (isExternal) {
+        const titleAttr = title ? ` title="${title}"` : ''
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`
+    }
+    return originalLinkRenderer(link)
+}
+marked.setOptions({ renderer })
+
 // Helper to wrap tables in scrollable div
 function wrapTablesInScrollContainer(html: string): string {
     return html.replace(/<table>/g, '<div class="table-wrapper"><table>')
