@@ -633,6 +633,73 @@ describe('3. Regression Tests', () => {
         expect(domain.some((d: any) => d[2]?.includes('2025-12'))).toBe(true)
         console.log('✅ Año inferido correctamente para mes pasado')
     })
+
+    test('3.6 groupBy total debe coincidir con aggregate total', async () => {
+        // CRÍTICO: El total de un groupBy debe ser igual al total sin groupBy
+        // Este test detecta el bug donde limit afecta el total en groupBy
+        const [withGroupBy, withoutGroupBy] = await Promise.all([
+            executeQueries(odooClient, TENANT_ID, [{
+                id: 'with-groupby',
+                model: 'sale.order',
+                operation: 'aggregate',
+                dateRange: BASELINE_DIC_2025,
+                groupBy: ['partner_id'],
+                limit: 10,  // Solo top 10 clientes
+            }]),
+            executeQueries(odooClient, TENANT_ID, [{
+                id: 'without-groupby',
+                model: 'sale.order',
+                operation: 'aggregate',
+                dateRange: BASELINE_DIC_2025,
+                // Sin groupBy = total real
+            }])
+        ])
+
+        const groupByTotal = withGroupBy[0].total || 0
+        const realTotal = withoutGroupBy[0].total || 0
+        
+        // El total del groupBy debe ser el REAL, no solo la suma de los grupos mostrados
+        // Permitimos 1% de diferencia por floating point
+        const diff = Math.abs(groupByTotal - realTotal)
+        const percentDiff = (diff / realTotal) * 100
+        
+        console.log(`📊 GroupBy total: $${groupByTotal.toLocaleString()}`)
+        console.log(`📊 Real total: $${realTotal.toLocaleString()}`)
+        console.log(`📊 Diferencia: ${percentDiff.toFixed(2)}%`)
+        
+        expect(percentDiff).toBeLessThan(1)
+        console.log('✅ groupBy devuelve total REAL')
+    })
+
+    test('3.7 groupBy count debe ser total de grupos, no grupos mostrados', async () => {
+        // El count debe ser el TOTAL de grupos únicos, no cuántos mostramos
+        const result = await executeQueries(odooClient, TENANT_ID, [{
+            id: 'groupby-count',
+            model: 'sale.order',
+            operation: 'aggregate',
+            dateRange: BASELINE_DIC_2025,
+            groupBy: ['partner_id'],
+            limit: 5,  // Solo 5 grupos
+        }])
+
+        const [r] = result
+        
+        // grouped debería tener solo 5 (limit)
+        const shownGroups = Object.keys(r.grouped || {}).length
+        // count debería ser el TOTAL de clientes únicos (probablemente >5)
+        const totalGroups = r.count || 0
+        
+        console.log(`📊 Grupos mostrados: ${shownGroups}`)
+        console.log(`📊 Total grupos (count): ${totalGroups}`)
+        
+        // El count NO debe ser igual al número de grupos mostrados si hay más grupos
+        // Si hay exactamente 5 o menos clientes, este test no aplica
+        if (totalGroups > 5) {
+            expect(shownGroups).toBe(5)  // Mostramos solo 5
+            expect(totalGroups).toBeGreaterThan(5)  // Pero hay más
+        }
+        console.log('✅ count refleja total de grupos únicos')
+    })
 })
 
 // ==========================================

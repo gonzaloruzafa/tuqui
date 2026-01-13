@@ -33,6 +33,7 @@ export interface QueryResult {
     count?: number
     total?: number
     grouped?: Record<string, { count: number; total: number }>
+    shownGroups?: number  // For groupBy with limit: how many groups we're showing vs count (total)
     comparison?: {
         current: any
         previous: any
@@ -721,24 +722,52 @@ async function executeSingleQuery(
                         
                         // Use readGroup for server-side aggregation
                         let groupData: any[] = []
+                        let totalGroups = 0
+                        let realTotal = 0
+                        
                         try {
+                            // STEP 1: Get the REAL total (all matching records, no grouping)
+                            // This ensures the total is accurate regardless of limit
+                            const allSum = await client.readGroup(
+                                query.model,
+                                domain,
+                                hasAmountField ? [amountField] : [],
+                                [],  // No groupBy = sum all
+                                { limit: 1 }
+                            )
+                            realTotal = hasAmountField ? (allSum[0]?.[amountField] || 0) : 0
+                            console.log(`[QueryBuilder] Real total (all records): ${realTotal}`)
+                            
+                            // STEP 2: Get total number of unique groups (no limit)
+                            const countGroupsResult = await client.readGroup(
+                                query.model,
+                                domain,
+                                [],  // No aggregate fields needed, just counting groups
+                                sanitizedGroupBy,
+                                { limit: 10000 }  // High limit to count all groups
+                            )
+                            totalGroups = countGroupsResult.length
+                            console.log(`[QueryBuilder] Total unique groups: ${totalGroups}`)
+                            
+                            // STEP 3: Get TOP N groups ordered by amount (with limit)
                             groupData = await client.readGroup(
                                 query.model,
                                 domain,
                                 aggregateFields,
                                 sanitizedGroupBy,
                                 {
-                                    limit,
+                                    limit: limit || 50,
                                     orderBy: hasAmountField ? `${amountField} desc` : `${sanitizedGroupBy[0]}_count desc`
                                 }
                             )
+                            console.log(`[QueryBuilder] Top ${groupData.length} groups fetched`)
                         } catch (readGroupError: any) {
                             console.error(`[QueryBuilder] readGroup FAILED: ${readGroupError.message}`)
                             // Fallback: return empty result instead of crashing
                             result = { grouped: {}, count: 0, total: 0 }
                             break
                         }
-                        console.log(`[QueryBuilder] readGroup returned ${groupData.length} groups`)
+                        console.log(`[QueryBuilder] readGroup returned ${groupData.length} groups of ${totalGroups} total`)
 
                         // Transform to grouped format
                         const grouped: Record<string, { count: number; total: number; id?: number }> = {}
@@ -766,8 +795,9 @@ async function executeSingleQuery(
 
                         result = {
                             grouped: sortedGrouped,
-                            count: groupData.length,
-                            total: Object.values(grouped).reduce((sum, g) => sum + g.total, 0)
+                            count: totalGroups,  // REAL total of unique groups
+                            total: realTotal,    // REAL total amount (all records)
+                            shownGroups: groupData.length  // How many groups we're showing
                         }
                     }
                 } else {
