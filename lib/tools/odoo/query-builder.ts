@@ -198,8 +198,11 @@ export const MODEL_CONFIG: Record<string, {
         stateField: 'state',
         defaultFields: ['name', 'partner_id', 'date_order', 'amount_total', 'state', 'user_id'],
         states: {
-            'confirmad': 'sale', 'confirm': 'sale', 'venta': 'sale',
-            'borrador': 'draft', 'draft': 'draft',
+            // presupuesto/cotización = draft
+            'presupuest': 'draft', 'cotiza': 'draft', 'borrador': 'draft', 'draft': 'draft',
+            // ventas confirmadas = sale
+            'confirmad': 'sale', 'confirm': 'sale',
+            // canceladas
             'cancelad': 'cancel', 'cancel': 'cancel',
             'hecho': 'done', 'done': 'done'
         }
@@ -605,6 +608,39 @@ async function executeSingleQuery(
         if (!query.domain && (query.filters || query.dateRange)) {
             domain = buildDomain(query.filters || '', query.model, query.dateRange)
         }
+        
+        // ============================================
+        // AUTO-APPLY DEFAULT STATE FILTERS
+        // "Ventas" siempre significa confirmadas, salvo que pida "presupuestos"
+        // ============================================
+        const stateField = config.stateField || 'state'
+        const hasExplicitStateFilter = hasStateFilter(domain, stateField)
+        
+        if (!hasExplicitStateFilter) {
+            // Auto-apply confirmed states for sales
+            if (query.model === 'sale.order' || query.model === 'sale.order.line') {
+                // sale.order states: draft=presupuesto, sent=enviado, sale=confirmado, done=hecho, cancel=cancelado
+                // "ventas" = sale (confirmadas) + sent (cotizaciones enviadas)
+                domain.push(['state', 'in', ['sale', 'sent']])
+                console.log('[QueryBuilder] Auto-applied state filter for sales: state IN [sale, sent]')
+            }
+            // Auto-apply posted states for invoices
+            else if (query.model === 'account.move') {
+                domain.push(['state', '=', 'posted'])
+                console.log('[QueryBuilder] Auto-applied state filter for invoices: state = posted')
+            }
+            // Auto-apply confirmed states for purchases
+            else if (query.model === 'purchase.order' || query.model === 'purchase.order.line') {
+                domain.push(['state', 'in', ['purchase', 'done']])
+                console.log('[QueryBuilder] Auto-applied state filter for purchases: state IN [purchase, done]')
+            }
+            // Auto-apply posted states for payments
+            else if (query.model === 'account.payment') {
+                domain.push(['state', '=', 'posted'])
+                console.log('[QueryBuilder] Auto-applied state filter for payments: state = posted')
+            }
+        }
+        
         const fields = query.fields || config.defaultFields
         const limit = Math.min(query.limit || 50, 500) // Max 500 records
         

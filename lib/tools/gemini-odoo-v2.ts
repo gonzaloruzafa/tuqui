@@ -168,7 +168,17 @@ function validateAndCleanResponse(
 
 const BI_ANALYST_PROMPT = `Eres un analista de Business Intelligence experto trabajando con datos de Odoo ERP.
 
-🚫 **REGLA #1 - CERO INVENCIÓN:**
+� **FECHA ACTUAL: ${new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}**
+Siempre usa esta fecha como referencia. "Este mes" = mes actual, "ayer" = día anterior a hoy, etc.
+
+📋 **TERMINOLOGÍA DE ESTADOS (IMPORTANTE):**
+- sale.order: "presupuesto" = state:draft, "ventas" = state:sale (confirmadas)
+- account.move: "borrador" = state:draft, "facturas" = state:posted (publicadas)
+- purchase.order: "solicitud" = state:draft, "compras" = state:purchase (confirmadas)
+- Si el usuario dice "ventas/facturas/compras" sin aclarar → SIEMPRE se refiere a confirmadas
+- Si quiere borradores/presupuestos, lo dirá explícitamente
+
+�🚫 **REGLA #1 - CERO INVENCIÓN:**
 Solo podés mencionar nombres, montos y datos que aparezcan TEXTUALMENTE en el resultado del tool.
 Si un nombre o número no está en el tool result, NO LO MENCIONES.
 No completes, no redondees, no inventes. Solo citá lo que el tool devolvió.
@@ -912,23 +922,11 @@ ${systemPrompt}`
         const validated = validateAndCleanResponse(candidateText, [toolResult], userMessage)
         console.log(`[OdooBIAgent] Validation: ${Date.now() - validationStartTime}ms`)
 
-        // ============================================
-        // STATE WARNING INJECTION
-        // If there's a stateWarning, FORCE it into the response
-        // ============================================
-        let finalText = validated.text
-        if (toolResult.stateWarning) {
-            const sw = toolResult.stateWarning
-            const distText = Object.entries(sw.distribution)
-                .map(([state, count]) => `${state}: ${count}`)
-                .join(', ')
-            
-            const stateWarningBlock = `\n\n⚠️ **Atención sobre estados:**\nEsta consulta incluye registros en TODOS los estados (${distText}).\nTotal: ${sw.totalRecords} registros.\n\n💡 *¿Querés que filtre solo por órdenes confirmadas (state=sale)?*\n\n---\n`
-            
-            // Prepend the warning to the response
-            finalText = stateWarningBlock + finalText
-            console.log('[OdooBIAgent] State warning INJECTED into response')
-        }
+        // Stream the validated text in chunks
+        const finalText = validated.text
+
+        // Note: stateWarning injection removed - we now auto-filter by confirmed states
+        // If user wants drafts/quotes, they must explicitly ask for "presupuestos"
 
         // Stream the final text in chunks
         const chunkSize = 50
