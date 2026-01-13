@@ -14,12 +14,12 @@ import { DateService } from '@/lib/date/service'
 export interface OdooSubQuery {
     id: string                      // Unique ID for reference
     model: string                   // Odoo model name
-    operation: 'search' | 'count' | 'aggregate' | 'fields' | 'discover'
+    operation: 'search' | 'count' | 'aggregate' | 'fields' | 'discover' | 'inspect' | 'distinct'
     domain?: any[]                  // Direct domain (takes precedence)
     dateRange?: { start: string; end: string; label?: string } // Explicit date range from tool args
     filters?: string                // Natural language filters (parsed to domain)
     fields?: string[]               // Fields to retrieve
-    groupBy?: string[]              // For aggregations
+    groupBy?: string[]              // For aggregations (also used for 'distinct' to specify which field)
     limit?: number                  // Max records (default 50)
     orderBy?: string                // Sort order
     compare?: 'mom' | 'yoy'
@@ -426,44 +426,12 @@ export function buildDomain(filters: string, model: string, dateRange?: { start:
         } else if (/outbound|pago|pag[oa]mos?|realiz[oa]d[oa]/i.test(filters)) {
             domain.push(['payment_type', '=', 'outbound'])
         }
-
-        // Default to paid payments (not 'posted' - account.payment uses 'paid' state)
-        if (!domain.some(d => d[0] === 'state')) {
-            domain.push(['state', '=', 'paid'])
-        }
+        // NOTE: No default state filter - LLM should use 'distinct' to discover states first
     }
 
-    // ---- SALE ORDER FILTERS ----
-    if (model === 'sale.order') {
-        // Default to confirmed orders (exclude drafts, sent, cancelled)
-        if (!domain.some(d => d[0] === 'state')) {
-            domain.push(['state', 'in', ['sale', 'done']])
-        }
-    }
-
-    // ---- SALE ORDER LINE FILTERS ----
-    if (model === 'sale.order.line') {
-        // Default to confirmed orders
-        if (!domain.some(d => d[0] === 'state')) {
-            domain.push(['state', 'in', ['sale', 'done']])
-        }
-    }
-
-    // ---- PURCHASE ORDER FILTERS ----
-    if (model === 'purchase.order') {
-        // Default to confirmed orders (exclude drafts, sent, cancelled)
-        if (!domain.some(d => d[0] === 'state')) {
-            domain.push(['state', 'in', ['purchase', 'done']])
-        }
-    }
-
-    // ---- STOCK PICKING FILTERS ----
-    if (model === 'stock.picking') {
-        // Default to operational states (exclude drafts, cancelled)
-        if (!domain.some(d => d[0] === 'state')) {
-            domain.push(['state', 'in', ['assigned', 'done', 'confirmed', 'waiting']])
-        }
-    }
+    // NOTE: Default state filters REMOVED for sale.order, sale.order.line, purchase.order, stock.picking
+    // The LLM should use operation: 'distinct' with groupBy: ['state'] to discover actual states
+    // and then decide which states to include based on the user's question context
 
     // ---- STRUCTURED FILTERS (field: value or field = value) ----
     // Improved regex to handle quoted values or values with spaces
@@ -643,6 +611,76 @@ async function executeSingleQuery(
                         relationFields: discovered.relationFields.slice(0, 10), // Limit to top 10
                         stateField: discovered.stateField,
                         sampleFields: discovered.allFields.slice(0, 20) // Sample of first 20 fields
+                    }]
+                }
+                break
+
+            case 'inspect':
+                // Inspect model fields with business-relevant info (no technical fields)
+                const allFields = await client.fieldsGet(query.model, ['string', 'type', 'relation', 'store', 'required', 'selection'])
+                const technicalFields = ['__last_update', 'create_uid', 'create_date', 'write_uid', 'write_date', 'display_name', 'id']
+                const technicalRelations = ['ir.', 'mail.', 'bus.', 'base.']
+                
+                const businessFields: Record<string, any> = {}
+                for (const [fieldName, meta] of Object.entries(allFields) as [string, any][]) {
+                    // Skip technical fields
+                    if (technicalFields.includes(fieldName)) continue
+                    if (fieldName.startsWith('_')) continue
+                    if (meta.relation && technicalRelations.some(r => meta.relation.startsWith(r))) continue
+                    if (!meta.store) continue // Only stored fields
+                    
+                    businessFields[fieldName] = {
+                        label: meta.string,
+                        type: meta.type,
+                        required: meta.required || false,
+                        ...(meta.relation && { relation: meta.relation }),
+                        ...(meta.selection && { values: meta.selection.map((s: any) => s[0]) })
+                    }
+                }
+                
+                result = {
+                    data: [{
+                        model: query.model,
+                        fields: businessFields,
+                        fieldCount: Object.keys(businessFields).length
+                    }]
+                }
+                break
+
+            case 'distinct':
+                // Get distinct values for a field with counts - useful to discover real states/values
+                if (!query.groupBy || query.groupBy.length === 0) {
+                    result = { error: 'distinct operation requires groupBy with at least one field' }
+                    break
+                }
+                
+                const distinctField = query.groupBy[0]
+                const distinctDomain = query.domain || []
+                
+                // Use read_group to get distinct values with counts
+                const distinctData = await client.readGroup(
+                    query.model,
+                    distinctDomain,
+                    [distinctField],
+                    [distinctField],
+                    { limit: 100 }
+                )
+                
+                // Transform to {value: count} format
+                const valueDistribution: Record<string, number> = {}
+                for (const row of distinctData) {
+                    const value = row[distinctField]
+                    const displayValue = Array.isArray(value) ? value[1] : (value ?? 'null')
+                    const count = row[`${distinctField}_count`] || row['__count'] || 1
+                    valueDistribution[String(displayValue)] = count
+                }
+                
+                result = {
+                    data: [{
+                        model: query.model,
+                        field: distinctField,
+                        values: valueDistribution,
+                        totalRecords: Object.values(valueDistribution).reduce((a, b) => a + b, 0)
                     }]
                 }
                 break

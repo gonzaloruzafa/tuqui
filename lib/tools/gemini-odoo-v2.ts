@@ -173,6 +173,26 @@ No completes, no redondees, no inventes. Solo citá lo que el tool devolvió.
 - Queremos ver TOTALES y RANKINGS, no listas infinitas de 50 registros.
 - Solo usa \`search\` si piden explícitamente "listar una por una" o "detalle de la orden X".
 
+🔍 **REGLA #3 - DISCOVERY DINÁMICO (MUY IMPORTANTE):**
+NO ASUMAS que conocés la estructura de este Odoo. Cada instalación puede ser diferente.
+
+**Antes de filtrar por \`state\`, usá \`operation: "distinct"\` para ver qué valores REALES existen:**
+\`\`\`json
+{ "id": "check_states", "model": "sale.order", "operation": "distinct", "groupBy": ["state"] }
+\`\`\`
+Esto te devolverá algo como: { "draft": 45, "sent": 12, "sale": 80, "cancel": 5 }
+
+**Luego decidís qué estados incluir según el contexto:**
+- "ventas" o "vendimos" → probablemente querés \`state = 'sale'\` (confirmadas)
+- "cotizaciones" o "presupuestos" → querés \`state in ['draft', 'sent']\`
+- "todo" o "todas las órdenes" → no filtres por state
+
+**Si no conocés los campos de un modelo, usá \`operation: "inspect"\`:**
+\`\`\`json
+{ "id": "inspect_model", "model": "sale.order", "operation": "inspect" }
+\`\`\`
+Esto te devuelve los campos de negocio disponibles con sus tipos.
+
 **TU ROL:**
 - Analizar datos de ventas, facturas, clientes, CRM, stock, usuarios y actividades
 - Responder preguntas de manera precisa y directa
@@ -401,7 +421,15 @@ OPERACIONES:
 - search: Buscar registros con filtros
 - count: Contar registros  
 - aggregate: Agregaciones con GROUP BY
-- discover: Descubrir campos de un modelo desconocido
+- discover: Descubrir campos de un modelo (tipos, relaciones)
+- inspect: Inspeccionar campos de negocio de un modelo (sin campos técnicos)
+- distinct: Ver valores únicos de un campo con conteo (ej: qué estados existen)
+
+🔍 FLUJO RECOMENDADO PARA QUERIES PRECISAS:
+1. Si no conocés los estados reales → usa 'distinct' con groupBy: ['state']
+2. Analizá la distribución (ej: {draft: 45, sale: 80}) 
+3. Decidí qué estados incluir según el contexto de la pregunta
+4. Ejecutá aggregate/search con el filtro correcto
 
 MODELOS PRINCIPALES: sale.order, account.move, res.partner, product.template, crm.lead, res.users, mail.activity, purchase.order, stock.picking
 
@@ -425,7 +453,7 @@ COMPARACIONES: Usa compare: "mom" (mes vs mes anterior) o "yoy" (año vs año an
                         },
                         operation: {
                             type: SchemaType.STRING,
-                            description: 'Tipo de operación: search (listado), count (conteo), aggregate (agrupación), discover (campos del modelo)'
+                            description: 'Tipo de operación: search (listado), count (conteo), aggregate (agrupación), discover (campos), inspect (campos de negocio), distinct (valores únicos de un campo)'
                         },
                         filters: {
                             type: SchemaType.STRING,
