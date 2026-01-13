@@ -359,7 +359,8 @@ export function buildDomain(filters: string, model: string, dateRange?: { start:
         }
     }
 
-    // For account.move, add payment_state filters
+    // For account.move, add payment_state and move_type filters
+    // NOTE: NO DEFAULT STATE - LLM should use 'distinct' to discover actual states first
     if (model === 'account.move') {
         if (/pagad[oa]s?|paid/i.test(filters)) {
             domain.push(['payment_state', '=', 'paid'])
@@ -367,12 +368,7 @@ export function buildDomain(filters: string, model: string, dateRange?: { start:
             domain.push(['payment_state', '=', 'not_paid'])
         }
 
-        // Default to posted invoices
-        if (!domain.some(d => d[0] === 'state')) {
-            domain.push(['state', '=', 'posted'])
-        }
-
-        // Invoice type
+        // Invoice type (these are semantic, not state-related)
         if (/factura.*cliente|customer.*invoice|out_invoice|por cobrar|receivable|venta/i.test(filters)) {
             domain.push(['move_type', '=', 'out_invoice'])
         } else if (/factura.*proveedor|vendor.*invoice|in_invoice|por pagar|payable|compra/i.test(filters)) {
