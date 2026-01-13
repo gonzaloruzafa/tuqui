@@ -41,6 +41,14 @@ export interface QueryResult {
     error?: string
     cached?: boolean
     executionMs?: number
+    // State Discovery Guard - warns when query lacks state filter on stateful models
+    stateWarning?: {
+        message: string
+        field: string
+        distribution: Record<string, number>  // e.g., { draft: 500, sale: 80, cancel: 20 }
+        totalRecords: number
+        suggestion: string
+    }
 }
 
 export interface ChartData {
@@ -94,6 +102,83 @@ function setCache(key: string, data: any): void {
 
 export function clearCache(): void {
     queryCache.clear()
+}
+
+// ============================================
+// STATE DISCOVERY GUARD
+// Detects queries without state filter and auto-discovers state distribution
+// ============================================
+
+// Models that have state fields and need guard protection
+const STATEFUL_MODELS = ['sale.order', 'sale.order.line', 'purchase.order', 'purchase.order.line', 'account.move', 'stock.picking', 'account.payment']
+
+function hasStateFilter(domain: any[], stateField: string = 'state'): boolean {
+    if (!Array.isArray(domain)) return false
+    return domain.some(d => Array.isArray(d) && d[0] === stateField)
+}
+
+async function getStateDistribution(
+    client: OdooClient,
+    model: string,
+    domain: any[],
+    stateField: string = 'state'
+): Promise<{ distribution: Record<string, number>; totalRecords: number }> {
+    try {
+        const stateData = await client.readGroup(
+            model,
+            domain,
+            [stateField],
+            [stateField],
+            { limit: 20 }
+        )
+        
+        const distribution: Record<string, number> = {}
+        let totalRecords = 0
+        
+        for (const item of stateData) {
+            const stateValue = item[stateField] || 'unknown'
+            const count = item[`${stateField}_count`] || item['__count'] || 0
+            distribution[stateValue] = count
+            totalRecords += count
+        }
+        
+        return { distribution, totalRecords }
+    } catch (error) {
+        console.warn('[StateGuard] Failed to get state distribution:', error)
+        return { distribution: {}, totalRecords: 0 }
+    }
+}
+
+function buildStateWarning(
+    model: string,
+    stateField: string,
+    distribution: Record<string, number>,
+    totalRecords: number
+): QueryResult['stateWarning'] {
+    const states = Object.keys(distribution)
+    const stateList = Object.entries(distribution)
+        .map(([state, count]) => `${state}: ${count}`)
+        .join(', ')
+    
+    // Generate context-aware suggestion
+    let suggestion = ''
+    if (model.includes('sale.order')) {
+        suggestion = `Para ventas CONFIRMADAS usá filters: "state: sale". Para cotizaciones/borradores usá "state: draft". Distribución actual: ${stateList}`
+    } else if (model.includes('account.move')) {
+        suggestion = `Para facturas PUBLICADAS usá filters: "state: posted". Para borradores "state: draft". Distribución actual: ${stateList}`
+    } else if (model.includes('purchase.order')) {
+        suggestion = `Para compras CONFIRMADAS usá filters: "state: purchase". Distribución actual: ${stateList}`
+    } else {
+        suggestion = `Especificá el estado deseado. Distribución actual: ${stateList}`
+    }
+    
+    return {
+        message: `⚠️ ATENCIÓN: Esta consulta incluye TODOS los estados (${states.join(', ')}). El total puede incluir borradores, cancelados, etc.`,
+        field: stateField,
+        distribution,
+        totalRecords,
+        suggestion
+    }
 }
 
 // ============================================
@@ -529,6 +614,14 @@ async function executeSingleQuery(
             case 'count':
                 const count = await client.searchCount(query.model, domain)
                 result = { count }
+                
+                // State Discovery Guard for count
+                if (STATEFUL_MODELS.includes(query.model) && config.stateField && !hasStateFilter(domain, config.stateField)) {
+                    const { distribution, totalRecords } = await getStateDistribution(client, query.model, domain, config.stateField)
+                    if (Object.keys(distribution).length > 1) {
+                        result.stateWarning = buildStateWarning(query.model, config.stateField, distribution, totalRecords)
+                    }
+                }
                 break
 
             case 'aggregate':
@@ -588,6 +681,14 @@ async function executeSingleQuery(
                     const aggData = await client.searchRead(query.model, domain, [config.amountField || 'id'], limit)
                     const total = aggData.reduce((sum: number, r: any) => sum + (r[config.amountField!] || 0), 0)
                     result = { count: aggData.length, total }
+                }
+                
+                // State Discovery Guard for aggregate
+                if (STATEFUL_MODELS.includes(query.model) && config.stateField && !hasStateFilter(domain, config.stateField)) {
+                    const { distribution, totalRecords } = await getStateDistribution(client, query.model, domain, config.stateField)
+                    if (Object.keys(distribution).length > 1) {
+                        result.stateWarning = buildStateWarning(query.model, config.stateField, distribution, totalRecords)
+                    }
                 }
                 break
 
