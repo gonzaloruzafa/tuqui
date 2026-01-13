@@ -616,6 +616,10 @@ async function executeSingleQuery(
         // Build domain: use explicit domain, or build from filters/dateRange
         // IMPORTANT: Apply dateRange even if filters is empty
         let domain = query.domain || []
+        
+        // Check if user explicitly mentioned state in filters (before building domain)
+        const filtersHasState = query.filters && /state\s*[:=]/i.test(query.filters)
+        
         if (!query.domain && (query.filters || query.dateRange)) {
             domain = buildDomain(query.filters || '', query.model, query.dateRange)
         }
@@ -623,9 +627,10 @@ async function executeSingleQuery(
         // ============================================
         // AUTO-APPLY DEFAULT STATE FILTERS
         // "Ventas" siempre significa confirmadas, salvo que pida "presupuestos"
+        // ONLY if user didn't explicitly specify a state filter
         // ============================================
         const stateField = config.stateField || 'state'
-        const hasExplicitStateFilter = hasStateFilter(domain, stateField)
+        const hasExplicitStateFilter = hasStateFilter(domain, stateField) || filtersHasState
         
         if (!hasExplicitStateFilter) {
             // Auto-apply confirmed states for sales

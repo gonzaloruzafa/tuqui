@@ -7,7 +7,8 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     globals: true,
-    testTimeout: 30000,
+    testTimeout: 60000,  // 60s for E2E tests
+    setupFiles: ['./tests/setup.ts'],  // Load env vars
   },
   resolve: {
     alias: {
