@@ -599,7 +599,12 @@ async function executeSingleQuery(
 
     try {
         const config = MODEL_CONFIG[query.model] || { dateField: 'create_date', defaultFields: [] }
-        const domain = query.domain || (query.filters ? buildDomain(query.filters, query.model, query.dateRange) : [])
+        // Build domain: use explicit domain, or build from filters/dateRange
+        // IMPORTANT: Apply dateRange even if filters is empty
+        let domain = query.domain || []
+        if (!query.domain && (query.filters || query.dateRange)) {
+            domain = buildDomain(query.filters || '', query.model, query.dateRange)
+        }
         const fields = query.fields || config.defaultFields
         const limit = Math.min(query.limit || 50, 500) // Max 500 records
         
@@ -638,51 +643,80 @@ async function executeSingleQuery(
                     const amountField = config.amountField
                     const hasAmountField = !!amountField
 
-                    // Build aggregate fields - only add :sum if we have an amount field
-                    const aggregateFields = hasAmountField
-                        ? [...query.groupBy, `${amountField}:sum`]
-                        : [...query.groupBy]
-
-                    // Use readGroup for server-side aggregation
-                    const groupData = await client.readGroup(
-                        query.model,
-                        domain,
-                        aggregateFields,
-                        query.groupBy,
-                        {
-                            limit,
-                            orderBy: hasAmountField ? `${amountField} desc` : `${query.groupBy[0]}_count desc`
+                    // SANITIZE groupBy: Odoo only supports :quarter and :year for dates, NOT :day or :month
+                    const sanitizedGroupBy = query.groupBy.map(gb => {
+                        if (gb.includes(':day') || gb.includes(':month')) {
+                            const baseField = gb.split(':')[0]
+                            console.log(`[QueryBuilder] Removing unsupported date grouping "${gb}" - will aggregate without date grouping`)
+                            return null // Remove unsupported date groupings
                         }
-                    )
+                        return gb
+                    }).filter(Boolean) as string[]
+                    
+                    // If all groupBy fields were removed, fall through to simple aggregation
+                    if (sanitizedGroupBy.length === 0) {
+                        console.log(`[QueryBuilder] All groupBy fields were invalid, falling back to simple aggregation`)
+                        const aggData = await client.searchRead(query.model, domain, [config.amountField || 'id'], limit)
+                        const total = aggData.reduce((sum: number, r: any) => sum + (r[config.amountField!] || 0), 0)
+                        result = { count: aggData.length, total }
+                    } else {
+                        // Build aggregate fields - only add :sum if we have an amount field
+                        const aggregateFields = hasAmountField
+                            ? [...sanitizedGroupBy, `${amountField}:sum`]
+                            : [...sanitizedGroupBy]
 
-                    // Transform to grouped format
-                    const grouped: Record<string, { count: number; total: number; id?: number }> = {}
-
-                    for (const g of groupData) {
-                        const groupKey: string = query.groupBy![0]
-                        const keyValue: any = g[groupKey]
-                        const name: string = Array.isArray(keyValue) ? keyValue[1] : (keyValue || 'Sin asignar')
-                        const id: number | undefined = Array.isArray(keyValue) ? keyValue[0] : (typeof keyValue === 'number' ? keyValue : undefined)
-                        const count = g[`${groupKey}_count`] || g['__count'] || 1
-                        grouped[name] = {
-                            count,
-                            total: hasAmountField ? (g[amountField] || 0) : count,
-                            id
+                        console.log(`[QueryBuilder] Calling readGroup with groupBy: ${JSON.stringify(sanitizedGroupBy)}`)
+                        
+                        // Use readGroup for server-side aggregation
+                        let groupData: any[] = []
+                        try {
+                            groupData = await client.readGroup(
+                                query.model,
+                                domain,
+                                aggregateFields,
+                                sanitizedGroupBy,
+                                {
+                                    limit,
+                                    orderBy: hasAmountField ? `${amountField} desc` : `${sanitizedGroupBy[0]}_count desc`
+                                }
+                            )
+                        } catch (readGroupError: any) {
+                            console.error(`[QueryBuilder] readGroup FAILED: ${readGroupError.message}`)
+                            // Fallback: return empty result instead of crashing
+                            result = { grouped: {}, count: 0, total: 0 }
+                            break
                         }
-                    }
+                        console.log(`[QueryBuilder] readGroup returned ${groupData.length} groups`)
 
-                    // Sort by total (or count if no amount) descending
-                    const sortedGrouped: Record<string, { count: number; total: number }> = {}
-                    Object.entries(grouped)
-                        .sort((a, b) => b[1].total - a[1].total)
-                        .forEach(([key, value]) => {
-                            sortedGrouped[key] = value
-                        })
+                        // Transform to grouped format
+                        const grouped: Record<string, { count: number; total: number; id?: number }> = {}
 
-                    result = {
-                        grouped: sortedGrouped,
-                        count: groupData.length,
-                        total: Object.values(grouped).reduce((sum, g) => sum + g.total, 0)
+                        for (const g of groupData) {
+                            const groupKey: string = sanitizedGroupBy[0]
+                            const keyValue: any = g[groupKey]
+                            const name: string = Array.isArray(keyValue) ? keyValue[1] : (keyValue || 'Sin asignar')
+                            const id: number | undefined = Array.isArray(keyValue) ? keyValue[0] : (typeof keyValue === 'number' ? keyValue : undefined)
+                            const count = g[`${groupKey}_count`] || g['__count'] || 1
+                            grouped[name] = {
+                                count,
+                                total: hasAmountField ? (g[amountField] || 0) : count,
+                                id
+                            }
+                        }
+
+                        // Sort by total (or count if no amount) descending
+                        const sortedGrouped: Record<string, { count: number; total: number }> = {}
+                        Object.entries(grouped)
+                            .sort((a, b) => b[1].total - a[1].total)
+                            .forEach(([key, value]) => {
+                                sortedGrouped[key] = value
+                            })
+
+                        result = {
+                            grouped: sortedGrouped,
+                            count: groupData.length,
+                            total: Object.values(grouped).reduce((sum, g) => sum + g.total, 0)
+                        }
                     }
                 } else {
                     // Simple aggregation without grouping
@@ -692,6 +726,7 @@ async function executeSingleQuery(
                 }
                 
                 // State Discovery Guard for aggregate
+                console.log(`[StateGuard] Checking model ${query.model}, stateField: ${config.stateField}, hasStateFilter: ${hasStateFilter(domain, config.stateField || 'state')}`)
                 if (STATEFUL_MODELS.includes(query.model) && config.stateField && !hasStateFilter(domain, config.stateField)) {
                     const { distribution, totalRecords } = await getStateDistribution(client, query.model, domain, config.stateField)
                     console.log(`[StateGuard] Distribution for ${query.model}:`, distribution, `Total: ${totalRecords}`)
@@ -794,6 +829,8 @@ async function executeSingleQuery(
                 }
                 break
         }
+
+        console.log(`[QueryBuilder] After switch - result count: ${result.count}, total: ${result.total}`)
 
         // Cache the result
         setCache(cacheKey, result)

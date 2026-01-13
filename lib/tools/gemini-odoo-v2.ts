@@ -552,12 +552,19 @@ async function executeIntelligentQuery(
         let allGrouped: Record<string, { count: number; total: number }> = {}
         let comparisonData: OdooToolResult['comparison'] | undefined
         let chartData: ChartData | undefined
+        let stateWarning: OdooToolResult['stateWarning'] | undefined
 
         for (let i = 0; i < results.length; i++) {
             const result = results[i]
             const query = subQueries[i]
 
             if (!result.success) continue
+            
+            // Capture stateWarning from the first result that has it
+            if (result.stateWarning && !stateWarning) {
+                stateWarning = result.stateWarning
+                console.log('[executeIntelligentQuery] StateWarning captured:', JSON.stringify(stateWarning))
+            }
 
             if (result.data) allData = allData.concat(result.data)
             if (result.count) totalCount += result.count
@@ -666,6 +673,7 @@ async function executeIntelligentQuery(
             comparison: comparisonData,
             insights,
             chartData,
+            stateWarning,  // Pass through the state warning!
             cached: results.some(r => r.cached),
             executionMs: Date.now() - startTime,
             query_metadata: subQueries.map(q => ({
@@ -864,6 +872,15 @@ ${systemPrompt}`
         if (toolResult.insights && toolResult.insights.length > 0) {
             responseForModel.insights_text = formatInsightsAsText(toolResult.insights)
         }
+        
+        // Make stateWarning more prominent for the LLM
+        if (toolResult.stateWarning) {
+            const sw = toolResult.stateWarning
+            const distText = Object.entries(sw.distribution)
+                .map(([state, count]) => `${state}: ${count}`)
+                .join(', ')
+            responseForModel.IMPORTANT_STATE_WARNING = `⚠️ ATENCIÓN: Esta consulta incluye TODOS los estados (${distText}). Total: ${sw.totalRecords} registros. ${sw.suggestion}. DEBES informar esto al usuario y preguntar si quiere filtrar solo por estado "sale" (confirmadas).`
+        }
 
         // Timing: LLM second response (with tool result)
         const llm2StartTime = Date.now()
@@ -888,10 +905,28 @@ ${systemPrompt}`
         const validated = validateAndCleanResponse(candidateText, [toolResult], userMessage)
         console.log(`[OdooBIAgent] Validation: ${Date.now() - validationStartTime}ms`)
 
-        // Stream the validated text in chunks
+        // ============================================
+        // STATE WARNING INJECTION
+        // If there's a stateWarning, FORCE it into the response
+        // ============================================
+        let finalText = validated.text
+        if (toolResult.stateWarning) {
+            const sw = toolResult.stateWarning
+            const distText = Object.entries(sw.distribution)
+                .map(([state, count]) => `${state}: ${count}`)
+                .join(', ')
+            
+            const stateWarningBlock = `\n\n⚠️ **Atención sobre estados:**\nEsta consulta incluye registros en TODOS los estados (${distText}).\nTotal: ${sw.totalRecords} registros.\n\n💡 *¿Querés que filtre solo por órdenes confirmadas (state=sale)?*\n\n---\n`
+            
+            // Prepend the warning to the response
+            finalText = stateWarningBlock + finalText
+            console.log('[OdooBIAgent] State warning INJECTED into response')
+        }
+
+        // Stream the final text in chunks
         const chunkSize = 50
-        for (let j = 0; j < validated.text.length; j += chunkSize) {
-            yield validated.text.substring(j, Math.min(j + chunkSize, validated.text.length))
+        for (let j = 0; j < finalText.length; j += chunkSize) {
+            yield finalText.substring(j, Math.min(j + chunkSize, finalText.length))
         }
 
         // Emit metadata for non-streaming consumer
