@@ -802,6 +802,9 @@ async function executeSingleQuery(
         const stateField = config.stateField || 'state'
         const hasExplicitStateFilter = hasStateFilter(domain, stateField) || filtersHasState
         
+        // DEBUG: Log para verificar en producción
+        console.error(`[QueryBuilder:DEBUG] Model=${query.model}, hasExplicitState=${hasExplicitStateFilter}, autoFilterStates=${JSON.stringify(config.autoFilterStates)}`)
+        
         if (!hasExplicitStateFilter && config.autoFilterStates && config.autoFilterStates.length > 0) {
             // Usar la configuración declarativa del modelo
             if (config.autoFilterStates.length === 1) {
@@ -809,7 +812,9 @@ async function executeSingleQuery(
             } else {
                 domain.push([stateField, 'in', config.autoFilterStates])
             }
-            console.log(`[QueryBuilder] Auto-filter ${query.model}: ${stateField} IN [${config.autoFilterStates.join(', ')}]`)
+            console.error(`[QueryBuilder:DEBUG] APPLIED Auto-filter ${query.model}: ${stateField} IN [${config.autoFilterStates.join(', ')}]`)
+        } else {
+            console.error(`[QueryBuilder:DEBUG] SKIPPED Auto-filter for ${query.model}. Reason: hasExplicit=${hasExplicitStateFilter}, autoFilterStates=${!!config.autoFilterStates}`)
         }
         
         const fields = query.fields || config.defaultFields
