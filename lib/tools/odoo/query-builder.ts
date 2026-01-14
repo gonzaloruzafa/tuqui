@@ -525,7 +525,36 @@ export function buildDomain(filters: string, model: string, dateRange?: { start:
         }
     }
 
-    // ---- MONTH FILTER (only if week filter didn't match and no explicit dateRange) ----
+    // ---- "DESDE [MES]" FILTER - Must be BEFORE month filter to catch "desde julio" before "julio" ----
+    // "Desde [mes] del año pasado" / "since [month] last year"
+    // Example: "desde julio del año pasado" -> from July last year to now
+    const desdeMesMatch = !dateMatched && filters.match(
+        /desde\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/i
+    )
+    if (desdeMesMatch) {
+        const monthName = desdeMesMatch[1].toLowerCase()
+        const monthMap: Record<string, number> = {
+            enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+            julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12
+        }
+        const month = monthMap[monthName]
+        if (month) {
+            // If "año pasado" or "pasado" is mentioned, use last year
+            // Otherwise, if the month is in the future, use last year
+            const isLastYear = /año\s*pasado|del\s*pasado|\bpasado\b/i.test(filters)
+            const year = isLastYear ? currentYear - 1 : 
+                         (specifiedYear || (month > currentMonth ? currentYear - 1 : currentYear))
+            const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+            const today = DateService.now().toISOString().split('T')[0]
+            
+            domain.push([dateField, '>=', startDate])
+            domain.push([dateField, '<=', today])
+            dateMatched = true
+            console.log(`[QueryBuilder] Parsed "desde ${monthName}": ${startDate} to ${today}`)
+        }
+    }
+
+    // ---- MONTH FILTER (only if week filter and "desde" didn't match and no explicit dateRange) ----
     if (!dateMatched) {
         for (const { regex, month } of monthPatterns) {
             if (regex.test(filters)) {
@@ -579,6 +608,14 @@ export function buildDomain(filters: string, model: string, dateRange?: { start:
     if (!dateMatched && /este año|this year|año actual/i.test(filters)) {
         domain.push([dateField, '>=', `${currentYear}-01-01`])
         domain.push([dateField, '<=', `${currentYear}-12-31`])
+        dateMatched = true
+    }
+
+    // "Año pasado" / "last year" (solo el año completo, sin "desde")
+    if (!dateMatched && /^(?!.*desde).*(año pasado|last year|año anterior)/i.test(filters)) {
+        const lastYear = currentYear - 1
+        domain.push([dateField, '>=', `${lastYear}-01-01`])
+        domain.push([dateField, '<=', `${lastYear}-12-31`])
         dateMatched = true
     }
 
@@ -789,7 +826,47 @@ async function executeSingleQuery(
         switch (query.operation) {
             case 'search':
                 const searchData = await client.searchRead(query.model, domain, fields, limit, query.orderBy)
-                result = { data: searchData, count: searchData.length }
+                
+                // ============================================
+                // AUTO-UPGRADE: Si hay muchos registros y tenemos amountField,
+                // calcular el total REAL server-side
+                // ============================================
+                const realCount = await client.searchCount(query.model, domain)
+                const amountFieldSearch = config.amountField
+                
+                if (amountFieldSearch && realCount > searchData.length) {
+                    // Hay más registros de los que devolvimos - calcular total real
+                    console.log(`[QueryBuilder] AUTO-UPGRADE: ${realCount} registros totales, calculando suma server-side`)
+                    try {
+                        const totalResult = await client.readGroup(
+                            query.model,
+                            domain,
+                            [amountFieldSearch],
+                            [],  // No groupBy = sum all
+                            { limit: 1 }
+                        )
+                        const realTotal = totalResult[0]?.[amountFieldSearch] || 0
+                        result = { 
+                            data: searchData, 
+                            count: realCount,  // REAL count
+                            total: realTotal   // REAL total
+                        }
+                        console.log(`[QueryBuilder] AUTO-UPGRADE: Total real = ${realTotal}`)
+                    } catch (e) {
+                        // Fallback si readGroup falla
+                        result = { data: searchData, count: searchData.length }
+                    }
+                } else {
+                    // Pocos registros o no hay amountField - calcular client-side
+                    const clientTotal = amountFieldSearch 
+                        ? searchData.reduce((sum: number, r: any) => sum + (r[amountFieldSearch] || 0), 0)
+                        : undefined
+                    result = { 
+                        data: searchData, 
+                        count: realCount,
+                        total: clientTotal
+                    }
+                }
                 break
 
             case 'count':
