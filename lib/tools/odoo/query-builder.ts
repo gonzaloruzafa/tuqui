@@ -525,6 +525,56 @@ export function buildDomain(filters: string, model: string, dateRange?: { start:
         }
     }
 
+    // ---- "DESDE [FECHA NUMÉRICA]" FILTER ----
+    // Handles: "desde 01/07/2025", "desde 2025-07-01", "desde 1/7/2025"
+    // The LLM often converts natural language dates to numeric format
+    const desdeFechaMatch = !dateMatched && filters.match(
+        /desde\s+(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/i
+    )
+    if (desdeFechaMatch) {
+        const [, part1, part2, yearStr] = desdeFechaMatch
+        const year = parseInt(yearStr)
+        // Detect format: if part1 > 12, it's DD/MM/YYYY, otherwise assume DD/MM/YYYY (common in Spanish)
+        let day: number, month: number
+        if (parseInt(part1) > 12) {
+            // Must be DD/MM/YYYY
+            day = parseInt(part1)
+            month = parseInt(part2)
+        } else if (parseInt(part2) > 12) {
+            // Must be MM/DD/YYYY
+            month = parseInt(part1)
+            day = parseInt(part2)
+        } else {
+            // Ambiguous - assume DD/MM/YYYY (Spanish format)
+            day = parseInt(part1)
+            month = parseInt(part2)
+        }
+        
+        const startDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        const today = DateService.now().toISOString().split('T')[0]
+        
+        domain.push([dateField, '>=', startDate])
+        domain.push([dateField, '<=', today])
+        dateMatched = true
+        console.log(`[QueryBuilder] Parsed numeric date "desde ${part1}/${part2}/${yearStr}": ${startDate} to ${today}`)
+    }
+    
+    // ---- "DESDE [FECHA ISO]" FILTER ----
+    // Handles: "desde 2025-07-01" (ISO format YYYY-MM-DD)
+    const desdeISOMatch = !dateMatched && filters.match(
+        /desde\s+(\d{4})-(\d{2})-(\d{2})/i
+    )
+    if (desdeISOMatch) {
+        const [, yearStr, monthStr, dayStr] = desdeISOMatch
+        const startDate = `${yearStr}-${monthStr}-${dayStr}`
+        const today = DateService.now().toISOString().split('T')[0]
+        
+        domain.push([dateField, '>=', startDate])
+        domain.push([dateField, '<=', today])
+        dateMatched = true
+        console.log(`[QueryBuilder] Parsed ISO date "desde ${startDate}": ${startDate} to ${today}`)
+    }
+
     // ---- "DESDE [MES]" FILTER - Must be BEFORE month filter to catch "desde julio" before "julio" ----
     // "Desde [mes] del año pasado" / "since [month] last year"
     // Example: "desde julio del año pasado" -> from July last year to now
