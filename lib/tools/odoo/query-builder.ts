@@ -788,6 +788,10 @@ async function executeSingleQuery(
         query.model = modelKey // Update model in query object to ensure Odoo client receives clean string
 
         const config = MODEL_CONFIG[modelKey] || { dateField: 'create_date', defaultFields: [] }
+        
+        // DEBUG: Log incoming query and config lookup
+        console.error(`[QB:ENTRY] model="${query.model}", op=${query.operation}, filters="${query.filters || ''}", dateRange=${JSON.stringify(query.dateRange)}, incomingDomain=${JSON.stringify(query.domain)}`)
+        console.error(`[QB:CONFIG] modelKey="${modelKey}", configFound=${!!MODEL_CONFIG[modelKey]}, autoFilterStates=${JSON.stringify(config.autoFilterStates)}`)
 
         // Build domain: use explicit domain, or build from filters/dateRange
         // IMPORTANT: Apply dateRange even if filters is empty
@@ -795,10 +799,15 @@ async function executeSingleQuery(
         
         // Check if user explicitly mentioned state in filters (before building domain)
         const filtersHasState = query.filters && /state\s*[:=]/i.test(query.filters)
+        console.error(`[QB:STATE-CHECK] filtersHasState=${filtersHasState}, filters="${query.filters || ''}"`)
         
         // Fix: Treat empty array as no domain, so we can build it from filters
-        if ((!query.domain || query.domain.length === 0) && (query.filters || query.dateRange)) {
+        const shouldBuildDomain = (!query.domain || query.domain.length === 0) && (query.filters || query.dateRange)
+        console.error(`[QB:DOMAIN-BUILD] shouldBuild=${shouldBuildDomain}, query.domain=${JSON.stringify(query.domain)}, hasFilters=${!!query.filters}, hasDateRange=${!!query.dateRange}`)
+        
+        if (shouldBuildDomain) {
             domain = buildDomain(query.filters || '', modelKey, query.dateRange)
+            console.error(`[QB:DOMAIN-BUILT] domain=${JSON.stringify(domain)}`)
         }
         
         // ============================================
@@ -807,10 +816,13 @@ async function executeSingleQuery(
         // "Ventas" siempre significa confirmadas, salvo que pida "presupuestos"
         // ============================================
         const stateField = config.stateField || 'state'
-        const hasExplicitStateFilter = hasStateFilter(domain, stateField) || filtersHasState
+        const domainHasState = hasStateFilter(domain, stateField)
+        const hasExplicitStateFilter = domainHasState || filtersHasState
         
-        // DEBUG: Log para verificar en producción
-        console.error(`[QueryBuilder:DEBUG] Model=${query.model}, hasExplicitState=${hasExplicitStateFilter}, autoFilterStates=${JSON.stringify(config.autoFilterStates)}`)
+        // DEBUG: Detailed logging for production debugging
+        console.error(`[QB:AUTO-STATE] stateField=${stateField}, domainHasState=${domainHasState}, filtersHasState=${filtersHasState}, hasExplicitStateFilter=${hasExplicitStateFilter}`)
+        console.error(`[QB:AUTO-STATE] config.autoFilterStates=${JSON.stringify(config.autoFilterStates)}, length=${config.autoFilterStates?.length || 0}`)
+        console.error(`[QB:AUTO-STATE] BEFORE domain=${JSON.stringify(domain)}`)
         
         if (!hasExplicitStateFilter && config.autoFilterStates && config.autoFilterStates.length > 0) {
             // Usar la configuración declarativa del modelo
@@ -819,10 +831,12 @@ async function executeSingleQuery(
             } else {
                 domain.push([stateField, 'in', config.autoFilterStates])
             }
-            console.error(`[QueryBuilder:DEBUG] APPLIED Auto-filter ${query.model}: ${stateField} IN [${config.autoFilterStates.join(', ')}]`)
+            console.error(`[QB:AUTO-STATE] ✅ APPLIED ${query.model}: ${stateField} IN [${config.autoFilterStates.join(', ')}]`)
         } else {
-            console.error(`[QueryBuilder:DEBUG] SKIPPED Auto-filter for ${query.model}. Reason: hasExplicit=${hasExplicitStateFilter}, autoFilterStates=${!!config.autoFilterStates}`)
+            console.error(`[QB:AUTO-STATE] ❌ SKIPPED ${query.model}. domainHasState=${domainHasState}, filtersHasState=${filtersHasState}, autoFilterStates=${!!config.autoFilterStates}`)
         }
+        
+        console.error(`[QB:AUTO-STATE] AFTER domain=${JSON.stringify(domain)}`)
         
         const fields = query.fields || config.defaultFields
         const limit = Math.min(query.limit || 50, 500) // Max 500 records
