@@ -197,7 +197,7 @@ export const MODEL_CONFIG: Record<string, {
         dateField: 'date_order',
         amountField: 'amount_total',
         stateField: 'state',
-        defaultFields: ['name', 'partner_id', 'date_order', 'amount_total', 'state', 'user_id'],
+        defaultFields: ['name', 'partner_id', 'date_order', 'amount_total', 'state', 'user_id', 'company_id'],
         states: {
             // presupuesto/cotización = draft
             'presupuest': 'draft', 'cotiza': 'draft', 'borrador': 'draft', 'draft': 'draft',
@@ -212,7 +212,7 @@ export const MODEL_CONFIG: Record<string, {
         dateField: 'invoice_date',
         amountField: 'amount_residual',
         stateField: 'state',
-        defaultFields: ['name', 'partner_id', 'invoice_date', 'amount_total', 'amount_residual', 'state', 'payment_state', 'move_type'],
+        defaultFields: ['name', 'partner_id', 'invoice_date', 'amount_total', 'amount_residual', 'state', 'payment_state', 'move_type', 'company_id'],
         states: {
             'publicad': 'posted', 'posted': 'posted', 'confirmad': 'posted',
             'borrador': 'draft', 'draft': 'draft',
@@ -221,18 +221,18 @@ export const MODEL_CONFIG: Record<string, {
     },
     'res.partner': {
         dateField: 'create_date',
-        defaultFields: ['name', 'email', 'phone', 'city', 'country_id', 'customer_rank', 'supplier_rank'],
+        defaultFields: ['name', 'email', 'phone', 'city', 'country_id', 'customer_rank', 'supplier_rank', 'company_id'],
     },
     'product.template': {
         dateField: 'create_date',
         amountField: 'list_price',
-        defaultFields: ['name', 'list_price', 'default_code', 'qty_available', 'categ_id', 'active'],
+        defaultFields: ['name', 'list_price', 'default_code', 'qty_available', 'categ_id', 'active', 'company_id'],
     },
     'purchase.order': {
         dateField: 'date_order',
         amountField: 'amount_total',
         stateField: 'state',
-        defaultFields: ['name', 'partner_id', 'date_order', 'amount_total', 'state'],
+        defaultFields: ['name', 'partner_id', 'date_order', 'amount_total', 'state', 'company_id'],
         states: {
             'confirmad': 'purchase', 'borrador': 'draft', 'cancelad': 'cancel'
         }
@@ -241,21 +241,21 @@ export const MODEL_CONFIG: Record<string, {
         dateField: 'create_date',
         amountField: 'expected_revenue',
         stateField: 'stage_id',
-        defaultFields: ['name', 'partner_id', 'user_id', 'stage_id', 'expected_revenue', 'probability', 'create_date', 'date_deadline'],
+        defaultFields: ['name', 'partner_id', 'user_id', 'stage_id', 'expected_revenue', 'probability', 'create_date', 'date_deadline', 'company_id'],
     },
     'res.users': {
         dateField: 'login_date',
-        defaultFields: ['name', 'login', 'login_date', 'active', 'partner_id'],
+        defaultFields: ['name', 'login', 'login_date', 'active', 'partner_id', 'company_id', 'company_ids'],
     },
     'mail.activity': {
         dateField: 'date_deadline',
-        defaultFields: ['summary', 'activity_type_id', 'user_id', 'date_deadline', 'state', 'res_model', 'res_id'],
+        defaultFields: ['summary', 'activity_type_id', 'user_id', 'date_deadline', 'state', 'res_model', 'res_id', 'company_id'],
     },
     'sale.order.line': {
         dateField: 'create_date',
         amountField: 'price_subtotal',
         stateField: 'state',
-        defaultFields: ['product_id', 'product_uom_qty', 'price_unit', 'price_subtotal', 'order_id', 'state'],
+        defaultFields: ['product_id', 'product_uom_qty', 'price_unit', 'price_subtotal', 'order_id', 'state', 'company_id'],
         states: {
             'confirmad': 'sale', 'venta': 'sale', 'sale': 'sale',
             'hecho': 'done', 'done': 'done',
@@ -266,7 +266,7 @@ export const MODEL_CONFIG: Record<string, {
         dateField: 'date',
         amountField: 'amount',
         stateField: 'state',
-        defaultFields: ['name', 'partner_id', 'date', 'amount', 'payment_type', 'state', 'journal_id'],
+        defaultFields: ['name', 'partner_id', 'date', 'amount', 'payment_type', 'state', 'journal_id', 'company_id'],
         states: {
             'publicad': 'posted', 'posted': 'posted', 'confirmad': 'posted',
             'borrador': 'draft', 'draft': 'draft',
@@ -276,7 +276,7 @@ export const MODEL_CONFIG: Record<string, {
     'stock.picking': {
         dateField: 'scheduled_date',
         stateField: 'state',
-        defaultFields: ['name', 'partner_id', 'scheduled_date', 'date_done', 'state', 'picking_type_id', 'origin'],
+        defaultFields: ['name', 'partner_id', 'scheduled_date', 'date_done', 'state', 'picking_type_id', 'origin', 'company_id'],
         states: {
             'asignad': 'assigned', 'assigned': 'assigned', 'disponible': 'assigned',
             'hecho': 'done', 'done': 'done', 'entregad': 'done',
@@ -288,11 +288,128 @@ export const MODEL_CONFIG: Record<string, {
         dateField: 'create_date',
         amountField: 'price_subtotal',
         stateField: 'state',
-        defaultFields: ['product_id', 'product_qty', 'price_unit', 'price_subtotal', 'order_id', 'state'],
+        defaultFields: ['product_id', 'product_qty', 'price_unit', 'price_subtotal', 'order_id', 'state', 'company_id'],
         states: {
             'confirmad': 'purchase', 'compra': 'purchase', 'purchase': 'purchase',
             'hecho': 'done', 'done': 'done',
             'cancelad': 'cancel', 'cancel': 'cancel'
+        }
+    },
+    // ============================================
+    // REPORT MODELS - Used for accurate aggregations
+    // These are the models Odoo's pivot tables use
+    // ============================================
+    'sale.report': {
+        dateField: 'date',
+        amountField: 'price_total',
+        stateField: 'state',
+        defaultFields: ['partner_id', 'product_id', 'user_id', 'date', 'price_total', 'product_uom_qty', 'state', 'company_id'],
+        states: {
+            'confirmad': 'sale', 'venta': 'sale', 'sale': 'sale',
+            'hecho': 'done', 'done': 'done',
+            'cancelad': 'cancel', 'cancel': 'cancel'
+        }
+    },
+    'purchase.report': {
+        dateField: 'date_order',
+        amountField: 'price_total',
+        stateField: 'state',
+        defaultFields: ['partner_id', 'product_id', 'date_order', 'price_total', 'qty_ordered', 'state', 'company_id'],
+        states: {
+            'confirmad': 'purchase', 'compra': 'purchase', 'purchase': 'purchase',
+            'hecho': 'done', 'done': 'done',
+            'cancelad': 'cancel', 'cancel': 'cancel'
+        }
+    },
+    'account.invoice.report': {
+        dateField: 'invoice_date',
+        amountField: 'price_subtotal',
+        stateField: 'state',
+        defaultFields: ['partner_id', 'product_id', 'invoice_date', 'move_type', 'price_subtotal', 'state', 'payment_state', 'company_id'],
+        states: {
+            'publicad': 'posted', 'posted': 'posted', 'confirmad': 'posted',
+            'borrador': 'draft', 'draft': 'draft',
+            'cancelad': 'cancel', 'cancel': 'cancel'
+        }
+    },
+    'stock.quant': {
+        dateField: 'in_date',
+        amountField: 'quantity',
+        defaultFields: ['product_id', 'location_id', 'quantity', 'available_quantity', 'in_date', 'company_id'],
+    },
+    // ============================================
+    // ADDITIONAL MODELS - Stock, HR, Projects
+    // ============================================
+    'stock.move': {
+        dateField: 'date',
+        amountField: 'product_qty',
+        stateField: 'state',
+        defaultFields: ['product_id', 'product_qty', 'location_id', 'location_dest_id', 'date', 'state', 'origin', 'company_id'],
+        states: {
+            'borrador': 'draft', 'draft': 'draft',
+            'esperando': 'waiting', 'waiting': 'waiting',
+            'confirmad': 'confirmed', 'confirmed': 'confirmed',
+            'asignad': 'assigned', 'assigned': 'assigned', 'disponible': 'assigned',
+            'hecho': 'done', 'done': 'done',
+            'cancelad': 'cancel', 'cancel': 'cancel'
+        }
+    },
+    'stock.move.line': {
+        dateField: 'date',
+        amountField: 'qty_done',
+        stateField: 'state',
+        defaultFields: ['product_id', 'qty_done', 'location_id', 'location_dest_id', 'lot_id', 'date', 'state', 'company_id'],
+    },
+    'account.move.line': {
+        dateField: 'date',
+        amountField: 'balance',
+        defaultFields: ['account_id', 'partner_id', 'name', 'debit', 'credit', 'balance', 'date', 'move_id', 'company_id'],
+    },
+    'account.analytic.line': {
+        dateField: 'date',
+        amountField: 'amount',
+        defaultFields: ['name', 'account_id', 'partner_id', 'amount', 'unit_amount', 'date', 'project_id', 'task_id', 'employee_id', 'company_id'],
+    },
+    // HR Models
+    'hr.employee': {
+        dateField: 'create_date',
+        defaultFields: ['name', 'job_title', 'department_id', 'work_email', 'work_phone', 'company_id'],
+    },
+    'hr.leave': {
+        dateField: 'date_from',
+        stateField: 'state',
+        defaultFields: ['employee_id', 'holiday_status_id', 'date_from', 'date_to', 'number_of_days', 'state', 'company_id'],
+        states: {
+            'borrador': 'draft', 'draft': 'draft',
+            'confirmad': 'confirm', 'confirm': 'confirm',
+            'aprobad': 'validate', 'validate': 'validate', 'validado': 'validate',
+            'rechazad': 'refuse', 'refuse': 'refuse',
+            'cancelad': 'cancel', 'cancel': 'cancel'
+        }
+    },
+    'hr.leave.report': {
+        dateField: 'date_from',
+        stateField: 'state',
+        defaultFields: ['employee_id', 'department_id', 'holiday_status_id', 'date_from', 'date_to', 'number_of_days', 'state', 'company_id'],
+    },
+    'hr.attendance': {
+        dateField: 'check_in',
+        defaultFields: ['employee_id', 'check_in', 'check_out', 'worked_hours', 'company_id'],
+    },
+    // Project Models
+    'project.project': {
+        dateField: 'date_start',
+        defaultFields: ['name', 'user_id', 'partner_id', 'date_start', 'date', 'task_count', 'company_id'],
+    },
+    'project.task': {
+        dateField: 'create_date',
+        amountField: 'total_hours_spent',
+        stateField: 'state',
+        defaultFields: ['name', 'project_id', 'user_ids', 'stage_id', 'date_deadline', 'state', 'priority', 'total_hours_spent', 'company_id'],
+        states: {
+            'nuevo': '01_in_progress', 'en_progreso': '01_in_progress', 'in_progress': '01_in_progress',
+            'hecho': '1_done', 'done': '1_done', 'completad': '1_done',
+            'cancelad': '1_canceled', 'canceled': '1_canceled'
         }
     },
 }
