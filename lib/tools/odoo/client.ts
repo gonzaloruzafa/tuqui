@@ -22,32 +22,78 @@ export class OdooClient {
         this.apiKey = config.api_key
     }
 
+    /**
+     * Execute RPC call with retry logic for transient errors
+     * Retries up to 3 times with exponential backoff for:
+     * - Network errors (fetch failures)
+     * - Gateway timeouts (502, 503, 504)
+     * - Rate limiting (429)
+     */
     private async rpc(service: string, method: string, ...args: any[]) {
-        const res = await fetch(`${this.url}/jsonrpc`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'call',
-                params: {
-                    service,
-                    method,
-                    args,
-                },
-                id: Math.floor(Math.random() * 1000000),
-            }),
-        })
+        const maxRetries = 3
+        let lastError: Error | null = null
 
-        if (!res.ok) {
-            throw new Error(`Odoo HTTP Error: ${res.statusText}`)
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const res = await fetch(`${this.url}/jsonrpc`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'call',
+                        params: {
+                            service,
+                            method,
+                            args,
+                        },
+                        id: Math.floor(Math.random() * 1000000),
+                    }),
+                })
+
+                // Retry on transient HTTP errors
+                if (res.status === 429 || res.status >= 502) {
+                    const retryable = attempt < maxRetries
+                    console.warn(`[OdooClient] HTTP ${res.status} on attempt ${attempt}/${maxRetries}${retryable ? ', retrying...' : ''}`)
+                    if (retryable) {
+                        await this.sleep(attempt * 1000) // 1s, 2s, 3s
+                        continue
+                    }
+                }
+
+                if (!res.ok) {
+                    throw new Error(`Odoo HTTP Error: ${res.statusText}`)
+                }
+
+                const data = await res.json()
+                if (data.error) {
+                    throw new Error(`Odoo RPC Error: ${data.error.data?.message || data.error.message}`)
+                }
+
+                return data.result
+
+            } catch (error: any) {
+                lastError = error
+
+                // Retry on network errors
+                if (error.name === 'TypeError' || error.message?.includes('fetch')) {
+                    const retryable = attempt < maxRetries
+                    console.warn(`[OdooClient] Network error on attempt ${attempt}/${maxRetries}${retryable ? ', retrying...' : ''}`)
+                    if (retryable) {
+                        await this.sleep(attempt * 1000)
+                        continue
+                    }
+                }
+
+                // Don't retry business logic errors
+                throw error
+            }
         }
 
-        const data = await res.json()
-        if (data.error) {
-            throw new Error(`Odoo RPC Error: ${data.error.data?.message || data.error.message}`)
-        }
+        throw lastError || new Error('Odoo RPC failed after retries')
+    }
 
-        return data.result
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms))
     }
 
     async authenticate() {
