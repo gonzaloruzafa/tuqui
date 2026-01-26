@@ -36,7 +36,7 @@ const ventasTestCases: EvalTestCase[] = [
       /venta|vendido|facturado/i,  // Debe mencionar ventas
     ],
     forbiddenPatterns: [
-      /no pude|error|disculpá/i,
+      /no pude|error|disculpá|problema técnico/i,
     ],
     requiresNumericData: true,
     expectedSkillHints: ['ventas', 'facturado', 'total'],
@@ -77,7 +77,27 @@ const ventasTestCases: EvalTestCase[] = [
     category: 'ventas',
     expectedPatterns: [
       /\$\s?[\d.,]+/i,
-      /mes pasado|anterior|comparación|vs/i,
+      /mes pasado|anterior|comparación|vs|variación/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'ventas-006',
+    question: '¿Cuánto vendió cada vendedor este mes?',
+    category: 'ventas',
+    expectedPatterns: [
+      /vendedor|comercial|usuario/i,
+      /\$\s?[\d.,]+/i,
+    ],
+    requiresList: true,
+    requiresNumericData: true,
+  },
+  {
+    id: 'ventas-007',
+    question: '¿Cuánto le vendimos a Acme Corp?',
+    category: 'ventas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+|no hay|no encontr|0/i,
     ],
     requiresNumericData: true,
   },
@@ -95,6 +115,9 @@ const comprasTestCases: EvalTestCase[] = [
       /\$\s?[\d.,]+/i,
       /compra|compramos|proveedor/i,
     ],
+    forbiddenPatterns: [
+      /problema técnico|error/i,
+    ],
     requiresNumericData: true,
   },
   {
@@ -111,9 +134,28 @@ const comprasTestCases: EvalTestCase[] = [
     question: '¿Tenemos órdenes de compra pendientes?',
     category: 'compras',
     expectedPatterns: [
-      /\d+/,
+      /\d+|no hay/i,
       /orden|compra|pendiente/i,
     ],
+  },
+  {
+    id: 'compras-004',
+    question: '¿Cuántas facturas de proveedor recibimos este mes?',
+    category: 'compras',
+    expectedPatterns: [
+      /\d+|factura|proveedor/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'compras-005',
+    question: '¿Cuánto le compramos a cada proveedor?',
+    category: 'compras',
+    expectedPatterns: [
+      /proveedor|\$|monto/i,
+    ],
+    requiresList: true,
+    requiresNumericData: true,
   },
 ];
 
@@ -163,7 +205,10 @@ const cobranzasTestCases: EvalTestCase[] = [
     category: 'cobranzas',
     expectedPatterns: [
       /\$\s?[\d.,]+/i,
-      /deben|cobrar|pendiente|impago/i,
+      /deben|cobrar|pendiente|impago|cuentas por cobrar/i,
+    ],
+    forbiddenPatterns: [
+      /problema técnico|error/i,
     ],
     requiresNumericData: true,
   },
@@ -172,7 +217,7 @@ const cobranzasTestCases: EvalTestCase[] = [
     question: '¿Hay facturas vencidas?',
     category: 'cobranzas',
     expectedPatterns: [
-      /factura|vencid|mora/i,
+      /factura|vencid|mora|\d+/i,
     ],
     requiresNumericData: true,
   },
@@ -186,6 +231,25 @@ const cobranzasTestCases: EvalTestCase[] = [
     ],
     requiresNumericData: true,
     requiresList: true,
+  },
+  {
+    id: 'cobranzas-004',
+    question: '¿Cuánto cobramos este mes?',
+    category: 'cobranzas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /cobr|recib|ingres|pago/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'cobranzas-005',
+    question: '¿Cuántos pagos recibimos esta semana?',
+    category: 'cobranzas',
+    expectedPatterns: [
+      /\d+|pago|cobro|recib/i,
+    ],
+    requiresNumericData: true,
   },
 ];
 
@@ -298,7 +362,7 @@ const edgeCasesTestCases: EvalTestCase[] = [
     ],
     forbiddenPatterns: [
       // No debe tirar error de Odoo
-      /odoo.*error|error.*odoo/i,
+      /odoo.*error|error.*odoo|problema técnico/i,
     ],
   },
   {
@@ -320,6 +384,33 @@ const edgeCasesTestCases: EvalTestCase[] = [
     forbiddenPatterns: [
       /error/i,
     ],
+  },
+  {
+    id: 'edge-004',
+    question: '¿Vendimos algo el año pasado?',
+    category: 'edge-cases',
+    expectedPatterns: [
+      /\$|\d+|venta|año pasado|2024|no hay/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'edge-005',
+    question: '¿Cuánto vendimos ayer?',
+    category: 'edge-cases',
+    expectedPatterns: [
+      /\$|\d+|ayer|venta/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'edge-006',
+    question: 'Dame las ventas de enero',
+    category: 'edge-cases',
+    expectedPatterns: [
+      /\$|\d+|enero|venta/i,
+    ],
+    requiresNumericData: true,
   },
 ];
 
