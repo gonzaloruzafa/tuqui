@@ -40,9 +40,6 @@ export interface RegistryOptions {
 // Odoo Skills
 import { odooSkills } from './odoo';
 
-// MercadoLibre Skills
-import { mercadolibreSkills } from './mercadolibre';
-
 // ============================================
 // MASTER REGISTRY
 // ============================================
@@ -50,10 +47,13 @@ import { mercadolibreSkills } from './mercadolibre';
 /**
  * All registered skills
  * Add new skill arrays here as they are implemented
+ *
+ * NOTE: MercadoLibre search is handled by the web_search tool directly
+ * (lib/tools/web-search.ts) using Serper + Grounding. It works well and
+ * doesn't need to be converted to skills.
  */
 const ALL_SKILLS: Skill<any, any>[] = [
   ...odooSkills,           // 20 skills (ERP)
-  ...mercadolibreSkills,   // 3 skills (ecommerce search)
   // Future: ...calendarSkills,
   // Future: ...gmailSkills,
 ];

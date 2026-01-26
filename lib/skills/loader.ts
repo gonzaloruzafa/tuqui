@@ -104,8 +104,8 @@ export async function createSkillContext(
 /**
  * Get enabled tools (integrations) from agent configuration
  *
- * @param agentTools - Array of tool slugs (e.g., ['odoo', 'meli_search'])
- * @returns Array of enabled tool names
+ * @param agentTools - Array of tool slugs (e.g., ['odoo', 'web_search'])
+ * @returns Array of enabled tool names for skill loading
  */
 function getEnabledToolsFromAgentConfig(agentTools: string[]): string[] {
   const enabledTools: string[] = [];
@@ -115,9 +115,8 @@ function getEnabledToolsFromAgentConfig(agentTools: string[]): string[] {
     if (tool.startsWith('odoo')) {
       enabledTools.push('odoo');
     }
-    if (tool.includes('meli') || tool.includes('mercadolibre')) {
-      enabledTools.push('mercadolibre');
-    }
+    // NOTE: web_search is a tool, not skills. MercadoLibre search is handled
+    // by lib/tools/web-search.ts directly using Serper + Grounding.
     // Future: Map other tools
     // if (tool.startsWith('google')) enabledTools.push('google');
   }

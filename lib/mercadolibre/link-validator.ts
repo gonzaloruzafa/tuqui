@@ -36,17 +36,17 @@ export interface BatchValidationResult {
 
 /**
  * Patrones de URLs de producto por país
- * Formato: /MLA-123456 (Argentina), /MLB-123456 (Brasil), etc.
+ * Formato: /MLA-123456 (publicación) o /p/MLA123456 (catálogo)
  */
 const PRODUCT_ID_PATTERNS = [
-  /\/(MLA-\d+)/i, // Argentina
-  /\/(MLB-\d+)/i, // Brasil
-  /\/(MLM-\d+)/i, // México
-  /\/(MLC-\d+)/i, // Chile
-  /\/(MCO-\d+)/i, // Colombia
-  /\/(MLU-\d+)/i, // Uruguay
-  /\/(MPE-\d+)/i, // Perú
-  /\/(MLV-\d+)/i, // Venezuela
+  /\/(MLA-?\d+)/i, // Argentina (con o sin guión)
+  /\/(MLB-?\d+)/i, // Brasil
+  /\/(MLM-?\d+)/i, // México
+  /\/(MLC-?\d+)/i, // Chile
+  /\/(MCO-?\d+)/i, // Colombia
+  /\/(MLU-?\d+)/i, // Uruguay
+  /\/(MPE-?\d+)/i, // Perú
+  /\/(MLV-?\d+)/i, // Venezuela
 ]
 
 /**

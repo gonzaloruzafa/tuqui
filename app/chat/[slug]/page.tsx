@@ -400,7 +400,10 @@ export default function ChatPage() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
-                throw new Error(errorData.error || 'API Error')
+                const errorMsg = errorData.error || 'API Error'
+                const suggestion = errorData.suggestion
+                const fullError = suggestion ? `${errorMsg}\n\n${suggestion}` : errorMsg
+                throw new Error(fullError)
             }
 
             const reader = response.body?.getReader()
@@ -485,7 +488,9 @@ export default function ChatPage() {
 
         } catch (e: any) {
             console.error(e)
-            setMessages(prev => [...prev.filter(m => m.id !== 'temp-bot'), { id: Date.now().toString(), role: 'assistant', content: `Error: ${e.message || 'No se pudo procesar el mensaje.'}` }])
+            const errorMessage = e.message || 'No se pudo procesar el mensaje.'
+            const errorHtml = await marked.parse(`**Error:**\n\n${errorMessage}`)
+            setMessages(prev => [...prev.filter(m => m.id !== 'temp-bot'), { id: Date.now().toString(), role: 'assistant', content: errorHtml, rawContent: errorMessage }])
         } finally {
             setIsLoading(false)
         }

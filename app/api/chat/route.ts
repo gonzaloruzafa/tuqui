@@ -303,18 +303,23 @@ export async function POST(req: Request) {
             }
         } catch (streamError: any) {
             console.error('[Chat] Error in streamText execution:', streamError)
-            return new Response(JSON.stringify({
-                error: 'Error generating response',
-                details: streamError.message,
-                stack: streamError.stack
-            }), { status: 500 })
+
+            // Use friendly error messages
+            const { getFriendlyError, formatErrorResponse } = await import('@/lib/errors/friendly-messages')
+            const friendlyError = getFriendlyError(streamError)
+            const response = formatErrorResponse(streamError)
+
+            return new Response(JSON.stringify(response), { status: friendlyError.statusCode })
         }
 
     } catch (error: any) {
         console.error('Chat error:', error)
-        if (error.message.includes('limit reached')) {
-            return new Response(JSON.stringify({ error: error.message }), { status: 403 })
-        }
-        return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 })
+
+        // Use friendly error messages
+        const { getFriendlyError, formatErrorResponse } = await import('@/lib/errors/friendly-messages')
+        const friendlyError = getFriendlyError(error)
+        const response = formatErrorResponse(error)
+
+        return new Response(JSON.stringify(response), { status: friendlyError.statusCode })
     }
 }
