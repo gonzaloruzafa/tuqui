@@ -15,6 +15,7 @@ import {
 import { marked } from 'marked'
 import { VoiceChat } from '@/components/chat/VoiceChat'
 import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
+import { MeliSkillsRenderer } from '@/components/chat/MeliSkillsRenderer'
 
 // Configure marked to open external links in new tab
 const renderer = new marked.Renderer()
@@ -632,7 +633,21 @@ export default function ChatPage() {
                                         <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center flex-shrink-0 mt-1">
                                             {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
                                         </div>
-                                        <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                        <div className="min-w-0 flex-1">
+                                            {/* Try to render as MeLi Skill result first */}
+                                            {(() => {
+                                                const skillRender = <MeliSkillsRenderer content={m.rawContent || m.content} />;
+                                                // If MeliSkillsRenderer returns something, use it. Otherwise, use HTML.
+                                                return skillRender ? (
+                                                    <>
+                                                        {skillRender}
+                                                        <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0 mt-2" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                                    </>
+                                                ) : (
+                                                    <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="bg-adhoc-lavender/30 px-4 py-2 rounded-3xl rounded-br-lg max-w-[80%] text-[15px] text-gray-900 whitespace-pre-wrap">
