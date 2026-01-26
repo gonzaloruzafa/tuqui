@@ -5,7 +5,7 @@
  */
 
 import 'dotenv-flow/config';
-import { MeliSkills } from '@/lib/tools/web-search/meli-skills';
+import { MeliSkills } from '@/lib/skills/web-search/mercadolibre';
 
 async function testMeliSkills() {
   console.log('\n🧪 Testing MercadoLibre Skills\n');
