@@ -154,6 +154,33 @@ export async function loadSkillsForAgent(
     return {};
   }
 
+  // Optional: Validate Odoo connection if enabled tools include Odoo
+  // This helps catch connection issues early with better error messages
+  if (enabledTools.includes('odoo') && context.credentials.odoo) {
+    try {
+      const { createOdooClient } = await import('./odoo/_client');
+      const odooClient = createOdooClient(context.credentials.odoo);
+
+      // Quick health check (with timeout)
+      const healthCheckPromise = odooClient.healthCheck();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Health check timeout')), 5000)
+      );
+
+      const health = await Promise.race([healthCheckPromise, timeoutPromise]) as { ok: boolean; message: string };
+
+      if (!health.ok) {
+        console.error('[Skills/Loader] Odoo health check failed:', health.message);
+        // Note: We still load skills - they'll fail gracefully with better error messages
+      } else {
+        console.log('[Skills/Loader] Odoo health check passed');
+      }
+    } catch (error: any) {
+      console.warn('[Skills/Loader] Odoo health check error (will continue):', error.message);
+      // Continue loading skills - they'll handle connection errors individually
+    }
+  }
+
   // Load and convert skills to AI SDK format
   const tools = loadSkillsForTenant(enabledTools, context);
 

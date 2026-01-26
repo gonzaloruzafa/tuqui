@@ -103,16 +103,40 @@ export class SkillOdooClient {
             await this.sleep(attempt * 1000);
             continue;
           }
+          throw new Error(
+            `❌ Odoo no está disponible en este momento (Error ${res.status}). ` +
+            `Puede que esté caído o en mantenimiento. Por favor intentá más tarde o contactá al administrador.`
+          );
         }
 
         if (!res.ok) {
-          throw new Error(`Odoo HTTP Error: ${res.status} ${res.statusText}`);
+          throw new Error(
+            `❌ No se pudo conectar a Odoo (Error ${res.status}). ` +
+            `Verificá que la URL sea correcta: ${this.url}`
+          );
         }
 
         const data = await res.json();
         if (data.error) {
-          const errorMsg = data.error.data?.message || data.error.message || 'Unknown error';
-          throw new Error(`Odoo RPC Error: ${errorMsg}`);
+          const errorMsg = data.error.data?.message || data.error.message || 'Error desconocido';
+          const errorType = data.error.data?.name || '';
+
+          // Mensajes más amigables según el tipo de error
+          if (errorType.includes('AccessDenied') || errorMsg.includes('access')) {
+            throw new Error(
+              `❌ No tenés permisos para acceder a este dato en Odoo. ` +
+              `Contactá al administrador para que te otorgue los permisos necesarios.`
+            );
+          }
+
+          if (errorType.includes('ValidationError') || errorMsg.includes('not found')) {
+            throw new Error(
+              `❌ Los datos solicitados no existen o no están disponibles en Odoo. ` +
+              `Detalle: ${errorMsg}`
+            );
+          }
+
+          throw new Error(`❌ Error de Odoo: ${errorMsg}`);
         }
 
         return data.result;
@@ -120,17 +144,33 @@ export class SkillOdooClient {
         lastError = error;
 
         // Retry on network errors
-        const isNetworkError = error.name === 'TypeError' || error.message?.includes('fetch');
+        const isNetworkError = error.name === 'TypeError' || error.message?.includes('fetch') || error.code === 'ECONNREFUSED';
         if (isNetworkError && attempt < maxRetries) {
           await this.sleep(attempt * 1000);
           continue;
+        }
+
+        // Si ya es un error formateado nuestro, lanzarlo directamente
+        if (error.message?.startsWith('❌')) {
+          throw error;
+        }
+
+        // Network errors específicos
+        if (isNetworkError) {
+          throw new Error(
+            `❌ No se puede conectar al servidor de Odoo en ${this.url}. ` +
+            `Verificá que:\n` +
+            `1. La URL esté correcta\n` +
+            `2. El servidor de Odoo esté encendido\n` +
+            `3. Tengas conexión a internet`
+          );
         }
 
         throw error;
       }
     }
 
-    throw lastError || new Error('Odoo RPC failed after retries');
+    throw lastError || new Error('❌ Odoo no responde después de 3 intentos. Intentá más tarde.');
   }
 
   private sleep(ms: number): Promise<void> {
@@ -143,20 +183,41 @@ export class SkillOdooClient {
   async authenticate(): Promise<number> {
     if (this.uid) return this.uid;
 
-    this.uid = await this.rpc(
-      'common',
-      'authenticate',
-      this.db,
-      this.username,
-      this.apiKey,
-      {}
-    );
+    try {
+      this.uid = await this.rpc(
+        'common',
+        'authenticate',
+        this.db,
+        this.username,
+        this.apiKey,
+        {}
+      );
 
-    if (!this.uid) {
-      throw new AuthenticationError('Odoo', { username: this.username });
+      if (!this.uid) {
+        throw new Error(
+          `❌ No se pudo autenticar en Odoo. Verificá que:\n` +
+          `1. El usuario "${this.username}" exista en la base "${this.db}"\n` +
+          `2. La API Key sea correcta\n` +
+          `3. El usuario tenga permisos activos`
+        );
+      }
+
+      return this.uid;
+    } catch (error: any) {
+      // Si ya es un error formateado, relanzarlo
+      if (error.message?.startsWith('❌')) {
+        throw error;
+      }
+
+      // Error de autenticación
+      throw new Error(
+        `❌ Fallo de autenticación en Odoo:\n` +
+        `Usuario: ${this.username}\n` +
+        `Base de datos: ${this.db}\n` +
+        `URL: ${this.url}\n\n` +
+        `Error: ${error.message || 'Credenciales inválidas'}`
+      );
     }
-
-    return this.uid;
   }
 
   /**
@@ -277,6 +338,52 @@ export class SkillOdooClient {
    */
   async unlink(model: string, ids: number[]): Promise<boolean> {
     return this.execute(model, 'unlink', [ids]);
+  }
+
+  /**
+   * Health check - validates connection and credentials
+   * Returns true if everything is OK, throws descriptive error otherwise
+   */
+  async healthCheck(): Promise<{ ok: boolean; message: string }> {
+    try {
+      // Test 1: Can we reach the server?
+      const response = await fetch(`${this.url}/web/database/list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: {}, id: 1 }),
+      }).catch(() => null);
+
+      if (!response) {
+        return {
+          ok: false,
+          message: `❌ No se puede conectar a ${this.url}. El servidor está caído o la URL es incorrecta.`
+        };
+      }
+
+      // Test 2: Can we authenticate?
+      const uid = await this.authenticate();
+
+      if (!uid) {
+        return {
+          ok: false,
+          message: `❌ Autenticación fallida. Verificá usuario y API key.`
+        };
+      }
+
+      // Test 3: Can we query basic data?
+      await this.searchCount('res.partner', []);
+
+      return {
+        ok: true,
+        message: `✅ Conexión a Odoo exitosa (${this.db} @ ${this.url})`
+      };
+
+    } catch (error: any) {
+      return {
+        ok: false,
+        message: error.message || '❌ Error desconocido al validar conexión a Odoo'
+      };
+    }
   }
 }
 
