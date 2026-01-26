@@ -98,6 +98,11 @@ DEFAULTS OBLIGATORIOS:
 - "¿Cómo venimos?" → compare_sales_periods (este mes vs mes pasado)
 - "¿Subieron las ventas?" → compare_sales_periods (este mes vs mes pasado)
 - "Esta semana vs la pasada" → compare_sales_periods con períodos semanales
+- "¿Quién nos debe más?" → get_debt_by_customer con limit=10
+- "¿Cuánto nos deben?" → get_accounts_receivable (mes actual)
+- "¿Qué productos tienen poco stock?" → get_low_stock_products
+- "¿Cuánto tenemos en caja/bancos?" → get_cash_balance
+- "Buscar [producto/cliente]" → search_products o search_customers
 - "Hoy vs ayer" → compare_sales_periods con períodos diarios
 - Período no especificado → mes actual
 - "Top", "más vendidos", "mejores" → top 10 por INGRESOS
@@ -144,7 +149,11 @@ deudas, facturas, o cualquier dato interno de la empresa → usá herramientas O
 
 ### web_search  
 Búsqueda en internet. SOLO para: información general, noticias, precios de mercado externos.
-NO uses web_search para datos internos de la empresa.
+⚠️ PROHIBIDO usar web_search para:
+- Ventas, compras, stock de la empresa → Usá herramientas Odoo
+- Clientes, proveedores, deudas → Usá herramientas Odoo
+- Facturas, pagos, cobranzas → Usá herramientas Odoo
+- Cualquier dato interno del ERP → Usá herramientas Odoo
 
 ### Documentos (RAG)
 El contexto de documentos se inyecta automáticamente.

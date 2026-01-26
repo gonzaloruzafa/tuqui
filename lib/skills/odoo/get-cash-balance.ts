@@ -21,8 +21,8 @@ import { errorToResult } from '../errors'
 // ============================================
 
 export const GetCashBalanceInputSchema = z.object({
-  /** Include bank accounts (not just cash) */
-  includeBanks: z.boolean().default(false),
+  /** Include bank accounts (not just cash) - defaults to true for completeness */
+  includeBanks: z.boolean().default(true),
   /** Filter by specific journal IDs */
   journalIds: z.array(z.number().positive()).optional(),
 })
@@ -66,9 +66,9 @@ export interface GetCashBalanceOutput {
 export const getCashBalance: Skill<typeof GetCashBalanceInputSchema, GetCashBalanceOutput> = {
   name: 'get_cash_balance',
 
-  description: `Get current cash and bank balances.
-Use when user asks: "cash balance", "money in register", "available cash",
-"cuánta plata en caja", "saldo de caja", "efectivo disponible", "saldo bancos".
+  description: `Get current cash and bank balances from Odoo. 
+Use for: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "cuánto hay en bancos", 
+"saldo bancario", "tesorería", "liquidez", "efectivo disponible", "money in bank", "cash balance".
 Returns balance per journal (cash registers and bank accounts).`,
 
   tool: 'odoo',
