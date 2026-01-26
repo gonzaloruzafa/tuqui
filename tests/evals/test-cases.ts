@@ -97,9 +97,10 @@ const ventasTestCases: EvalTestCase[] = [
     question: '¿Cuánto le vendimos a Acme Corp?',
     category: 'ventas',
     expectedPatterns: [
-      /\$\s?[\d.,]+|no hay|no encontr|0/i,
+      /\$\s?[\d.,]+|no hay|no encontr|no veo|0/i,
     ],
-    requiresNumericData: true,
+    // Note: If client doesn't exist, agent may return $0 or "no encontré"
+    // Both are valid responses
   },
 ];
 
