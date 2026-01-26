@@ -142,8 +142,10 @@ export async function POST(req: NextRequest) {
 
         console.log(`[TestChat] Routing: ${routingResult.selectedAgent?.slug || 'none'} (${routingResult.confidence})`)
 
-        // 3. Build system prompt
-        let systemPrompt = agent.merged_system_prompt || agent.system_prompt || 'Sos un asistente útil.'
+        // 3. Build system prompt - use unified.ts prompt for consistency
+        const { TUQUI_UNIFIED } = await import('@/lib/agents/unified')
+        const baseSystemPrompt = TUQUI_UNIFIED.systemPrompt.replace('{{CURRENT_DATE}}', new Date().toISOString().split('T')[0])
+        let systemPrompt = baseSystemPrompt
         
         // Add specialized prompt if routed
         if (routingResult.selectedAgent?.system_prompt && routingResult.confidence !== 'low') {
