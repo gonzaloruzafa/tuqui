@@ -3,6 +3,11 @@
  * 
  * Allows running tests against the chat API without OAuth authentication.
  * Protected by INTERNAL_TEST_KEY environment variable.
+ * 
+ * Security:
+ * - Requires INTERNAL_TEST_KEY header
+ * - Rate limited to 100 requests per day per IP
+ * - Not accessible from forks (no secrets)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -20,6 +25,50 @@ const google = createGoogleGenerativeAI({
 
 const INTERNAL_KEY = process.env.INTERNAL_TEST_KEY || 'test-key-change-in-prod'
 
+// ============================================
+// RATE LIMITING (100 requests/day per IP)
+// ============================================
+const RATE_LIMIT_MAX = 100
+const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+interface RateLimitEntry {
+    count: number
+    resetAt: number
+}
+
+const rateLimitMap = new Map<string, RateLimitEntry>()
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetAt: number } {
+    const now = Date.now()
+    const entry = rateLimitMap.get(ip)
+    
+    // Clean up or reset expired entries
+    if (!entry || now >= entry.resetAt) {
+        const newEntry = { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS }
+        rateLimitMap.set(ip, newEntry)
+        return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: newEntry.resetAt }
+    }
+    
+    // Check if limit exceeded
+    if (entry.count >= RATE_LIMIT_MAX) {
+        return { allowed: false, remaining: 0, resetAt: entry.resetAt }
+    }
+    
+    // Increment counter
+    entry.count++
+    return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count, resetAt: entry.resetAt }
+}
+
+// Clean up old entries periodically (every hour)
+setInterval(() => {
+    const now = Date.now()
+    for (const [ip, entry] of rateLimitMap.entries()) {
+        if (now >= entry.resetAt) {
+            rateLimitMap.delete(ip)
+        }
+    }
+}, 60 * 60 * 1000)
+
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
@@ -28,6 +77,29 @@ export async function POST(req: NextRequest) {
     
     if (authHeader !== INTERNAL_KEY) {
         return NextResponse.json({ error: 'Unauthorized - Invalid key' }, { status: 401 })
+    }
+
+    // Rate limiting by IP
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+        || req.headers.get('x-real-ip') 
+        || 'unknown'
+    
+    const rateLimit = checkRateLimit(ip)
+    
+    if (!rateLimit.allowed) {
+        return NextResponse.json({ 
+            error: 'Rate limit exceeded',
+            message: `Máximo ${RATE_LIMIT_MAX} requests por día. Reset: ${new Date(rateLimit.resetAt).toISOString()}`,
+            resetAt: rateLimit.resetAt
+        }, { 
+            status: 429,
+            headers: {
+                'X-RateLimit-Limit': String(RATE_LIMIT_MAX),
+                'X-RateLimit-Remaining': '0',
+                'X-RateLimit-Reset': String(rateLimit.resetAt),
+                'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000))
+            }
+        })
     }
 
     let body: any
