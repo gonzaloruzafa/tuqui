@@ -71,16 +71,15 @@ export const getLowStockProducts: Skill<
     try {
       const odoo = createOdooClient(context.credentials.odoo);
 
-      // Build domain
-      const domain: OdooDomain = [
-        ['qty_available', '<', input.threshold],
-      ];
+      // Build domain - only filter by stockable, not by qty (qty_available is computed)
+      const domain: OdooDomain = [];
 
       if (input.stockableOnly) {
         domain.push(['type', '=', 'product']);
       }
 
-      // Search for low stock products
+      // Search for stockable products and read their quantities
+      // We fetch more and filter client-side since qty_available may not be filterable
       const products = await odoo.searchRead<{
         id: number;
         name: string;
@@ -97,13 +96,18 @@ export const getLowStockProducts: Skill<
             'qty_available',
             'virtual_available',
           ],
-          limit: input.limit,
+          limit: 500, // Fetch more to filter client-side
           order: 'qty_available asc',
         }
       );
 
+      // Filter by threshold client-side and limit
+      const lowStock = products
+        .filter((p) => p.qty_available < input.threshold)
+        .slice(0, input.limit);
+
       // Transform results
-      const results: LowStockProduct[] = products.map((p) => ({
+      const results: LowStockProduct[] = lowStock.map((p) => ({
         productId: p.id,
         productName: p.name,
         productCode: p.default_code || null,

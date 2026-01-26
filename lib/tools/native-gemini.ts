@@ -1,4 +1,85 @@
 import { GoogleGenerativeAI, Content, FunctionDeclaration, SchemaType } from '@google/generative-ai'
+import { zodToJsonSchema } from 'zod-to-json-schema'
+
+/**
+ * Convert Zod schema to Gemini parameters format
+ */
+function zodToGeminiParams(zodSchema: any): { type: SchemaType, properties: Record<string, any>, required: string[] } {
+    try {
+        // Convert Zod to JSON Schema
+        const jsonSchema = zodToJsonSchema(zodSchema, { $refStrategy: 'none' })
+        
+        // Extract properties and required from JSON Schema
+        const properties: Record<string, any> = {}
+        const required: string[] = (jsonSchema as any).required || []
+        
+        for (const [key, value] of Object.entries((jsonSchema as any).properties || {})) {
+            const prop = value as any
+            properties[key] = convertJsonSchemaType(prop)
+        }
+        
+        return {
+            type: SchemaType.OBJECT,
+            properties,
+            required
+        }
+    } catch (error) {
+        console.warn('[NativeGemini] Failed to convert Zod schema:', error)
+        return {
+            type: SchemaType.OBJECT,
+            properties: {},
+            required: []
+        }
+    }
+}
+
+/**
+ * Convert JSON Schema type to Gemini SchemaType
+ */
+function convertJsonSchemaType(prop: any): any {
+    const typeMap: Record<string, SchemaType> = {
+        'string': SchemaType.STRING,
+        'number': SchemaType.NUMBER,
+        'integer': SchemaType.INTEGER,
+        'boolean': SchemaType.BOOLEAN,
+        'array': SchemaType.ARRAY,
+        'object': SchemaType.OBJECT,
+    }
+    
+    // Handle enum
+    if (prop.enum) {
+        return { type: SchemaType.STRING, enum: prop.enum, description: prop.description }
+    }
+    
+    // Handle array
+    if (prop.type === 'array') {
+        return {
+            type: SchemaType.ARRAY,
+            items: prop.items ? convertJsonSchemaType(prop.items) : { type: SchemaType.STRING },
+            description: prop.description
+        }
+    }
+    
+    // Handle object
+    if (prop.type === 'object' && prop.properties) {
+        const nestedProps: Record<string, any> = {}
+        for (const [k, v] of Object.entries(prop.properties)) {
+            nestedProps[k] = convertJsonSchemaType(v)
+        }
+        return {
+            type: SchemaType.OBJECT,
+            properties: nestedProps,
+            required: prop.required || [],
+            description: prop.description
+        }
+    }
+    
+    // Simple type
+    return {
+        type: typeMap[prop.type] || SchemaType.STRING,
+        description: prop.description
+    }
+}
 
 /**
  * Generic Native Gemini Text Generation with Tool Support
@@ -37,15 +118,37 @@ export async function generateTextNative({
                         required: ['query']
                     }
                 })
+            } else if (tool.parameters) {
+                // Use Zod schema conversion for Skills
+                try {
+                    const params = zodToGeminiParams(tool.parameters)
+                    functionDeclarations.push({
+                        name,
+                        description: tool.description || `Execute ${name}`,
+                        parameters: params
+                    })
+                    console.log(`[NativeGemini] Converted skill ${name} with ${Object.keys(params.properties).length} params`)
+                } catch (convError) {
+                    console.warn(`[NativeGemini] Tool ${name} schema conversion failed, using empty params`)
+                    functionDeclarations.push({
+                        name,
+                        description: tool.description,
+                        parameters: {
+                            type: SchemaType.OBJECT,
+                            properties: {},
+                            required: []
+                        }
+                    })
+                }
             } else {
-                // Heuristic conversion for other tools
-                console.warn(`[NativeGemini] Tool ${name} using heuristic conversion`)
+                // Fallback for tools without parameters schema
+                console.warn(`[NativeGemini] Tool ${name} has no parameters schema`)
                 functionDeclarations.push({
                     name,
                     description: tool.description,
                     parameters: {
                         type: SchemaType.OBJECT,
-                        properties: {}, // Fallback to empty object if not specified
+                        properties: {},
                         required: []
                     }
                 })
