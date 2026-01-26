@@ -215,7 +215,7 @@ export async function POST(req: Request) {
             // Standard AI SDK path for non-Odoo agents
             let tools: any = {}
             try {
-                tools = await getToolsForAgent(tenantId, effectiveTools)
+                tools = await getToolsForAgent(tenantId, effectiveTools, session.user.email!)
                 console.log('[Chat] Tools loaded:', Object.keys(tools))
             } catch (toolsError) {
                 console.error('[Chat] Error loading tools:', toolsError)
