@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=verbose",
+    "test:conversations": "tsx scripts/e2e-tests/conversation-test-runner.ts --all",
+    "test:conversation": "tsx scripts/e2e-tests/conversation-test-runner.ts",
     "test:e2e": "tsx scripts/e2e-tests/runner.ts",
     "test:e2e:local": "tsx scripts/e2e-tests/runner.ts --env local",
     "test:e2e:critical": "tsx scripts/e2e-tests/runner.ts --subset critical"
