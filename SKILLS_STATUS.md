@@ -1,9 +1,11 @@
 # Skills System - Status y Documentación
 
-## ✅ **MIGRACIÓN COMPLETADA - GOD TOOL ELIMINADO** ✅
+## ✅ **SKILLS SYSTEM - PRODUCCIÓN** ✅
 
-La migración de God Tools a Skills está **100% completa**:
-- ✅ 20 Skills implementados y testeados (100% cobertura)
+El sistema de Skills está **100% operativo en producción**:
+- ✅ **23 Skills totales** implementados y testeados
+  - **20 Odoo Skills** (ERP/Business Intelligence) - 100% cobertura
+  - **3 MercadoLibre Skills** (eCommerce/Pricing) - MVP funcional
 - ✅ God Tool eliminado (`gemini-odoo.ts`, `gemini-odoo-v2.ts`)
 - ✅ Todos los flujos (Web, WhatsApp, Internal Test) usan Skills
 - ✅ Build exitoso sin errores
@@ -129,6 +131,43 @@ La migración de God Tools a Skills está **100% completa**:
 20. ✅ **`get_customer_balance`** - Balance de clientes
     - Input: customerId, límite
     - Output: balance de cuentas por cobrar
+
+---
+
+### 🛒 MercadoLibre Skills (3/3) - MVP Funcional
+
+#### Búsqueda y Análisis de Precios
+21. ✅ **`search_meli_products`** - Buscar productos en MercadoLibre
+    - Input: query, límite, ordenamiento (price_asc/price_desc/relevance)
+    - Output: lista de productos con títulos, precios, URLs validadas
+    - Usa: Serper (primario) + Tavily (fallback)
+
+22. ✅ **`compare_meli_prices`** - Comparar precios de productos similares
+    - Input: productName, límite de muestra
+    - Output: min/max/avg/median, insights de mercado
+    - Útil para: "Estoy caro/barato?", "Rango de precios"
+
+23. ✅ **`get_meli_price_statistics`** - Análisis estadístico de mercado
+    - Input: productType, tamaño de muestra
+    - Output: estadísticas completas, distribución, rangos (gama baja/media/alta)
+    - Útil para: Decisiones estratégicas de pricing
+
+#### Diferencias vs web_search
+| Aspecto | web_search (antes) | MeLi Skills (ahora) |
+|---------|-------------------|-------------------|
+| Output | Texto libre | JSON tipado |
+| Precios | Parseados por LLM | Parser dedicado |
+| URLs | Mezcladas con texto | Validadas (solo `/articulo/`) |
+| Caché | Genérico | Específico (5 min TTL) |
+| Testing | Difícil | Fácil (skills atómicos) |
+
+#### Limitaciones Conocidas (MVP)
+- ⚠️ Extracción de precios desde snippets es limitada
+  - **Solución**: Usar `web_investigator` para extraer de páginas completas
+  - **Alternativa**: API oficial de MercadoLibre (requiere OAuth)
+- ✅ URLs validadas correctamente (solo productos directos)
+- ✅ Caché funcional (reduce latencia en búsquedas repetidas)
+- ✅ Estructura de datos lista para UI mejorada (cards, carousels)
 
 ### 🧪 Testing
 

@@ -104,7 +104,7 @@ export async function createSkillContext(
 /**
  * Get enabled tools (integrations) from agent configuration
  *
- * @param agentTools - Array of tool slugs (e.g., ['odoo', 'web_search'])
+ * @param agentTools - Array of tool slugs (e.g., ['odoo', 'meli_search'])
  * @returns Array of enabled tool names
  */
 function getEnabledToolsFromAgentConfig(agentTools: string[]): string[] {
@@ -115,8 +115,11 @@ function getEnabledToolsFromAgentConfig(agentTools: string[]): string[] {
     if (tool.startsWith('odoo')) {
       enabledTools.push('odoo');
     }
+    if (tool.includes('meli') || tool.includes('mercadolibre')) {
+      enabledTools.push('mercadolibre');
+    }
     // Future: Map other tools
-    // if (tool.startsWith('meli')) enabledTools.push('meli');
+    // if (tool.startsWith('google')) enabledTools.push('google');
   }
 
   return [...new Set(enabledTools)]; // Deduplicate

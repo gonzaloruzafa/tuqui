@@ -40,6 +40,9 @@ export interface RegistryOptions {
 // Odoo Skills
 import { odooSkills } from './odoo';
 
+// MercadoLibre Skills
+import { mercadolibreSkills } from './mercadolibre';
+
 // ============================================
 // MASTER REGISTRY
 // ============================================
@@ -49,9 +52,10 @@ import { odooSkills } from './odoo';
  * Add new skill arrays here as they are implemented
  */
 const ALL_SKILLS: Skill<any, any>[] = [
-  ...odooSkills,
-  // Future: ...meliSkills,
+  ...odooSkills,           // 20 skills (ERP)
+  ...mercadolibreSkills,   // 3 skills (ecommerce search)
   // Future: ...calendarSkills,
+  // Future: ...gmailSkills,
 ];
 
 // ============================================
