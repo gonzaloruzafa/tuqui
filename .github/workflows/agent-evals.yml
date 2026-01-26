@@ -1,0 +1,108 @@
+name: Agent Evaluations
+
+on:
+  # Run after successful deployment
+  deployment_status:
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      
+  # Scheduled: Daily at 8am UTC (5am Argentina)
+  schedule:
+    - cron: '0 8 * * *'
+
+env:
+  EVAL_BASE_URL: ${{ secrets.EVAL_BASE_URL || 'https://tuqui-agents-alpha.vercel.app' }}
+
+jobs:
+  agent-evals:
+    name: Run Agent Evaluations
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    # Only run on successful deployments or manual/scheduled triggers
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for deployment to stabilize
+        if: github.event_name == 'deployment_status'
+        run: |
+          echo "Waiting 30s for deployment to stabilize..."
+          sleep 30
+
+      - name: Run Agent Evaluations
+        id: evals
+        run: npm run test:evals 2>&1 | tee eval-output.txt
+        env:
+          EVAL_BASE_URL: ${{ env.EVAL_BASE_URL }}
+          INTERNAL_TEST_KEY: ${{ secrets.INTERNAL_TEST_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TEST_TENANT_ID: ${{ secrets.TEST_TENANT_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        continue-on-error: true
+
+      - name: Extract pass rate
+        id: extract
+        run: |
+          PASS_RATE=$(grep -oP 'Pass Rate: \K[\d.]+' eval-output.txt || echo "0")
+          echo "pass_rate=$PASS_RATE" >> $GITHUB_OUTPUT
+          echo "📊 Pass Rate: $PASS_RATE%"
+
+      - name: Check threshold
+        run: |
+          PASS_RATE="${{ steps.extract.outputs.pass_rate }}"
+          THRESHOLD=80
+          if (( $(echo "$PASS_RATE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Pass rate ($PASS_RATE%) is below threshold ($THRESHOLD%)"
+            exit 1
+          else
+            echo "✅ Pass rate ($PASS_RATE%) meets threshold ($THRESHOLD%)"
+          fi
+
+      - name: Upload eval results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results-${{ github.run_id }}
+          path: eval-output.txt
+          retention-days: 30
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const passRate = '${{ steps.extract.outputs.pass_rate }}';
+            const status = parseFloat(passRate) >= 80 ? '✅' : '❌';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🤖 Agent Evaluation Results\n\n${status} **Pass Rate: ${passRate}%** (threshold: 80%)\n\nSee workflow run for details.`
+            });
