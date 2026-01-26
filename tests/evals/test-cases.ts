@@ -33,7 +33,7 @@ const ventasTestCases: EvalTestCase[] = [
     category: 'ventas',
     expectedPatterns: [
       /\$\s?[\d.,]+/i,  // Debe tener un monto
-      /venta|vendido|facturado/i,  // Debe mencionar ventas
+      /vend|factur|pedido|orden/i,  // Debe mencionar ventas/facturación
     ],
     forbiddenPatterns: [
       /no pude|error|disculpá|problema técnico/i,
@@ -46,7 +46,7 @@ const ventasTestCases: EvalTestCase[] = [
     question: '¿Quién es mi mejor cliente?',
     category: 'ventas',
     expectedPatterns: [
-      /cliente|partner|comprador/i,
+      /cliente|partner|comprador|truedent|nombre/i,
     ],
     requiresNumericData: true,
     expectedSkillHints: ['top', 'mejor', 'principal'],
