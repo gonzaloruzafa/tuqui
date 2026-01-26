@@ -218,7 +218,8 @@ export async function POST(req: NextRequest) {
             // Quality indicators
             quality: {
                 hasNumericData: /\$\s?[\d.,]+|\d+\s*(unidades|productos|ventas|pesos|facturas|clientes)/i.test(response),
-                hasList: response.includes('- ') || response.includes('• ') || /^\d+\./m.test(response),
+                // List detection: bullets, numbered lists, or asterisk-separated items
+                hasList: response.includes('- ') || response.includes('• ') || /^\d+\./m.test(response) || /^\*[^*]+\*:/m.test(response),
                 // More precise error detection - avoid false positives like "errores en los registros"
                 hasError: /hubo un (error|problema)|no pude (acceder|obtener|consultar)|error al (buscar|consultar)|disculpá.*no (pude|puedo)|no hay datos disponibles|problema técnico/i.test(response),
                 usedContext: messages.length > 1 && !/(qué|cuál|a qué te refer)/i.test(response)
