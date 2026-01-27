@@ -79,10 +79,10 @@ export const getDebtByCustomer: Skill<
 > = {
   name: 'get_debt_by_customer',
 
-  description: `Get outstanding debt grouped by customer.
-Use for: "quién nos debe más", "clientes morosos", "who owes us", "customer debt", 
-"accounts receivable", "deudas de clientes", "quién nos debe", "cuentas por cobrar", 
-"saldos pendientes", "deudores principales". Returns customers with unpaid invoice amounts.`,
+  description: `Deudas de clientes - quién nos debe más y cuánto. HERRAMIENTA PRINCIPAL para cobranzas.
+Use for: "quién nos debe más", "clientes morosos", "deudores principales", "accounts receivable", 
+"deudas de clientes", "quién nos debe", "cuentas por cobrar", "saldos pendientes",
+"top deudores", "clientes con deuda", "cobrar". Devuelve cliente, monto adeudado, fecha vencimiento.`,
 
   tool: 'odoo',
 

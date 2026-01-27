@@ -58,7 +58,9 @@ export const getLowStockProducts: Skill<
   LowStockProductsOutput
 > = {
   name: 'get_low_stock_products',
-  description: 'Get products with low stock levels. Use for "poco stock", "stock bajo", "low stock", "products to reorder", "stock alerts", "inventory warnings", "qué productos hay que reponer". Returns products where qty_available <= reorder point.',
+  description: `Productos con poco stock - inventario bajo y crítico. HERRAMIENTA PRINCIPAL para stock.
+Use for: "qué productos tienen poco stock", "stock bajo", "productos con bajo inventario",
+"bajo stock", "productos agotados", "stock crítico", "reposición". Devuelve producto, cantidad disponible.`,
   tool: 'odoo',
   tags: ['inventory', 'stock', 'purchasing'],
   inputSchema: GetLowStockProductsInputSchema,

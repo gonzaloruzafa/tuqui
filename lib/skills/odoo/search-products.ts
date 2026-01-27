@@ -64,9 +64,10 @@ export const searchProducts: Skill<
   SearchProductsOutput
 > = {
   name: 'search_products',
-  description: `Search for products in Odoo by name, code, or barcode.
+  description: `Busca productos en Odoo por nombre, código o código de barras. HERRAMIENTA PRINCIPAL para buscar.
 Use for: "buscar productos con X", "encontrar producto", "producto que contenga", "buscar cable", 
-"productos con nombre X", "find product", "search product". Returns matching products with price and stock.`,
+"productos con nombre X", "productos que contengan", "qué productos tenemos con", "buscar en productos".
+Devuelve: nombre, código, precio, stock disponible.`,
   tool: 'odoo',
   tags: ['products', 'search', 'inventory'],
   inputSchema: SearchProductsInputSchema,

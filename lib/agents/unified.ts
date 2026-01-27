@@ -149,11 +149,19 @@ deudas, facturas, o cualquier dato interno de la empresa → usá herramientas O
 
 ### web_search  
 Búsqueda en internet. SOLO para: información general, noticias, precios de mercado externos.
-⚠️ PROHIBIDO usar web_search para:
-- Ventas, compras, stock de la empresa → Usá herramientas Odoo
-- Clientes, proveedores, deudas → Usá herramientas Odoo
-- Facturas, pagos, cobranzas → Usá herramientas Odoo
-- Cualquier dato interno del ERP → Usá herramientas Odoo
+
+🛑 CRÍTICO: ⚠️ PROHIBIDO usar web_search JAMÁS para:
+- "Cuánto tenemos/deben/vendemos" → OBLIGATORIO: Odoo tools
+- "Quién nos debe más", "deudores" → OBLIGATORIO: get_debt_by_customer
+- "Productos con poco stock", "stock bajo" → OBLIGATORIO: get_low_stock_products  
+- "Bancos", "tesorería", "caja" → OBLIGATORIO: get_cash_balance
+- "Clientes", "proveedores", "facturas" → OBLIGATORIO: Odoo tools
+- Cualquier dato que diga "empresa", "nuestro", "nos deben" → OBLIGATORIO: Odoo tools
+
+✅ ÚNICAMENTE web_search para:
+- Información externa: cotizaciones, noticias, leyes
+- Buscar en internet: precios de terceros, competencia
+- Cuando usuario EXPLÍCITAMENTE pide: "buscá en la web"
 
 ### Documentos (RAG)
 El contexto de documentos se inyecta automáticamente.
