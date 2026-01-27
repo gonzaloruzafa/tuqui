@@ -168,9 +168,15 @@ export async function POST(req: NextRequest) {
         }
 
         // 5. Determine which tools to use
-        const effectiveTools = routingResult.selectedAgent?.tools?.length 
+        // For testing, always include odoo_intelligent_query to ensure skills are loaded
+        let effectiveTools = routingResult.selectedAgent?.tools?.length 
             ? routingResult.selectedAgent.tools 
             : agent.tools || []
+        
+        // Ensure odoo skills are always available for testing
+        if (!effectiveTools.includes('odoo_intelligent_query')) {
+            effectiveTools = ['odoo_intelligent_query', ...effectiveTools]
+        }
 
         // 6. Execute chat with Skills architecture
         let response = ''

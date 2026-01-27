@@ -81,7 +81,7 @@ Use for: "qué productos tienen poco stock", "stock bajo", "productos con bajo i
       }
 
       // Search for stockable products and read their quantities
-      // We fetch more and filter client-side since qty_available may not be filterable
+      // We fetch more and filter client-side since qty_available is computed, not stored
       const products = await odoo.searchRead<{
         id: number;
         name: string;
@@ -99,13 +99,14 @@ Use for: "qué productos tienen poco stock", "stock bajo", "productos con bajo i
             'virtual_available',
           ],
           limit: 500, // Fetch more to filter client-side
-          order: 'qty_available asc',
+          // Note: cannot order by qty_available as it's a computed field
         }
       );
 
-      // Filter by threshold client-side and limit
+      // Filter by threshold client-side, sort, and limit
       const lowStock = products
-        .filter((p) => p.qty_available < input.threshold)
+        .filter((p) => p.qty_available <= input.threshold)
+        .sort((a, b) => a.qty_available - b.qty_available)  // Sort by qty ascending
         .slice(0, input.limit);
 
       // Transform results
