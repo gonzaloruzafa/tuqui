@@ -248,7 +248,19 @@ export async function generateTextNative({
             
             if (!tool || !tool.execute) {
                 console.warn(`[NativeGemini] Tool ${name} not found, returning error to model`)
-                toolResult = { error: `Tool ${name} no está disponible. Usa web_search.` }
+                
+                // Special handling for deprecated odoo_intelligent_query
+                if (name === 'odoo_intelligent_query') {
+                    toolResult = { 
+                        error: `La tool "odoo_intelligent_query" fue reemplazada por skills específicas. ` +
+                               `Usá las skills disponibles según lo que necesites: ` +
+                               `get_invoices_by_customer (facturas), get_debt_by_customer (deudas), ` +
+                               `get_overdue_invoices (vencidas), get_accounts_receivable (cuentas por cobrar), ` +
+                               `get_sales_total (ventas), search_customers (buscar clientes), etc.`
+                    }
+                } else {
+                    toolResult = { error: `Tool ${name} no está disponible.` }
+                }
                 error = `Tool ${name} not found`
             } else {
                 try {
