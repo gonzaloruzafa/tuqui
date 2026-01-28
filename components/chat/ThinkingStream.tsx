@@ -91,7 +91,7 @@ function formatDuration(ms: number): string {
     return `${(ms / 1000).toFixed(1)}s`
 }
 
-export function ThinkingStream({ thinkingText, steps, isExpanded = true, onToggle }: ThinkingStreamProps) {
+export function ThinkingStream({ thinkingText, steps, isExpanded = false, onToggle }: ThinkingStreamProps) {
     const hasContent = thinkingText || steps.length > 0
     if (!hasContent) return null
 
@@ -101,32 +101,58 @@ export function ThinkingStream({ thinkingText, steps, isExpanded = true, onToggl
     // Determinar estado general
     const isThinking = !!thinkingText && steps.length === 0
     const isExecuting = steps.length > 0
+    const allDone = isExecuting && !runningStep
+    
+    // Get unique sources for summary
+    const uniqueSources = [...new Set(steps.map(s => s.source))]
+    
+    // Get first line of thinking for summary
+    const thinkingSummary = thinkingText?.split('\n')[0]?.slice(0, 60) || ''
     
     return (
-        <div className="mb-3 ml-12">
+        <div className="mb-3 ml-11">
             {/* Header colapsable */}
             <button 
                 onClick={onToggle}
-                className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-400 transition-colors mb-2"
+                className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-400 transition-colors mb-2 group"
             >
                 <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
                 <span className="flex items-center gap-1.5">
                     {isThinking && (
                         <>
                             <span className="animate-pulse">💭</span>
-                            <span>Analizando pregunta...</span>
+                            <span className="text-gray-400">Analizando...</span>
+                            {!isExpanded && thinkingSummary && (
+                                <span className="text-gray-400 italic truncate max-w-[200px]">{thinkingSummary}...</span>
+                            )}
                         </>
                     )}
                     {isExecuting && runningStep && (
                         <>
                             <span className="animate-pulse">⚡</span>
-                            <span>Ejecutando consultas...</span>
+                            <span className="text-gray-400">Consultando</span>
+                            {/* Show source icons */}
+                            <span className="flex items-center gap-0.5">
+                                {uniqueSources.map(source => (
+                                    <span key={source} className="opacity-70">{LOGOS[source]}</span>
+                                ))}
+                            </span>
                         </>
                     )}
-                    {isExecuting && !runningStep && (
-                        <span>✓ {completedSteps.length} consultas completadas</span>
+                    {allDone && (
+                        <>
+                            <span className="text-green-500">✓</span>
+                            <span className="text-gray-400">{completedSteps.length} consulta{completedSteps.length > 1 ? 's' : ''}</span>
+                            {/* Show source icons */}
+                            <span className="flex items-center gap-0.5">
+                                {uniqueSources.map(source => (
+                                    <span key={source} className="opacity-70">{LOGOS[source]}</span>
+                                ))}
+                            </span>
+                        </>
                     )}
                 </span>
+                {!isExpanded && <span className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">ver más</span>}
             </button>
             
             {isExpanded && (

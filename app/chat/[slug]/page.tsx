@@ -16,8 +16,9 @@ import { marked } from 'marked'
 import { VoiceChat } from '@/components/chat/VoiceChat'
 import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
 import { ThinkingStream } from '@/components/chat/ThinkingStream'
+import { MessageSources } from '@/components/chat/MessageSources'
 import { MeliSkillsRenderer } from '@/components/chat/MeliSkillsRenderer'
-import type { ThinkingStep } from '@/lib/thinking/types'
+import type { ThinkingStep, ThinkingSource } from '@/lib/thinking/types'
 
 // Configure marked to open external links in new tab
 const renderer = new marked.Renderer()
@@ -143,6 +144,7 @@ interface Message {
     role: 'user' | 'assistant'
     content: string
     rawContent?: string
+    sources?: ThinkingSource[]  // Sources used to generate this message
 }
 
 interface Session {
@@ -179,7 +181,7 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([])
     const [thinkingText, setThinkingText] = useState<string>('') // Chain of Thought text
-    const [thinkingExpanded, setThinkingExpanded] = useState(true)
+    const [thinkingExpanded, setThinkingExpanded] = useState(false) // Collapsed by default
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [sessions, setSessions] = useState<Session[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
@@ -498,9 +500,19 @@ export default function ChatPage() {
             // Final cleanup - remove thinking from saved/displayed text
             const finalText = botText.replace(/<thinking>[\s\S]*?<\/thinking>\s*/gi, '')
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(finalText))
+            
+            // Extract unique sources from thinking steps
+            const usedSources = [...new Set(thinkingSteps.map(s => s.source))] as ThinkingSource[]
+            
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')
-                return [...filtered, { id: Date.now().toString(), role: 'assistant', content: finalHtml, rawContent: finalText }]
+                return [...filtered, { 
+                    id: Date.now().toString(), 
+                    role: 'assistant', 
+                    content: finalHtml, 
+                    rawContent: finalText,
+                    sources: usedSources.length > 0 ? usedSources : undefined
+                }]
             })
 
             // Save Bot Message (without thinking block)
@@ -682,8 +694,23 @@ export default function ChatPage() {
                             </div>
                         )}
 
-                        {messages.map((m, i) => (
-                            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {messages.map((m, i) => {
+                            const isLastMessage = i === messages.length - 1
+                            const isStreamingBot = isLoading && m.id === 'temp-bot'
+                            
+                            return (
+                            <div key={i}>
+                                {/* Show ThinkingStream BEFORE the streaming bot message */}
+                                {isStreamingBot && (thinkingText || thinkingSteps.length > 0) && (
+                                    <ThinkingStream 
+                                        thinkingText={thinkingText}
+                                        steps={thinkingSteps} 
+                                        isExpanded={thinkingExpanded}
+                                        onToggle={() => setThinkingExpanded(!thinkingExpanded)}
+                                    />
+                                )}
+                                
+                                <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 {m.role === 'assistant' ? (
                                     <div className="flex gap-3 max-w-[90%] md:max-w-[80%] min-w-0">
                                         <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center flex-shrink-0 mt-1">
@@ -703,6 +730,11 @@ export default function ChatPage() {
                                                     <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
                                                 );
                                             })()}
+                                            
+                                            {/* Show sources below completed messages */}
+                                            {m.sources && m.sources.length > 0 && !isStreamingBot && (
+                                                <MessageSources sources={m.sources} />
+                                            )}
                                         </div>
                                     </div>
                                 ) : (
@@ -710,9 +742,12 @@ export default function ChatPage() {
                                         {m.content}
                                     </div>
                                 )}
+                                </div>
                             </div>
-                        ))}
-                        {isLoading && (
+                            )
+                        })}
+                        {/* Show ThinkingIndicator when loading but no thinking content yet */}
+                        {isLoading && !messages.some(m => m.id === 'temp-bot') && (
                             (thinkingText || thinkingSteps.length > 0) ? (
                                 <ThinkingStream 
                                     thinkingText={thinkingText}
