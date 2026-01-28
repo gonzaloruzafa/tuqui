@@ -91,12 +91,6 @@ export async function POST(req: NextRequest) {
 
     try {
         const rawBody = await req.text()
-        const headers = Object.fromEntries(req.headers.entries())
-        console.log('[WhatsApp] Webhook request:', {
-            headers,
-            body: rawBody
-        })
-
         const params = new URLSearchParams(rawBody)
 
         // 0. Handle Twilio Debugger or Status Callbacks
@@ -113,16 +107,45 @@ export async function POST(req: NextRequest) {
 
         if (!from || !body) {
             console.log('[WhatsApp] Invalid messaging payload. Received keys:', Array.from(params.keys()).join(', '))
-            return new Response(`Invalid payload. Received keys: ${Array.from(params.keys()).join(', ')}`, { status: 400 })
+            return new Response('<Response></Response>', {
+                status: 200,
+                headers: { 'Content-Type': 'text/xml' }
+            })
         }
 
         console.log(`[WhatsApp] Incoming from ${from}: ${body}`)
 
+        // IMPORTANT: Respond to Twilio immediately to avoid timeout
+        // Process the message asynchronously (fire and forget)
+        processMessageAsync(from, body).catch(err => {
+            console.error('[WhatsApp] Background processing error:', err)
+        })
+
+        // Return 200 immediately to Twilio (within milliseconds)
+        return new Response('<Response></Response>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/xml' }
+        })
+
+    } catch (error: any) {
+        console.error('[WhatsApp] Webhook Error:', error)
+        return new Response('<Response></Response>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/xml' }
+        })
+    }
+}
+
+/**
+ * Process WhatsApp message asynchronously after responding to Twilio
+ */
+async function processMessageAsync(from: string, body: string) {
+    try {
         // 1. Lookup Tenant by Phone
         const tenantInfo = await getTenantByPhone(from)
         if (!tenantInfo) {
             console.log(`[WhatsApp] Unauthorized phone: ${from}`)
-            return new Response(`Unauthorized phone: ${from}`, { status: 401 })
+            return
         }
 
         const { id: tenantId, userEmail } = tenantInfo
@@ -131,7 +154,8 @@ export async function POST(req: NextRequest) {
         const agent = await getTuqui(tenantId)
         if (!agent) {
             console.error(`[WhatsApp] Tuqui agent not found for tenant ${tenantId}`)
-            return new Response('Agent not found', { status: 500 })
+            await sendWhatsApp(tenantId, from, '❌ Error: No se encontró el agente.')
+            return
         }
         console.log(`[WhatsApp] Using Tuqui with tools: ${agent.tools?.join(', ')}`)
         
@@ -142,7 +166,10 @@ export async function POST(req: NextRequest) {
         // Save user message
         await saveMessage(tenantId, sessionId, 'user', body)
 
-        // 4. Invoke Chat Engine with Tuqui
+        // 4. Invoke Chat Engine with Tuqui (can take 10-60 seconds with tools)
+        console.log(`[WhatsApp] Starting chat processing for ${from}...`)
+        const startTime = Date.now()
+        
         const result = await processChatRequest({
             tenantId,
             userEmail,
@@ -153,40 +180,36 @@ export async function POST(req: NextRequest) {
             ],
             channel: 'whatsapp'
         })
+        
+        console.log(`[WhatsApp] Chat completed in ${Date.now() - startTime}ms`)
 
-        // 5. Save assistant response with tool_calls and send via WhatsApp
+        // 5. Save assistant response and send via WhatsApp
         await saveMessage(tenantId, sessionId, 'assistant', result.text, result.toolCalls)
         
-        // Format tables for WhatsApp before chunking
         const formattedText = formatTablesForWhatsApp(result.text)
+        const chunks = chunkMessageRespectingBullets(formattedText, 1500)
         
-        // WhatsApp limit is 1600 chars - split into multiple messages if needed
-        const MAX_WA_LENGTH = 1500 // Leave buffer for special chars
-        const chunks = chunkMessageRespectingBullets(formattedText, MAX_WA_LENGTH)
-        
-        // Send chunks with small delay to maintain order
         for (let i = 0; i < chunks.length; i++) {
             const chunkText = chunks.length > 1 
                 ? `(${i + 1}/${chunks.length}) ${chunks[i]}`
                 : chunks[i]
             await sendWhatsApp(tenantId, from, chunkText)
             if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 500)) // 500ms delay between chunks
+                await new Promise(resolve => setTimeout(resolve, 500))
             }
         }
-
-        // 6. Return empty TwiML to Twilio
-        return new Response('<Response></Response>', {
-            status: 200,
-            headers: { 'Content-Type': 'text/xml' }
-        })
+        
+        console.log(`[WhatsApp] Response sent to ${from}`)
 
     } catch (error: any) {
-        console.error('[WhatsApp] Webhook Error:', error)
-        // Try to notify the user of the error via WhatsApp if possible
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        })
+        console.error('[WhatsApp] Async processing error:', error)
+        try {
+            const tenantInfo = await getTenantByPhone(from)
+            if (tenantInfo) {
+                await sendWhatsApp(tenantInfo.id, from, `❌ Error: ${error.message?.substring(0, 100) || 'Error desconocido'}`)
+            }
+        } catch (e) {
+            console.error('[WhatsApp] Could not send error message:', e)
+        }
     }
 }
