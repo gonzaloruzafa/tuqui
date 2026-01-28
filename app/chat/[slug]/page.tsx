@@ -199,6 +199,7 @@ export default function ChatPage() {
     const [thinkingText, setThinkingText] = useState<string>('') // Chain of Thought text
     const [thinkingExpanded, setThinkingExpanded] = useState(false) // Collapsed by default
     const collectedSourcesRef = useRef<ThinkingSource[]>([]) // Track sources during streaming
+    const collectedStepsRef = useRef<ThinkingStep[]>([]) // Track steps during streaming (ref for capturing)
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [sessions, setSessions] = useState<Session[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
@@ -442,6 +443,7 @@ export default function ChatPage() {
             setThinkingSteps([]) // Reset thinking steps
             setThinkingText('') // Reset thinking text
             collectedSourcesRef.current = [] // Reset sources
+            collectedStepsRef.current = [] // Reset steps ref
 
             while (true) {
                 const { done, value } = await reader.read()
@@ -461,6 +463,13 @@ export default function ChatPage() {
                             // Collect sources in ref for later use
                             if (step.source && !collectedSourcesRef.current.includes(step.source)) {
                                 collectedSourcesRef.current.push(step.source)
+                            }
+                            // Also collect in steps ref for capturing later
+                            const existingIdx = collectedStepsRef.current.findIndex(s => s.tool === step.tool && s.startedAt === step.startedAt)
+                            if (existingIdx >= 0) {
+                                collectedStepsRef.current[existingIdx] = step
+                            } else {
+                                collectedStepsRef.current.push(step)
                             }
                             setThinkingSteps(prev => {
                                 // Update existing step or add new one
@@ -536,10 +545,9 @@ export default function ChatPage() {
             const finalText = botText
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(finalText))
             
-            // Use sources collected in ref (state may not be updated yet)
+            // Use refs collected during streaming (state may not be updated yet)
             const usedSources = [...collectedSourcesRef.current] as ThinkingSource[]
-            // Capture current thinking steps before clearing
-            const finalThinkingSteps = [...thinkingSteps]
+            const finalThinkingSteps = [...collectedStepsRef.current]
             
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')

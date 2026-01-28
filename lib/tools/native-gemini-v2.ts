@@ -224,6 +224,7 @@ export async function generateTextWithThinking({
             
             // Collect thinking summaries and function calls
             const functionCallParts: any[] = []
+            let stepText = ''  // Collect text for this step only
             
             for (const part of parts) {
                 // Check for thought summary
@@ -241,12 +242,16 @@ export async function generateTextWithThinking({
                 
                 // Check for regular text
                 if (!part.thought && part.text) {
-                    finalText += part.text
+                    stepText += part.text
                 }
             }
 
-            // If no function calls, we're done
-            if (functionCallParts.length === 0) break
+            // Only add text to final output if there are NO function calls
+            // (otherwise the model is requesting tools, not giving final answer)
+            if (functionCallParts.length === 0) {
+                finalText += stepText
+                break
+            }
 
             // Execute all function calls
             const functionResponses: any[] = []
@@ -351,18 +356,9 @@ export async function generateTextWithThinking({
                 thinkingTokens += response.usageMetadata.thoughtsTokenCount || 0
             }
 
-            // Extract final text from this response
-            for (const part of response.candidates?.[0]?.content?.parts || []) {
-                if (part.thought && part.text) {
-                    thinkingSummary += part.text
-                    if (onThinkingSummary) {
-                        onThinkingSummary(part.text)
-                    }
-                }
-                if (!part.thought && part.text) {
-                    finalText += part.text
-                }
-            }
+            // Note: Don't extract text here - let the next iteration of the loop handle it
+            // This prevents duplicating text if there are more function calls
+            // The loop will check for function calls and only add text when there are none
         }
 
         return {
