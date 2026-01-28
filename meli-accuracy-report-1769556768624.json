@@ -1,0 +1,254 @@
+{
+  "timestamp": "2026-01-27T23:32:48.625Z",
+  "summary": {
+    "totalLinks": 12,
+    "totalAccessible": 12,
+    "totalMatches": 0,
+    "totalMismatches": 2,
+    "totalNoComparison": 10,
+    "linkAccessibilityRate": 100,
+    "priceAccuracyRate": 0
+  },
+  "results": [
+    {
+      "query": "¿Cuánto cuesta una turbina LED dental en MercadoLibre?",
+      "agentResponse": "**🛒 Turbina LED Dental**\n\nEncontré algunas opciones en MercadoLibre:\n\n**1. Turbina Led Odontologica Alta Rotacion Borden Rosca Directa Global**\n- 💰 *Consultar precio*\n- 📦 Vendedor: Dental Global\n- ⭐ Conexión Borden, rosca directa\n\n**2. Turbina Led Odontologica Alta Rotacion Borden Rosca Directa Global**\n- 💰 *Consultar precio*\n- 📦 Vendedor: Mundo Odontológico\n- ⭐ Rosca Directa, alta rotación\n\n**3. Turbina Led Odontologica Alta Rotacion Borden Rosca Directa Global**\n- 💰 *Consultar precio*\n- 📦 Vendedor: DENTAL MEDICS\n- ⭐ Conexión Borden, rosca directa\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/turbina-led-odontologica-alta-rotacion-borden-rosca-directa-global/p/MLA26183390\n2. https://www.mercadolibre.com.ar/turbina-led-odontologica-alta-rotacion-borden-rosca-directa-global/p/MLA26183390\n3. https://www.mercadolibre.com.ar/turbina-led-odontologica-alta-rotacion-borden-rosca-directa-global/p/MLA26183390\n",
+      "extractedProducts": [
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-led-odontologica-alta-rotacion-borden-rosca-directa-global/p/MLA26183390",
+          "mentionedPrice": null,
+          "priceContext": "Led Odontologica Alta Rotacion Borden Rosca Directa Global**\n- 💰 *Consultar precio*\n- 📦 Vendedor: Dental Global\n- ⭐ Conexión Borden, rosca directa\n\n**2. Turbina Led Odontologica Alta Rotacion Borden Rosca Directa Global**\n- 💰 *Consultar precio*\n- 📦 Vendedor: Mundo Odontológico\n- ⭐ Rosca Directa,"
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-led-odontologica-alta-rotacion-borden-rosca-directa-global/p/MLA26183390",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        }
+      ],
+      "summary": {
+        "totalLinks": 1,
+        "accessibleLinks": 1,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 1
+      }
+    },
+    {
+      "query": "¿Cuánto sale un termo Stanley 1 litro?",
+      "agentResponse": "**🛒 Termo Stanley 1 Litro**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Termo Stanley Classic 1 Litro**\n- 💰 **$45.999**\n- 📦 Vendedor: Stanley Argentina (Tienda Oficial)\n- ⭐ Mantiene 24 horas caliente o frío, acero inoxidable 18/8, garantía de por vida\n\n**2. Termo Stanley Adventure 1 Litro**\n- 💰 **$39.999**\n- 📦 Vendedor: Aventura Store (MercadoLíder Platinum)\n- ⭐ Mantiene 24 horas caliente o frío, diseño más compacto, tapón cebador\n\n**3. Termo Stanley Legendary Bottle 1 Litro**\n- 💰 **$52.999**\n- 📦 Vendedor: Outdoors & Camping (MercadoLíder Gold)\n- ⭐ Mantiene 24 horas caliente o frío, edición especial, manija ergonómica\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-verde/p/MLA27738934\n2. https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-negro/p/MLA15486020\n3. https://www.mercadolibre.com.ar/termo-stanley-legendary-bottle-1-litro-rojo/p/MLA28055588",
+      "extractedProducts": [
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-verde/p/MLA27738934",
+          "mentionedPrice": 52999,
+          "priceContext": "(Tienda Oficial)\n- ⭐ Mantiene 24 horas caliente o frío, acero inoxidable 18/8, garantía de por vida\n\n**2. Termo Stanley Adventure 1 Litro**\n- 💰 **$39.999**\n- 📦 Vendedor: Aventura Store (MercadoLíder Platinum)\n- ⭐ Mantiene 24 horas caliente o frío, diseño más compacto, tapón cebador\n\n**3. Termo Sta"
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-negro/p/MLA15486020",
+          "mentionedPrice": 52999,
+          "priceContext": "ía de por vida\n\n**2. Termo Stanley Adventure 1 Litro**\n- 💰 **$39.999**\n- 📦 Vendedor: Aventura Store (MercadoLíder Platinum)\n- ⭐ Mantiene 24 horas caliente o frío, diseño más compacto, tapón cebador\n\n**3. Termo Stanley Legendary Bottle 1 Litro**\n- 💰 **$52.999**\n- 📦 Vendedor: Outdoors & Camping (M"
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-legendary-bottle-1-litro-rojo/p/MLA28055588",
+          "mentionedPrice": 52999,
+          "priceContext": "Aventura Store (MercadoLíder Platinum)\n- ⭐ Mantiene 24 horas caliente o frío, diseño más compacto, tapón cebador\n\n**3. Termo Stanley Legendary Bottle 1 Litro**\n- 💰 **$52.999**\n- 📦 Vendedor: Outdoors & Camping (MercadoLíder Gold)\n- ⭐ Mantiene 24 horas caliente o frío, edición especial, manija ergon"
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-verde/p/MLA27738934",
+          "mentionedPrice": 52999,
+          "actualPrice": 199999,
+          "actualTitle": "Valija polo king mf10088pk 27",
+          "isAccessible": true,
+          "priceMatch": "different",
+          "priceDifference": 147000,
+          "percentDiff": 277.36372384384606
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-negro/p/MLA15486020",
+          "mentionedPrice": 52999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-legendary-bottle-1-litro-rojo/p/MLA28055588",
+          "mentionedPrice": 52999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        }
+      ],
+      "summary": {
+        "totalLinks": 3,
+        "accessibleLinks": 3,
+        "priceMatches": 0,
+        "priceMismatches": 1,
+        "noComparison": 2
+      }
+    },
+    {
+      "query": "Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre",
+      "agentResponse": "¡Dale! Acá tenés algunas opciones que encontré en MercadoLibre para el iPhone 15 Pro Max de 256GB:\n\n📱 *iPhone 15 Pro Max 256GB*\n\nEncontré varias opciones en MercadoLibre:\n\n1. *Iphone 15 Pro Max 256gb Nuevo (exhibicion) + Garantia Blue*\n   - 💰 Precio: Consultar\n   - 📦 Memoria RAM: 8 GB\n   - ⭐ Dispositivo liberado, compatible con redes 5G.\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-2774388452-iphone-15-pro-max-256gb-nuevo-exhibicion-garantia-blue-_JM)\n\n2. *Apple iPhone 15 Pro Max 256gb Titanio Negro Celular*\n   - 💰 Precio: Consultar\n   - 📦 iPhone 15 Pro Max: Innovación y Rendimiento Sin Igual\n   - ⭐ Forjado en titanio y potenciado por el revolucionario chip A17 Pro\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1599027059-apple-iphone-15-pro-max-256gb-titanio-negro-celular-_JM)\n\n3. *Iphone 15 Pro Max 256gb Bat 97% Con Caja Y Cable*\n   - 💰 Precio: Consultar\n   - 📦 Iphone 15 Pro Max 256gb Bat 97% Con Caja Y Cable - Leer Azul Marino\n   - ⭐ Comprá online de manera segura con Compra Protegida ©\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1905698820-iphone-15-pro-max-256gb-bat-97-con-caja-y-cable-leer-_JM)\n\n4. *Apple iPhone 15 Pro Max 256gb Sellado Consultar Colores*\n   - 💰 Precio: Consultar\n   - 📦 Apple iPhone 15 Pro Max 256gb Sellado Consultar Colores\n   - ⭐ Nuevo | +5 vendidos\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1767302852-apple-iphone-15-pro-max-256gb-sellado-consultar-colores-_JM)\n\n5. *Apple iPhone 15 Pro Max (256 Gb) - Caja Sellada + ...*\n   - 💰 Precio: Consultar\n   - 📦 PHONE 15 PRO MAX DE 256GB EN CAJA SELLADA Y GARANTIA OFICIAL DE APPLE DE 12 MESES CON CARGADOR DE REGALO EN STOCK DISPONIBLE\n   - ⭐ Somos importadores\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1906006560-apple-iphone-15-pro-max-256-gb-caja-sellada-cargador-_JM)\n\nComo podés ver, los precios varían y muchos dicen \"Consultar\". Te recomiendo revisar cada link para ver el precio actualizado y las condiciones de venta.",
+      "extractedProducts": [
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-2774388452-iphone-15-pro-max-256gb-nuevo-exhibicion-garantia-blue-_JM",
+          "mentionedPrice": null,
+          "priceContext": "¡Dale! Acá tenés algunas opciones que encontré en MercadoLibre para el iPhone 15 Pro Max de 256GB:\n\n📱 *iPhone 15 Pro Max 256GB*\n\nEncontré varias opciones en MercadoLibre:\n\n1. *Iphone 15 Pro Max 256gb Nuevo (exhibicion) + Garantia Blue*\n   - 💰 Precio: Consultar\n   - 📦 Memoria RAM: 8 GB\n   - ⭐ Disp"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1599027059-apple-iphone-15-pro-max-256gb-titanio-negro-celular-_JM",
+          "mentionedPrice": null,
+          "priceContext": "a Blue*\n   - 💰 Precio: Consultar\n   - 📦 Memoria RAM: 8 GB\n   - ⭐ Dispositivo liberado, compatible con redes 5G.\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-2774388452-iphone-15-pro-max-256gb-nuevo-exhibicion-garantia-blue-_JM)\n\n2. *Apple iPhone 15 Pro Max 256gb Titanio Negr"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1905698820-iphone-15-pro-max-256gb-bat-97-con-caja-y-cable-leer-_JM",
+          "mentionedPrice": null,
+          "priceContext": "Pro Max: Innovación y Rendimiento Sin Igual\n   - ⭐ Forjado en titanio y potenciado por el revolucionario chip A17 Pro\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1599027059-apple-iphone-15-pro-max-256gb-titanio-negro-celular-_JM)\n\n3. *Iphone 15 Pro Max 256gb Bat 97% Con Caja "
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1767302852-apple-iphone-15-pro-max-256gb-sellado-consultar-colores-_JM",
+          "mentionedPrice": null,
+          "priceContext": "\udcb0 Precio: Consultar\n   - 📦 Iphone 15 Pro Max 256gb Bat 97% Con Caja Y Cable - Leer Azul Marino\n   - ⭐ Comprá online de manera segura con Compra Protegida ©\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1905698820-iphone-15-pro-max-256gb-bat-97-con-caja-y-cable-leer-_JM)\n\n4. *A"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1906006560-apple-iphone-15-pro-max-256-gb-caja-sellada-cargador-_JM",
+          "mentionedPrice": null,
+          "priceContext": "- 📦 Apple iPhone 15 Pro Max 256gb Sellado Consultar Colores\n   - ⭐ Nuevo | +5 vendidos\n   - [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1767302852-apple-iphone-15-pro-max-256gb-sellado-consultar-colores-_JM)\n\n5. *Apple iPhone 15 Pro Max (256 Gb) - Caja Sellada + ...*\n   - 💰 Prec"
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-2774388452-iphone-15-pro-max-256gb-nuevo-exhibicion-garantia-blue-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": "Iphone 15 Pro Max 256gb Nuevo (exhibicion) + Garantia Blue",
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1599027059-apple-iphone-15-pro-max-256gb-titanio-negro-celular-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1905698820-iphone-15-pro-max-256gb-bat-97-con-caja-y-cable-leer-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": "Iphone 15 Pro Max 256gb Bat 97% Con Caja Y Cable - Leer Azul Marino",
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1767302852-apple-iphone-15-pro-max-256gb-sellado-consultar-colores-_JM",
+          "mentionedPrice": null,
+          "actualPrice": 299999,
+          "actualTitle": "Apple iPhone 15 Pro Max 256gb Sellado Consultar Colores",
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1906006560-apple-iphone-15-pro-max-256-gb-caja-sellada-cargador-_JM",
+          "mentionedPrice": null,
+          "actualPrice": 2829999,
+          "actualTitle": "Apple iPhone 15 Pro Max (256 Gb)  - Caja Sellada + Cargador",
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        }
+      ],
+      "summary": {
+        "totalLinks": 5,
+        "accessibleLinks": 5,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 5
+      }
+    },
+    {
+      "query": "¿Cuál es el rango de precios de la PS5 en MercadoLibre?",
+      "agentResponse": "**🛒 PlayStation 5**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Sony PlayStation 5 825GB Standard**\n- 💰 **$659.999**\n- 📦 Vendedor: Compumaniacos\n- ⭐ Incluye un joystick\n\n**2. Sony PlayStation 5 Digital Edition 825GB**\n- 💰 **$629.999**\n- 📦 Vendedor: Unishop\n- ⭐ No incluye lector de discos\n\n**3. Sony PlayStation 5 825GB Standard + Juego EA Sports FC 24**\n- 💰 **$729.999**\n- 📦 Vendedor: Akihabara Shop\n- ⭐ Incluye un joystick y el juego EA Sports FC 24\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard/p/MLA20704510\n2. https://www.mercadolibre.com.ar/sony-playstation-5-digital-edition-825gb/p/MLA20704499\n3. https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard-juego-ea-sports-fc-24/p/MLA26734722\n",
+      "extractedProducts": [
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard/p/MLA20704510",
+          "mentionedPrice": 729999,
+          "priceContext": "**🛒 PlayStation 5**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Sony PlayStation 5 825GB Standard**\n- 💰 **$659.999**\n- 📦 Vendedor: Compumaniacos\n- ⭐ Incluye un joystick\n\n**2. Sony PlayStation 5 Digital Edition 825GB**\n- 💰 **$629.999**\n- 📦 Vendedor: Unishop\n- ⭐ No incluye lector de discos\n\n"
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-digital-edition-825gb/p/MLA20704499",
+          "mentionedPrice": 729999,
+          "priceContext": "Sony PlayStation 5 825GB Standard**\n- 💰 **$659.999**\n- 📦 Vendedor: Compumaniacos\n- ⭐ Incluye un joystick\n\n**2. Sony PlayStation 5 Digital Edition 825GB**\n- 💰 **$629.999**\n- 📦 Vendedor: Unishop\n- ⭐ No incluye lector de discos\n\n**3. Sony PlayStation 5 825GB Standard + Juego EA Sports FC 24**\n- 💰 "
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard-juego-ea-sports-fc-24/p/MLA26734722",
+          "mentionedPrice": 729999,
+          "priceContext": "cluye un joystick\n\n**2. Sony PlayStation 5 Digital Edition 825GB**\n- 💰 **$629.999**\n- 📦 Vendedor: Unishop\n- ⭐ No incluye lector de discos\n\n**3. Sony PlayStation 5 825GB Standard + Juego EA Sports FC 24**\n- 💰 **$729.999**\n- 📦 Vendedor: Akihabara Shop\n- ⭐ Incluye un joystick y el juego EA Sports F"
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard/p/MLA20704510",
+          "mentionedPrice": 729999,
+          "actualPrice": null,
+          "actualTitle": "Bloques para armar Lego Classic 854031",
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-digital-edition-825gb/p/MLA20704499",
+          "mentionedPrice": 729999,
+          "actualPrice": 42000,
+          "actualTitle": "Bloques para armar Maral MARAL Arca de Noé",
+          "isAccessible": true,
+          "priceMatch": "different",
+          "priceDifference": -687999,
+          "percentDiff": -94.24656746105131
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard-juego-ea-sports-fc-24/p/MLA26734722",
+          "mentionedPrice": 729999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        }
+      ],
+      "summary": {
+        "totalLinks": 3,
+        "accessibleLinks": 3,
+        "priceMatches": 0,
+        "priceMismatches": 1,
+        "noComparison": 2
+      }
+    }
+  ]
+}

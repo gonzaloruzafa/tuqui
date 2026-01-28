@@ -1,0 +1,239 @@
+{
+  "timestamp": "2026-01-27T23:45:09.678Z",
+  "summary": {
+    "totalLinks": 11,
+    "totalAccessible": 11,
+    "totalMatches": 0,
+    "totalMismatches": 1,
+    "totalNoComparison": 10,
+    "linkAccessibilityRate": 100,
+    "priceAccuracyRate": 0
+  },
+  "results": [
+    {
+      "query": "¿Cuánto cuesta una turbina LED dental en MercadoLibre?",
+      "agentResponse": "**🛒 Turbina LED Dental**\n\nEncontré algunas opciones en MercadoLibre:\n\n**1. Turbina Led Push Button Borden 2 Agujeros Odontología NSK**\n- 💰 *$49.500*\n- 📦 Vendedor: NSK Argentina\n- ⭐ Rodamientos cerámicos, spray simple, conexión Borden\n\n**2. Turbina Dental Led Con Acople Rápido Qd Para Sillón Odontológico**\n- 💰 *$139.000*\n- 📦 Vendedor: Dental Speed\n- ⭐ Push Button, alta velocidad, conector rápido\n\n**3. Turbina Led E-generador Push Button Triple Spray M4 Odontología**\n- 💰 *$84.999*\n- 📦 Vendedor: No indica\n- ⭐ Conexión Midwest de 4 orificios, triple spray, potente\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/turbina-led-push-button-borden-2-agujeros-odontologia-nsk/p/MLA25242008\n2. https://www.mercadolibre.com.ar/turbina-dental-led-con-acople-rapido-qd-para-sillon-odontologico/p/MLA26431287\n3. https://www.mercadolibre.com.ar/turbina-led-e-generador-push-button-triple-spray-m4-odontologia/p/MLA16928993",
+      "extractedProducts": [
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-led-push-button-borden-2-agujeros-odontologia-nsk/p/MLA25242008",
+          "mentionedPrice": 84999,
+          "priceContext": "ton Borden 2 Agujeros Odontología NSK**\n- 💰 *$49.500*\n- 📦 Vendedor: NSK Argentina\n- ⭐ Rodamientos cerámicos, spray simple, conexión Borden\n\n**2. Turbina Dental Led Con Acople Rápido Qd Para Sillón Odontológico**\n- 💰 *$139.000*\n- 📦 Vendedor: Dental Speed\n- ⭐ Push Button, alta velocidad, conector "
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-dental-led-con-acople-rapido-qd-para-sillon-odontologico/p/MLA26431287",
+          "mentionedPrice": 84999,
+          "priceContext": "os, spray simple, conexión Borden\n\n**2. Turbina Dental Led Con Acople Rápido Qd Para Sillón Odontológico**\n- 💰 *$139.000*\n- 📦 Vendedor: Dental Speed\n- ⭐ Push Button, alta velocidad, conector rápido\n\n**3. Turbina Led E-generador Push Button Triple Spray M4 Odontología**\n- 💰 *$84.999*\n- 📦 Vendedor"
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-led-e-generador-push-button-triple-spray-m4-odontologia/p/MLA16928993",
+          "mentionedPrice": 84999,
+          "priceContext": "139.000*\n- 📦 Vendedor: Dental Speed\n- ⭐ Push Button, alta velocidad, conector rápido\n\n**3. Turbina Led E-generador Push Button Triple Spray M4 Odontología**\n- 💰 *$84.999*\n- 📦 Vendedor: No indica\n- ⭐ Conexión Midwest de 4 orificios, triple spray, potente\n\n---\n**🔗 Links:**\n1. https://www.mercadoli"
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-led-push-button-borden-2-agujeros-odontologia-nsk/p/MLA25242008",
+          "mentionedPrice": 84999,
+          "actualPrice": null,
+          "actualTitle": "Aditivo vinilico multiuso Weber TACURU",
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-dental-led-con-acople-rapido-qd-para-sillon-odontologico/p/MLA26431287",
+          "mentionedPrice": 84999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/turbina-led-e-generador-push-button-triple-spray-m4-odontologia/p/MLA16928993",
+          "mentionedPrice": 84999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        }
+      ],
+      "summary": {
+        "totalLinks": 3,
+        "accessibleLinks": 3,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 3
+      }
+    },
+    {
+      "query": "¿Cuánto sale un termo Stanley 1 litro?",
+      "agentResponse": "**🛒 Termo Stanley 1 Litro**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Termo Stanley Classic 1 Litro**\n- 💰 **$65.999**\n- 📦 Vendedor: Stanley Store Oficial\n- ⭐ Mantiene bebidas calientes por 24 horas y frías por 24 horas.\n\n**2. Termo Stanley Adventure 1 Litro**\n- 💰 **$59.999**\n- 📦 Vendedor: Aventura Store\n- ⭐ Diseño robusto, ideal para actividades al aire libre.\n\n**3. Termo Stanley Everyday 1 Litro**\n- 💰 **$49.999**\n- 📦 Vendedor: Tienda de Camping\n- ⭐ Opción más económica, mantiene la temperatura por 20 horas.\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-color-verde/p/MLA22599764\n2. https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-color-negro/p/MLA14103899\n3. No encontré la URL específica para el \"Termo Stanley Everyday 1 Litro\".\n",
+      "extractedProducts": [
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-color-verde/p/MLA22599764",
+          "mentionedPrice": 49999,
+          "priceContext": "ones en MercadoLibre:\n\n**1. Termo Stanley Classic 1 Litro**\n- 💰 **$65.999**\n- 📦 Vendedor: Stanley Store Oficial\n- ⭐ Mantiene bebidas calientes por 24 horas y frías por 24 horas.\n\n**2. Termo Stanley Adventure 1 Litro**\n- 💰 **$59.999**\n- 📦 Vendedor: Aventura Store\n- ⭐ Diseño robusto, ideal para ac"
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-color-negro/p/MLA14103899",
+          "mentionedPrice": 49999,
+          "priceContext": "Stanley Store Oficial\n- ⭐ Mantiene bebidas calientes por 24 horas y frías por 24 horas.\n\n**2. Termo Stanley Adventure 1 Litro**\n- 💰 **$59.999**\n- 📦 Vendedor: Aventura Store\n- ⭐ Diseño robusto, ideal para actividades al aire libre.\n\n**3. Termo Stanley Everyday 1 Litro**\n- 💰 **$49.999**\n- 📦 Vended"
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-color-verde/p/MLA22599764",
+          "mentionedPrice": 49999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-color-negro/p/MLA14103899",
+          "mentionedPrice": 49999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        }
+      ],
+      "summary": {
+        "totalLinks": 2,
+        "accessibleLinks": 2,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 2
+      }
+    },
+    {
+      "query": "Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre",
+      "agentResponse": "**🛒 iPhone 15 Pro Max 256GB nuevo**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Apple iPhone 15 Pro Max (256 GB) - Titanio natural**\n- 💰 **$2.299.999**\n- 📦 Vendedor: Tienda Oficial Apple\n- ⭐ Pantalla Super Retina XDR de 6,7\", chip A17 Bionic, cámara principal de 48 MP, resistencia al agua.\n\n**2. Apple iPhone 15 Pro Max (256 GB) - Titanio azul**\n- 💰 **$2.299.999**\n- 📦 Vendedor: Tienda Oficial Apple\n- ⭐ Pantalla Super Retina XDR de 6,7\", chip A17 Bionic, cámara principal de 48 MP, resistencia al agua.\n\n**3. Apple iPhone 15 Pro Max (256 GB) - Titanio negro**\n- 💰 **$2.299.999**\n- 📦 Vendedor: Tienda Oficial Apple\n- ⭐ Pantalla Super Retina XDR de 6,7\", chip A17 Bionic, cámara principal de 48 MP, resistencia al agua.\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-natural/p/MLA26208002\n2. https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-azul/p/MLA26988989\n3. https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-negro/p/MLA26794047",
+      "extractedProducts": [
+        {
+          "url": "https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-natural/p/MLA26208002",
+          "mentionedPrice": 2299999,
+          "priceContext": "ara principal de 48 MP, resistencia al agua.\n\n**2. Apple iPhone 15 Pro Max (256 GB) - Titanio azul**\n- 💰 **$2.299.999**\n- 📦 Vendedor: Tienda Oficial Apple\n- ⭐ Pantalla Super Retina XDR de 6,7\", chip A17 Bionic, cámara principal de 48 MP, resistencia al agua.\n\n**3. Apple iPhone 15 Pro Max (256 GB) "
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-azul/p/MLA26988989",
+          "mentionedPrice": 2299999,
+          "priceContext": "ul**\n- 💰 **$2.299.999**\n- 📦 Vendedor: Tienda Oficial Apple\n- ⭐ Pantalla Super Retina XDR de 6,7\", chip A17 Bionic, cámara principal de 48 MP, resistencia al agua.\n\n**3. Apple iPhone 15 Pro Max (256 GB) - Titanio negro**\n- 💰 **$2.299.999**\n- 📦 Vendedor: Tienda Oficial Apple\n- ⭐ Pantalla Super Ret"
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-negro/p/MLA26794047",
+          "mentionedPrice": 2299999,
+          "priceContext": "6,7\", chip A17 Bionic, cámara principal de 48 MP, resistencia al agua.\n\n**3. Apple iPhone 15 Pro Max (256 GB) - Titanio negro**\n- 💰 **$2.299.999**\n- 📦 Vendedor: Tienda Oficial Apple\n- ⭐ Pantalla Super Retina XDR de 6,7\", chip A17 Bionic, cámara principal de 48 MP, resistencia al agua.\n\n---\n**🔗 Li"
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-natural/p/MLA26208002",
+          "mentionedPrice": 2299999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-azul/p/MLA26988989",
+          "mentionedPrice": 2299999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-negro/p/MLA26794047",
+          "mentionedPrice": 2299999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        }
+      ],
+      "summary": {
+        "totalLinks": 3,
+        "accessibleLinks": 3,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 3
+      }
+    },
+    {
+      "query": "¿Cuál es el rango de precios de la PS5 en MercadoLibre?",
+      "agentResponse": "**🛒 PS5**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Sony PlayStation 5 825GB Standard color blanco**\n- 💰 **$749.999**\n- 📦 Vendedor: Compumaniacos\n- ⭐ Consola de videojuegos con lectora de Blu-ray, un joystick, resolución de 8K y tecnología HDR.\n\n**2. Sony PlayStation 5 Digital Edition 825GB color blanco**\n- 💰 **$659.999**\n- 📦 Vendedor: Compumaniacos\n- ⭐ Consola de videojuegos sin lectora de discos, un joystick, resolución de 8K y tecnología HDR.\n\n**3. Sony Playstation 5 + Marvel´s Spider-man Miles Morales Standard**\n- 💰 **$829.999**\n- 📦 Vendedor: Akihabara Shop\n- ⭐ Incluye juego Marvel's Spider-Man: Miles Morales, consola con lectora de Blu-ray, un joystick, resolución de 8K y tecnología HDR.\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard-color-blanco/p/MLA20420888\n2. https://www.mercadolibre.com.ar/sony-playstation-5-digital-edition-825gb-color-blanco/p/MLA20489571\n3. https://www.mercadolibre.com.ar/sony-playstation-5-marvels-spider-man-miles-morales-standard/p/MLA23844953",
+      "extractedProducts": [
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard-color-blanco/p/MLA20420888",
+          "mentionedPrice": 829999,
+          "priceContext": "tecnología HDR.\n\n**2. Sony PlayStation 5 Digital Edition 825GB color blanco**\n- 💰 **$659.999**\n- 📦 Vendedor: Compumaniacos\n- ⭐ Consola de videojuegos sin lectora de discos, un joystick, resolución de 8K y tecnología HDR.\n\n**3. Sony Playstation 5 + Marvel´s Spider-man Miles Morales Standard**\n- 💰 "
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-digital-edition-825gb-color-blanco/p/MLA20489571",
+          "mentionedPrice": 829999,
+          "priceContext": "- 📦 Vendedor: Compumaniacos\n- ⭐ Consola de videojuegos sin lectora de discos, un joystick, resolución de 8K y tecnología HDR.\n\n**3. Sony Playstation 5 + Marvel´s Spider-man Miles Morales Standard**\n- 💰 **$829.999**\n- 📦 Vendedor: Akihabara Shop\n- ⭐ Incluye juego Marvel's Spider-Man: Miles Morales,"
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-marvels-spider-man-miles-morales-standard/p/MLA23844953",
+          "mentionedPrice": 829999,
+          "priceContext": "de 8K y tecnología HDR.\n\n**3. Sony Playstation 5 + Marvel´s Spider-man Miles Morales Standard**\n- 💰 **$829.999**\n- 📦 Vendedor: Akihabara Shop\n- ⭐ Incluye juego Marvel's Spider-Man: Miles Morales, consola con lectora de Blu-ray, un joystick, resolución de 8K y tecnología HDR.\n\n---\n**🔗 Links:**\n1. "
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-825gb-standard-color-blanco/p/MLA20420888",
+          "mentionedPrice": 829999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-digital-edition-825gb-color-blanco/p/MLA20489571",
+          "mentionedPrice": 829999,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": true,
+          "priceMatch": "no-comparison",
+          "priceDifference": null,
+          "percentDiff": null
+        },
+        {
+          "url": "https://www.mercadolibre.com.ar/sony-playstation-5-marvels-spider-man-miles-morales-standard/p/MLA23844953",
+          "mentionedPrice": 829999,
+          "actualPrice": 76182,
+          "actualTitle": "MARDUK -  Ángel de Plaga producido por VALHALL MUSIC",
+          "isAccessible": true,
+          "priceMatch": "different",
+          "priceDifference": -753817,
+          "percentDiff": -90.82143472462015
+        }
+      ],
+      "summary": {
+        "totalLinks": 3,
+        "accessibleLinks": 3,
+        "priceMatches": 0,
+        "priceMismatches": 1,
+        "noComparison": 2
+      }
+    }
+  ]
+}

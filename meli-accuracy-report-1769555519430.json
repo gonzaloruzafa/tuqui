@@ -1,0 +1,148 @@
+{
+  "timestamp": "2026-01-27T23:11:59.431Z",
+  "summary": {
+    "totalLinks": 5,
+    "totalAccessible": 0,
+    "totalMatches": 0,
+    "totalMismatches": 0,
+    "totalNoComparison": 5,
+    "linkAccessibilityRate": 0,
+    "priceAccuracyRate": null
+  },
+  "results": [
+    {
+      "query": "¿Cuánto cuesta una turbina LED dental en MercadoLibre?",
+      "agentResponse": "Buscando turbinas LED dentales en MercadoLibre, encontré varias opciones. Los precios varían bastante, pero muchos vendedores dicen \"Consultar precio\". Acá te dejo algunos ejemplos:\n\n*Turbina De Alta Velocidad A2 Led Apple Dental*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1399908723-turbina-de-alta-velocidad-a2-led-apple-dental-_JM)\n\n*Turbina Sirion Con Luz Led Lux 375 Push Botton Ultra One*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-933643923-turbina-sirion-con-luz-led-lux-375-push-botton-ultra-one-_JM)\n\n*Turbina Dental Gacela Evo Lux Led Push Botton ...*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-933798529-turbina-dental-gacela-evo-lux-led-push-botton-odontologia-_JM)\n\n*Turbina Con Luz Led Push Button Triple Spray Cx207-f ...*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-858367799-turbina-con-luz-led-push-button-triple-spray-cx207-f-coxo-_JM)\n\n*Turbina Push Button Triple Spray Luz Led Airlight M800 ...*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1141622797-turbina-push-button-triple-spray-luz-led-airlight-m800-beyes-_JM)\n\nComo los precios no están disponibles, te recomiendo consultar directamente en los links.\n",
+      "extractedProducts": [
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1399908723-turbina-de-alta-velocidad-a2-led-apple-dental-_JM",
+          "mentionedPrice": null,
+          "priceContext": "os precios varían bastante, pero muchos vendedores dicen \"Consultar precio\". Acá te dejo algunos ejemplos:\n\n*Turbina De Alta Velocidad A2 Led Apple Dental*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1399908723-turbina-de-alta-velocidad-a2-led-apple-dental-_JM)\n\n*Turbina Sirion Con Luz Led Lux 375 Push Botton Ultra One*\n- Precio: Consultar\n- [Ver en MercadoL"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-933643923-turbina-sirion-con-luz-led-lux-375-push-botton-ultra-one-_JM",
+          "mentionedPrice": null,
+          "priceContext": "/articulo.mercadolibre.com.ar/MLA-1399908723-turbina-de-alta-velocidad-a2-led-apple-dental-_JM)\n\n*Turbina Sirion Con Luz Led Lux 375 Push Botton Ultra One*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-933643923-turbina-sirion-con-luz-led-lux-375-push-botton-ultra-one-_JM)\n\n*Turbina Dental Gacela Evo Lux Led Push Botton ...*\n- Precio: Consultar\n- [Ver en MercadoLibre](h"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-933798529-turbina-dental-gacela-evo-lux-led-push-botton-odontologia-_JM",
+          "mentionedPrice": null,
+          "priceContext": "ticulo.mercadolibre.com.ar/MLA-933643923-turbina-sirion-con-luz-led-lux-375-push-botton-ultra-one-_JM)\n\n*Turbina Dental Gacela Evo Lux Led Push Botton ...*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-933798529-turbina-dental-gacela-evo-lux-led-push-botton-odontologia-_JM)\n\n*Turbina Con Luz Led Push Button Triple Spray Cx207-f ...*\n- Precio: Consultar\n- [Ver en MercadoL"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-858367799-turbina-con-luz-led-push-button-triple-spray-cx207-f-coxo-_JM",
+          "mentionedPrice": null,
+          "priceContext": "ercadolibre.com.ar/MLA-933798529-turbina-dental-gacela-evo-lux-led-push-botton-odontologia-_JM)\n\n*Turbina Con Luz Led Push Button Triple Spray Cx207-f ...*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-858367799-turbina-con-luz-led-push-button-triple-spray-cx207-f-coxo-_JM)\n\n*Turbina Push Button Triple Spray Luz Led Airlight M800 ...*\n- Precio: Consultar\n- [Ver en Mercad"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1141622797-turbina-push-button-triple-spray-luz-led-airlight-m800-beyes-_JM",
+          "mentionedPrice": null,
+          "priceContext": "cadolibre.com.ar/MLA-858367799-turbina-con-luz-led-push-button-triple-spray-cx207-f-coxo-_JM)\n\n*Turbina Push Button Triple Spray Luz Led Airlight M800 ...*\n- Precio: Consultar\n- [Ver en MercadoLibre](https://articulo.mercadolibre.com.ar/MLA-1141622797-turbina-push-button-triple-spray-luz-led-airlight-m800-beyes-_JM)\n\nComo los precios no están disponibles, te recomiendo consultar directamente en los links."
+        }
+      ],
+      "verificationResults": [
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1399908723-turbina-de-alta-velocidad-a2-led-apple-dental-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": false,
+          "priceMatch": "error",
+          "priceDifference": null,
+          "percentDiff": null,
+          "error": "page.waitForTimeout is not a function"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-933643923-turbina-sirion-con-luz-led-lux-375-push-botton-ultra-one-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": false,
+          "priceMatch": "error",
+          "priceDifference": null,
+          "percentDiff": null,
+          "error": "page.waitForTimeout is not a function"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-933798529-turbina-dental-gacela-evo-lux-led-push-botton-odontologia-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": false,
+          "priceMatch": "error",
+          "priceDifference": null,
+          "percentDiff": null,
+          "error": "page.waitForTimeout is not a function"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-858367799-turbina-con-luz-led-push-button-triple-spray-cx207-f-coxo-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": false,
+          "priceMatch": "error",
+          "priceDifference": null,
+          "percentDiff": null,
+          "error": "page.waitForTimeout is not a function"
+        },
+        {
+          "url": "https://articulo.mercadolibre.com.ar/MLA-1141622797-turbina-push-button-triple-spray-luz-led-airlight-m800-beyes-_JM",
+          "mentionedPrice": null,
+          "actualPrice": null,
+          "actualTitle": null,
+          "isAccessible": false,
+          "priceMatch": "error",
+          "priceDifference": null,
+          "percentDiff": null,
+          "error": "page.waitForTimeout is not a function"
+        }
+      ],
+      "summary": {
+        "totalLinks": 5,
+        "accessibleLinks": 0,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 5
+      }
+    },
+    {
+      "query": "¿Cuánto sale un termo Stanley 1 litro?",
+      "agentResponse": "**🛒 Termo Stanley 1 Litro**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Termo Stanley Classic 1 Litro con Tapón Cebador**\n- 💰 **$49.999**\n- 📦 Vendedor: Stanley Argentina (Tienda Oficial)\n- ⭐ Acero inoxidable 18/8, doble pared aislada al vacío, mantiene 24 horas caliente o frío, tapón cebador.\n\n**2. Termo Stanley Adventure 1 Litro con Tapa Vaso**\n- 💰 **$54.999**\n- 📦 Vendedor: Aventura Store (MercadoLíder Platinum)\n- ⭐ Acero inoxidable, tapa que sirve como vaso, mantiene 24 horas caliente o frío, diseño resistente.\n\n**3. Termo Stanley Legendary Classic 1 Litro**\n- 💰 **$47.999**\n- 📦 Vendedor: Full Outdoor (MercadoLíder Gold)\n- ⭐ El clásico de Stanley, mantiene 24 horas caliente o frío, acero inoxidable, tapón tradicional.\n\n---\n**🔗 Links:**\n1. [https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-con-tapon-cebador-color-verde/p/MLA22803101](https://www.mercadolibre.com.ar/termo-stanley-classic-1-litro-con-tapon-cebador-color-verde/p/MLA22803101)\n2. [https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-con-tapa-vaso-color-verde/p/MLA22803352](https://www.mercadolibre.com.ar/termo-stanley-adventure-1-litro-con-tapa-vaso-color-verde/p/MLA22803352)\n3. [https://www.mercadolibre.com.ar/termo-stanley-legendary-classic-1-litro-color-verde/p/MLA22803097](https://www.mercadolibre.com.ar/termo-stanley-legendary-classic-1-litro-color-verde/p/MLA22803097)\n",
+      "extractedProducts": [],
+      "verificationResults": [],
+      "summary": {
+        "totalLinks": 0,
+        "accessibleLinks": 0,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 0
+      }
+    },
+    {
+      "query": "Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre",
+      "agentResponse": "**🛒 iPhone 15 Pro Max 256GB**\n\nEncontré algunas opciones en MercadoLibre:\n\n**1. iPhone 15 Pro Max 256gb**\n- 💰 *Consultar precio*\n- 📦 Vendedor: Celulares y Smartphones\n- ⭐ Producto nuevo\n\n**2. Apple iPhone 15 Pro Max (256 GB) - Titanio Natural**\n- 💰 *$2.099.999*\n- 📦 Vendedor: GADGETS_STORE\n- ⭐ Nuevo, con envío gratis\n\n**3. Apple iPhone 15 Pro Max (256 GB) - Titanio Azul**\n- 💰 *$2.129.999*\n- 📦 Vendedor: GADGETS_STORE\n- ⭐ Nuevo, con envío gratis\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/iphone-15-pro-max-256gb/p/MLA27705308\n2. https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-natural/p/MLA27599946\n3. https://www.mercadolibre.com.ar/apple-iphone-15-pro-max-256-gb-titanio-azul/p/MLA27595337",
+      "extractedProducts": [],
+      "verificationResults": [],
+      "summary": {
+        "totalLinks": 0,
+        "accessibleLinks": 0,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 0
+      }
+    },
+    {
+      "query": "¿Cuál es el rango de precios de la PS5 en MercadoLibre?",
+      "agentResponse": "**🛒 PS5**\n\nEncontré varias opciones en MercadoLibre:\n\n**1. Sony PlayStation 5 Standard Edition**\n- 💰 **$749.999**\n- 📦 Vendedor: Importech\n- ⭐ Incluye un joystick\n\n**2. Sony PlayStation 5 Digital Edition**\n- 💰 **$689.999**\n- 📦 Vendedor: CompraGamer\n- ⭐ No incluye lector de discos\n\n**3. Sony PlayStation 5 + Juego a elección**\n- 💰 **$829.999**\n- 📦 Vendedor: Frávega\n- ⭐ Incluye un juego a elección y un joystick\n\n---\n**🔗 Links:**\n1. https://www.mercadolibre.com.ar/sony-playstation-5-standard-edition/p/MLA20742990\n2. https://www.mercadolibre.com.ar/sony-playstation-5-digital-edition/p/MLA20743002\n3. https://www.mercadolibre.com.ar/sony-playstation-5-standard-edition-color-blanco/p/MLA26290819",
+      "extractedProducts": [],
+      "verificationResults": [],
+      "summary": {
+        "totalLinks": 0,
+        "accessibleLinks": 0,
+        "priceMatches": 0,
+        "priceMismatches": 0,
+        "noComparison": 0
+      }
+    }
+  ]
+}

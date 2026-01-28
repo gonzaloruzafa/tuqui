@@ -14,10 +14,11 @@
 export interface EvalTestCase {
   id: string;
   question: string;
-  category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'rrhh' | 'comparativas' | 'productos' | 'edge-cases';
+  category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'rrhh' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre';
   expectedPatterns: RegExp[];
   forbiddenPatterns?: RegExp[];
   requiresNumericData?: boolean;
+  requiresValidLinks?: boolean; // Para tests de MeLi: validar que los links sean de producto real
   requiresList?: boolean;
   expectedSkillHints?: string[];
   timeout?: number; // ms, default 30000
@@ -101,6 +102,40 @@ const ventasTestCases: EvalTestCase[] = [
     ],
     // Note: If client doesn't exist, agent may return $0 or "no encontré"
     // Both are valid responses
+  },
+  // NEW: More demanding sales tests
+  {
+    id: 'ventas-008',
+    question: 'Dame el total de ventas de los últimos 3 meses desglosado por mes',
+    category: 'ventas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre/i,
+    ],
+    forbiddenPatterns: [
+      /no pude|error|no tengo|disculpá/i,
+    ],
+    requiresNumericData: true,
+    requiresList: true,
+  },
+  {
+    id: 'ventas-009',
+    question: '¿Cuál es el ticket promedio de venta?',
+    category: 'ventas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /promedio|average|media/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'ventas-010',
+    question: '¿Cuántos clientes nuevos tuvimos este mes?',
+    category: 'ventas',
+    expectedPatterns: [
+      /\d+|cliente|nuevo/i,
+    ],
+    requiresNumericData: true,
   },
 ];
 
@@ -194,6 +229,26 @@ const stockTestCases: EvalTestCase[] = [
     ],
     requiresNumericData: true,
   },
+  // NEW: More demanding stock tests
+  {
+    id: 'stock-004',
+    question: '¿Cuántas unidades tenemos del producto "Tornillo M8"?',
+    category: 'stock',
+    expectedPatterns: [
+      /\d+|no encontr|no existe|tornillo/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'stock-005',
+    question: '¿Cuáles son los 5 productos con más stock?',
+    category: 'stock',
+    expectedPatterns: [
+      /producto|\d+|stock/i,
+    ],
+    requiresList: true,
+    requiresNumericData: true,
+  },
 ];
 
 // ============================================
@@ -249,6 +304,36 @@ const cobranzasTestCases: EvalTestCase[] = [
     category: 'cobranzas',
     expectedPatterns: [
       /\d+|pago|cobro|recib/i,
+    ],
+    requiresNumericData: true,
+  },
+  // NEW: More demanding collection tests
+  {
+    id: 'cobranzas-006',
+    question: '¿Cuántas facturas tienen más de 30 días vencidas?',
+    category: 'cobranzas',
+    expectedPatterns: [
+      /\d+|factura|vencid|30|días/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'cobranzas-007',
+    question: 'Dame el detalle de deuda por cliente ordenado de mayor a menor',
+    category: 'cobranzas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /cliente|deuda/i,
+    ],
+    requiresList: true,
+    requiresNumericData: true,
+  },
+  {
+    id: 'cobranzas-008',
+    question: '¿Cuál es la antigüedad promedio de nuestras cuentas por cobrar?',
+    category: 'cobranzas',
+    expectedPatterns: [
+      /\d+|días|promedio|antigüedad/i,
     ],
     requiresNumericData: true,
   },
@@ -414,6 +499,137 @@ const edgeCasesTestCases: EvalTestCase[] = [
 ];
 
 // ============================================
+// TEST CASES: MERCADOLIBRE (búsqueda de precios y productos)
+// ============================================
+const mercadolibreTestCases: EvalTestCase[] = [
+  {
+    id: 'meli-001',
+    question: '¿Cuánto cuesta una turbina LED dental en MercadoLibre?',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,  // Debe tener un precio
+      /turbina|led|dental/i,  // Debe mencionar el producto
+    ],
+    forbiddenPatterns: [
+      /no pude|error|disculpá|problema técnico/i,
+      /listado\.mercadolibre/i,  // NO debe ser URL de listado
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+    expectedSkillHints: ['mercadolibre', 'precio', 'meli'],
+  },
+  {
+    id: 'meli-002',
+    question: 'Busca precios de sillón odontológico en Mercado Libre',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /sillón|odonto/i,
+    ],
+    forbiddenPatterns: [
+      /listado\.mercadolibre/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+  },
+  {
+    id: 'meli-003',
+    question: '¿Cuánto sale un compresor dental silencioso?',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /compresor|dental|silencioso/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+  },
+  {
+    id: 'meli-004',
+    question: 'Precio de autoclave clase B 18 litros',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /autoclave|clase b|litros/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+  },
+  {
+    id: 'meli-005',
+    question: '¿Estoy caro si vendo una turbina LED a $350.000?',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /caro|barato|competitivo|promedio|mercado|precio/i,
+      /articulo\.mercadolibre\.com\.ar|mercadolibre\.com\.ar\/p\//i,  // Debe incluir links
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,  // Debe buscar en MeLi para responder
+    expectedSkillHints: ['comparar', 'mercado', 'precio'],
+  },
+  {
+    id: 'meli-006',
+    question: 'Comparar precios de lámpara de fotocurado dental',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /lámpara|fotocurado|dental/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+  },
+  {
+    id: 'meli-007',
+    question: '¿Cuánto cuesta un termo Stanley 1 litro?',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /termo|stanley|litro/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+  },
+  {
+    id: 'meli-008',
+    question: 'Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre Argentina',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /iphone|15|pro|max/i,
+      /mercado\s?libre|meli|argentina/i,
+    ],
+    forbiddenPatterns: [
+      /listado\.mercadolibre/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+  },
+  {
+    id: 'meli-009',
+    question: '¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /lenovo|thinkpad/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+    requiresList: true,
+  },
+  {
+    id: 'meli-010',
+    question: '¿Cuál es el rango de precios de la PS5 en MercadoLibre Argentina?',
+    category: 'mercadolibre',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /ps5|playstation/i,
+    ],
+    requiresNumericData: true,
+    requiresValidLinks: true,
+  },
+];
+
+// ============================================
 // EXPORT ALL TEST CASES
 // ============================================
 
@@ -426,6 +642,7 @@ export const ALL_TEST_CASES: EvalTestCase[] = [
   ...comparativasTestCases,
   ...productosTestCases,
   ...edgeCasesTestCases,
+  ...mercadolibreTestCases,
 ];
 
 // Group by category for reporting
@@ -438,6 +655,7 @@ export const TEST_CASES_BY_CATEGORY = {
   comparativas: comparativasTestCases,
   productos: productosTestCases,
   'edge-cases': edgeCasesTestCases,
+  mercadolibre: mercadolibreTestCases,
 };
 
 export const PASSING_THRESHOLD = 0.80; // 80%

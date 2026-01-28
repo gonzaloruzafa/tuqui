@@ -191,21 +191,29 @@ export class MLLinkValidator {
   }
 
   /**
-   * Chequea que un link responda con 200 (HEAD request)
-   * Timeout de 3 segundos
+   * Chequea que un link responda con 200 (GET request con user-agent)
+   * MercadoLibre bloquea HEAD requests, usamos GET con range header
+   * Timeout de 5 segundos
    */
   private static async checkHTTP(url: string): Promise<boolean> {
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       const res = await fetch(url, {
-        method: 'HEAD',
+        method: 'GET',
         signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'es-AR,es;q=0.9,en;q=0.8',
+          'Range': 'bytes=0-1000', // Solo descarga los primeros bytes
+        },
       })
 
       clearTimeout(timeoutId)
-      return res.ok // 200-299
+      // MeLi puede retornar 206 (partial content) o 200
+      return res.ok || res.status === 206
     } catch (error) {
       return false
     }
