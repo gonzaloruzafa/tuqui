@@ -104,11 +104,11 @@ export function ThinkingStream({ thinkingText, steps, isExpanded = false, onTogg
     const thinkingSummary = thinkingText?.split('\n')[0]?.slice(0, 60) || ''
     
     return (
-        <div className="mb-3 ml-11">
+        <div className="mb-3 mt-1">
             {/* Header colapsable */}
             <button 
                 onClick={onToggle}
-                className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-400 transition-colors mb-2 group"
+                className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-400 transition-colors group"
             >
                 <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
                 <span className="flex items-center gap-1.5">
