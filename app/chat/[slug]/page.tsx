@@ -423,10 +423,6 @@ export default function ChatPage() {
             if (!reader) throw new Error('No reader available')
 
             let botText = ''
-            setThinkingSteps([]) // Reset thinking steps
-            setThinkingText('') // Reset thinking text
-            collectedSourcesRef.current = [] // Reset sources
-            collectedStepsRef.current = [] // Reset steps ref
 
             while (true) {
                 const { done, value } = await reader.read()
