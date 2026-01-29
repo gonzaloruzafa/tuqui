@@ -691,11 +691,8 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto p-4">
                     <div className="max-w-3xl mx-auto space-y-6">
                         {messages.length === 0 && (
-                            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-adhoc-lavender/30 flex items-center justify-center">
-                                    {getAgentIcon(agent.icon, 'lg', 'text-adhoc-violet')}
-                                </div>
-                                <h1 className="text-xl font-medium text-gray-700">
+                            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-in fade-in duration-500">
+                                <h1 className="text-3xl font-normal text-gray-800 mb-8">
                                     ¿En qué puedo ayudarte?
                                 </h1>
                             </div>
