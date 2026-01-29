@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import {
@@ -43,7 +43,7 @@ function wrapTablesInScrollContainer(html: string): string {
 }
 
 // Real-time Scrolling Temporal Waveform for Voice Input (Simplified - no getUserMedia conflict)
-const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
+const AudioVisualizer = memo(({ isRecording }: { isRecording: boolean }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const animationRef = useRef<number | null>(null)
     const historyRef = useRef<number[]>(new Array(100).fill(0))
@@ -117,7 +117,8 @@ const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
             className="w-full h-8 opacity-90"
         />
     )
-}
+})
+AudioVisualizer.displayName = 'AudioVisualizer'
 
 /**
  * Wrapper for ThinkingStream in completed messages - has its own toggle state
@@ -279,6 +280,8 @@ export default function ChatPage() {
     }
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const lastUpdateRef = useRef<number>(0)
+    const pendingUpdateRef = useRef<NodeJS.Timeout | null>(null)
 
     // Auto open sidebar on desktop, keep closed on mobile
     useEffect(() => {
@@ -493,17 +496,39 @@ export default function ChatPage() {
                 }
                 const displayText = botText
                 
-                // Only create/update temp-bot message when there's actual visible content
+                // Debounced UI update - only parse markdown every 100ms to reduce re-renders
                 if (displayText.trim()) {
-                    const partialHtml = wrapTablesInScrollContainer(await marked.parse(displayText))
-                    setMessages(prev => {
-                        const last = prev[prev.length - 1]
-                        if (last?.id === 'temp-bot') {
-                            return [...prev.slice(0, -1), { ...last, content: partialHtml, rawContent: displayText }]
-                        } else {
-                            return [...prev, { id: 'temp-bot', role: 'assistant', content: partialHtml, rawContent: displayText }]
+                    const now = Date.now()
+                    if (now - lastUpdateRef.current > 100) {
+                        lastUpdateRef.current = now
+                        if (pendingUpdateRef.current) {
+                            clearTimeout(pendingUpdateRef.current)
+                            pendingUpdateRef.current = null
                         }
-                    })
+                        const partialHtml = wrapTablesInScrollContainer(await marked.parse(displayText))
+                        setMessages(prev => {
+                            const last = prev[prev.length - 1]
+                            if (last?.id === 'temp-bot') {
+                                return [...prev.slice(0, -1), { ...last, content: partialHtml, rawContent: displayText }]
+                            } else {
+                                return [...prev, { id: 'temp-bot', role: 'assistant', content: partialHtml, rawContent: displayText }]
+                            }
+                        })
+                    } else if (!pendingUpdateRef.current) {
+                        // Schedule update for later
+                        pendingUpdateRef.current = setTimeout(async () => {
+                            pendingUpdateRef.current = null
+                            lastUpdateRef.current = Date.now()
+                            const html = wrapTablesInScrollContainer(await marked.parse(displayText))
+                            setMessages(prev => {
+                                const last = prev[prev.length - 1]
+                                if (last?.id === 'temp-bot') {
+                                    return [...prev.slice(0, -1), { ...last, content: html, rawContent: displayText }]
+                                }
+                                return prev
+                            })
+                        }, 100)
+                    }
                 }
             }
 

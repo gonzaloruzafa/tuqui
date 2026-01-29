@@ -67,15 +67,15 @@ export async function POST(req: Request) {
         const estimatedInputTokens = Math.ceil(inputContent.length / 3)
         await checkUsageLimit(tenantId, session.user.email, estimatedInputTokens)
 
-        // 2. Get Agent (with smart routing via router.ts)
-        // Always start with Tuqui as orchestrator, then route to specialized agent if needed
+        // 2. Get Agent + Routing in PARALLEL for better latency
         const conversationHistory = messages.slice(0, -1).map((m: any) => m.content)
-        const routingResult = await routeMessage(tenantId, inputContent, conversationHistory)
+        const [routingResult, baseAgent] = await Promise.all([
+            routeMessage(tenantId, inputContent, conversationHistory),
+            getAgentBySlug(tenantId, agentSlug)
+        ])
         
         console.log(`[Chat] Routing: ${routingResult.selectedAgent?.slug || 'none'} (${routingResult.confidence}) - ${routingResult.reason}`)
         
-        // Get the base agent (Tuqui) for personality
-        const baseAgent = await getAgentBySlug(tenantId, agentSlug)
         if (!baseAgent) {
             return new Response('Agent not found', { status: 404 })
         }
