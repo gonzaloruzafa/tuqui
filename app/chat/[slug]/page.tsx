@@ -367,9 +367,11 @@ export default function ChatPage() {
         setMessages(prev => [...prev, tempUserMsg])
         setIsLoading(true)
         
-        // Clear previous execution state
+        // Clear current step but DON'T clear usedSources yet (keeps previous messages' badges visible)
         setCurrentStep(null)
-        setUsedSources([])
+        
+        // Add temp bot message immediately to show loading state
+        setMessages(prev => [...prev, { id: 'temp-bot', role: 'assistant', content: '' }])
 
         try {
             // Create session if needed
@@ -502,7 +504,9 @@ export default function ChatPage() {
             const finalText = botText
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(finalText))
             
-            console.log('[Chat] 💾 Saving message with sources:', usedSources)
+            // Capture sources BEFORE clearing state
+            const capturedSources = [...usedSources]
+            console.log('[Chat] 💾 Saving message with sources:', capturedSources)
             
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')
@@ -511,9 +515,12 @@ export default function ChatPage() {
                     role: 'assistant', 
                     content: finalHtml, 
                     rawContent: finalText,
-                    sources: usedSources.length > 0 ? usedSources : undefined
+                    sources: capturedSources.length > 0 ? capturedSources : undefined
                 }]
             })
+            
+            // Clear sources AFTER saving message (so message has them captured)
+            setUsedSources([])
 
             // Save Bot Message (without thinking block)
             await fetch('/api/chat-sessions', {
@@ -733,9 +740,12 @@ export default function ChatPage() {
                             </div>
                             )
                         })}
-                        {/* Show ExecutionProgress when loading but no temp-bot yet */}
-                        {isLoading && !messages.some(m => m.id === 'temp-bot') && currentStep && (
-                            <ExecutionProgress step={currentStep} />
+                        {/* Show "Pensando..." immediately when loading starts, before first tool event */}
+                        {isLoading && !currentStep && messages.some(m => m.id === 'temp-bot') && (
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3 animate-in fade-in duration-300">
+                                <span className="animate-pulse">💭</span>
+                                <span className="text-gray-600">Pensando...</span>
+                            </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
