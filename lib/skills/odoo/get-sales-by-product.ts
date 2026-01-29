@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema, DocumentStateSchema } from '../types';
-import { createOdooClient, dateRange, stateFilter, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -79,10 +79,17 @@ export const getSalesByProduct: Skill<
       const odoo = createOdooClient(context.credentials.odoo);
       const period = input.period || getDefaultPeriod();
 
-      // Build domain
+      // Build domain - sale.order.line doesn't have date_order, must use order_id.date_order
+      // Same for state: must use order_id.state
+      const stateCondition = input.state === 'all' 
+        ? [] 
+        : input.state === 'confirmed' 
+          ? [['order_id.state', 'in', ['sale', 'done']]] 
+          : [['order_id.state', '=', input.state === 'draft' ? 'draft' : 'cancel']];
+      
       const domain = combineDomains(
-        dateRange('date_order', period.start, period.end),
-        stateFilter(input.state, 'sale.order')
+        dateRange('order_id.date_order', period.start, period.end),
+        stateCondition
       );
 
       if (input.categoryId) {

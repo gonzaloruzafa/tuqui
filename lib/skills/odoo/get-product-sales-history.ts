@@ -44,11 +44,13 @@ export const getProductSalesHistory: Skill<
       const odoo = createOdooClient(context.credentials.odoo);
       const period = input.period || getDefaultPeriod();
 
+      // sale.order.line doesn't have date_order or state directly
+      // Must use order_id.date_order and order_id.state
       const domain = combineDomains(
-        dateRange('date_order', period.start, period.end),
+        dateRange('order_id.date_order', period.start, period.end),
         [
           ['product_id', '=', input.productId],
-          ['state', 'in', ['sale', 'done']],
+          ['order_id.state', 'in', ['sale', 'done']],
         ]
       );
 
@@ -74,8 +76,8 @@ export const getProductSalesHistory: Skill<
         });
       }
 
-      // Grouped version
-      const groupField = input.groupBy === 'month' ? 'date_order:month' : 'partner_id';
+      // Grouped version - use order_id.date_order for the parent order's date
+      const groupField = input.groupBy === 'month' ? 'order_id.date_order:month' : 'order_id.partner_id';
       const grouped = await odoo.readGroup(
         'sale.order.line',
         domain,
@@ -89,9 +91,13 @@ export const getProductSalesHistory: Skill<
       let totalRevenue = 0;
 
       for (const g of grouped) {
+        // The grouped result key uses the field name with dots replaced
+        // order_id.date_order becomes order_id (the first part after group)
         const key = input.groupBy === 'month'
-          ? g.date_order
-          : (g.partner_id && Array.isArray(g.partner_id) ? g.partner_id[1] : 'Unknown');
+          ? (g['order_id.date_order'] || g['order_id'] || 'Unknown')
+          : (g['order_id.partner_id'] && Array.isArray(g['order_id.partner_id']) 
+              ? g['order_id.partner_id'][1] 
+              : (g.order_id?.partner_id?.[1] || 'Unknown'));
 
         groups[key] = {
           quantity: g.product_uom_qty || 0,

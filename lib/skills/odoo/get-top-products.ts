@@ -49,9 +49,11 @@ export const getTopProducts: Skill<
       const odoo = createOdooClient(context.credentials.odoo);
       const period = input.period || getDefaultPeriod();
 
+      // sale.order.line doesn't have date_order or state directly
+      // Must use order_id.date_order and order_id.state
       const domain = combineDomains(
-        dateRange('date_order', period.start, period.end),
-        [['state', 'in', ['sale', 'done']]]
+        dateRange('order_id.date_order', period.start, period.end),
+        [['order_id.state', 'in', ['sale', 'done']]]
       );
 
       const orderByField = input.orderBy === 'revenue' ? 'price_total' : 'product_uom_qty';
