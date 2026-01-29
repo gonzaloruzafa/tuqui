@@ -90,16 +90,41 @@ export function getClient(): SupabaseClient {
 /**
  * Set tenant context for the current session
  * Must be called before any tenant-scoped queries
+ * Includes retry logic with exponential backoff for transient network failures
  * 
  * @param tenantId - UUID of the tenant
+ * @param retries - Number of retry attempts (default: 3)
  */
-export async function setTenantContext(tenantId: string): Promise<void> {
+export async function setTenantContext(tenantId: string, retries = 3): Promise<void> {
     const db = getClient()
-    const { error } = await db.rpc('set_tenant_context', { p_tenant_id: tenantId })
     
-    if (error) {
-        console.error('[Supabase] Failed to set tenant context:', error)
-        throw new Error(`Failed to set tenant context: ${error.message}`)
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const { error } = await db.rpc('set_tenant_context', { p_tenant_id: tenantId })
+            
+            if (!error) return // Success
+            
+            // If it's the last attempt, throw
+            if (attempt === retries) {
+                console.error('[Supabase] Failed to set tenant context after retries:', error)
+                throw new Error(`Failed to set tenant context: ${error.message}`)
+            }
+            
+            // Wait before retry (exponential backoff: 200ms, 400ms, 800ms...)
+            const delay = Math.pow(2, attempt) * 100
+            console.warn(`[Supabase] Retry ${attempt}/${retries} in ${delay}ms...`)
+            await new Promise(r => setTimeout(r, delay))
+        } catch (fetchError: any) {
+            // Network-level errors (fetch failed, socket closed, etc.)
+            if (attempt === retries) {
+                console.error('[Supabase] Network error in setTenantContext:', fetchError)
+                throw new Error(`Failed to set tenant context: ${fetchError.message}`)
+            }
+            
+            const delay = Math.pow(2, attempt) * 100
+            console.warn(`[Supabase] Network error, retry ${attempt}/${retries} in ${delay}ms...`)
+            await new Promise(r => setTimeout(r, delay))
+        }
     }
 }
 

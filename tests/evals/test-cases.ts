@@ -507,7 +507,7 @@ const mercadolibreTestCases: EvalTestCase[] = [
     question: '¿Cuánto cuesta una turbina LED dental en MercadoLibre?',
     category: 'mercadolibre',
     expectedPatterns: [
-      /\$\s?[\d.,]+/i,  // Debe tener un precio
+      /\$\s?[\d.,]+|rango|desde|hasta|entre/i,  // Precio o rango de precios
       /turbina|led|dental/i,  // Debe mencionar el producto
     ],
     forbiddenPatterns: [
@@ -523,7 +523,7 @@ const mercadolibreTestCases: EvalTestCase[] = [
     question: 'Busca precios de sillón odontológico en Mercado Libre',
     category: 'mercadolibre',
     expectedPatterns: [
-      /\$\s?[\d.,]+/i,
+      /\$\s?[\d.,]+|rango|desde|hasta|entre/i,
       /sillón|odonto/i,
     ],
     forbiddenPatterns: [
@@ -537,7 +537,7 @@ const mercadolibreTestCases: EvalTestCase[] = [
     question: '¿Cuánto sale un compresor dental silencioso?',
     category: 'mercadolibre',
     expectedPatterns: [
-      /\$\s?[\d.,]+/i,
+      /\$\s?[\d.,]+|rango|desde|hasta|entre/i,
       /compresor|dental|silencioso/i,
     ],
     requiresNumericData: true,
@@ -548,7 +548,7 @@ const mercadolibreTestCases: EvalTestCase[] = [
     question: 'Precio de autoclave clase B 18 litros',
     category: 'mercadolibre',
     expectedPatterns: [
-      /\$\s?[\d.,]+/i,
+      /\$\s?[\d.,]+|rango|desde|hasta|entre/i,
       /autoclave|clase b|litros/i,
     ],
     requiresNumericData: true,

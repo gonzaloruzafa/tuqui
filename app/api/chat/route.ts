@@ -14,7 +14,7 @@ const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
 })
 
-export const maxDuration = 60 // Allow longer timeout for tools
+export const maxDuration = 120 // Plan Pro - longer timeout for multi-tool calls
 
 async function getCompanyContext(tenantId: string): Promise<string | null> {
     try {

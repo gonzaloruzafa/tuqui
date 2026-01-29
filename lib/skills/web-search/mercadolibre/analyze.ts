@@ -32,7 +32,7 @@ export async function analyzeMeliPricesWithGrounding(
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-2.0-flash',
     tools: [{ googleSearch: {} } as any],
   })
 
@@ -119,31 +119,31 @@ export async function getProductPricesWithGrounding(
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-2.0-flash',
     tools: [{ googleSearch: {} } as any],
   })
 
-  const prompt = `Buscá precios de "${query}" en MercadoLibre Argentina.
+  const prompt = `Buscá precios ACTUALES de "${query}" en MercadoLibre Argentina (mercadolibre.com.ar).
 
-Necesito que respondas en este formato EXACTO:
+Respuesta en formato EXACTO:
 
-PRECIOS:
-- Precio mínimo: $XX.XXX
-- Precio máximo: $XX.XXX
-- Precio promedio: $XX.XXX
+PRECIOS EN PESOS ARGENTINOS (ARS):
+- Mínimo: $X.XXX.XXX
+- Máximo: $X.XXX.XXX  
+- Promedio: $X.XXX.XXX
 
-PRODUCTOS CON PRECIO (listá 3-5 productos específicos con su precio):
-1. [Nombre del producto] - $XX.XXX
-2. [Nombre del producto] - $XX.XXX
-3. [Nombre del producto] - $XX.XXX
+PRODUCTOS CON PRECIO (mínimo 3, máximo 5):
+1. [Nombre exacto] - $X.XXX.XXX ARS
+2. [Nombre exacto] - $X.XXX.XXX ARS
+3. [Nombre exacto] - $X.XXX.XXX ARS
 
-ANÁLISIS:
-[2-3 oraciones sobre el mercado, variaciones de precio, recomendaciones]
+ANÁLISIS: [2-3 oraciones sobre variación de precios y recomendación]
 
-IMPORTANTE:
-- Usá precios en pesos argentinos de MercadoLibre Argentina
-- NO incluyas links ni URLs
-- Si un producto no tiene precio visible, no lo incluyas`
+REGLAS:
+- SOLO precios en PESOS ARGENTINOS (ARS) de MercadoLibre Argentina
+- Formato: $XXX.XXX o $X.XXX.XXX (con punto como separador de miles)
+- NO incluir links, URLs ni caracteres especiales
+- Si no encontrás precio exacto, dar rango aproximado`
 
   const result = await model.generateContent(prompt)
   const response = result.response

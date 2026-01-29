@@ -9,6 +9,7 @@
 
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai'
 import { ThinkingStep, OnThinkingStep, getToolSource, ThinkingSource } from '@/lib/thinking/types'
+import { withRetry } from '@/lib/skills/errors'
 
 /**
  * Map string literals to ThinkingLevel enum values
@@ -198,19 +199,29 @@ export async function generateTextWithThinking({
     let finalText = ''
 
     try {
-        // Initial request with thinking enabled
-        let response = await client.models.generateContent({
-            model: modelName,
-            contents,
-            config: {
-                systemInstruction: system,
-                tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
-                thinkingConfig: {
-                    thinkingLevel: resolvedThinkingLevel,
-                    includeThoughts
+        // Initial request with thinking enabled - with retry for transient errors
+        let response = await withRetry(
+            () => client.models.generateContent({
+                model: modelName,
+                contents,
+                config: {
+                    systemInstruction: system,
+                    tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
+                    thinkingConfig: {
+                        thinkingLevel: resolvedThinkingLevel,
+                        includeThoughts
+                    }
+                }
+            }),
+            {
+                maxAttempts: 3,
+                initialDelayMs: 1000,
+                maxDelayMs: 8000,
+                onRetry: (attempt, error) => {
+                    console.log(`[NativeGeminiV2] Retry ${attempt}/3 after error:`, (error as Error).message?.slice(0, 100))
                 }
             }
-        })
+        )
 
         // Track usage
         if (response.usageMetadata) {
@@ -336,19 +347,29 @@ export async function generateTextWithThinking({
                 parts: functionResponses
             })
 
-            // Continue the conversation
-            response = await client.models.generateContent({
-                model: modelName,
-                contents,
-                config: {
-                    systemInstruction: system,
-                    tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
-                    thinkingConfig: {
-                        thinkingLevel: resolvedThinkingLevel,
-                        includeThoughts
+            // Continue the conversation - with retry for transient errors
+            response = await withRetry(
+                () => client.models.generateContent({
+                    model: modelName,
+                    contents,
+                    config: {
+                        systemInstruction: system,
+                        tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
+                        thinkingConfig: {
+                            thinkingLevel: resolvedThinkingLevel,
+                            includeThoughts
+                        }
+                    }
+                }),
+                {
+                    maxAttempts: 3,
+                    initialDelayMs: 1000,
+                    maxDelayMs: 8000,
+                    onRetry: (attempt, error) => {
+                        console.log(`[NativeGeminiV2] Retry ${attempt}/3 after error:`, (error as Error).message?.slice(0, 100))
                     }
                 }
-            })
+            )
 
             // Update usage
             if (response.usageMetadata) {

@@ -71,10 +71,11 @@ export async function searchMeliHybrid(
     const enrichedCount = products.filter(p => p.price !== null).length
     console.log(`[MeliSkill/Hybrid] ✓ Enriched ${enrichedCount}/${products.length} products with prices`)
     
-    // If we have a price range but few matched products, include range in analysis
-    if (groundingResult.priceRange && enrichedCount < products.length / 2) {
+    // Always show price range when available - it provides valuable market context
+    if (groundingResult.priceRange) {
       const { min, max } = groundingResult.priceRange
-      priceRangeInfo = `\n\n💰 Rango de precios en el mercado: $${min.toLocaleString('es-AR')} - $${max.toLocaleString('es-AR')}`
+      const avgPrice = Math.round((min + max) / 2)
+      priceRangeInfo = `\n\n💰 **Precios en MercadoLibre Argentina:**\n- Mínimo: $${min.toLocaleString('es-AR')}\n- Máximo: $${max.toLocaleString('es-AR')}\n- Promedio: ~$${avgPrice.toLocaleString('es-AR')}`
     }
   }
 
