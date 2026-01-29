@@ -16,6 +16,7 @@ import { marked } from 'marked'
 import { VoiceChat } from '@/components/chat/VoiceChat'
 import { ExecutionProgress } from '@/components/chat/ExecutionProgress'
 import { ToolBadge } from '@/components/chat/ToolBadge'
+import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
 import { MessageSources } from '@/components/chat/MessageSources'
 import { MeliSkillsRenderer } from '@/components/chat/MeliSkillsRenderer'
 import type { ThinkingStep, ThinkingSource } from '@/lib/thinking/types'
@@ -367,8 +368,9 @@ export default function ChatPage() {
         setMessages(prev => [...prev, tempUserMsg])
         setIsLoading(true)
         
-        // Clear current step but DON'T clear usedSources yet (keeps previous messages' badges visible)
+        // Clear state for NEW message (each message gets its own sources)
         setCurrentStep(null)
+        setUsedSources([])
         
         // Add temp bot message immediately to show loading state
         setMessages(prev => [...prev, { id: 'temp-bot', role: 'assistant', content: '' }])
@@ -504,7 +506,7 @@ export default function ChatPage() {
             const finalText = botText
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(finalText))
             
-            // Capture sources BEFORE clearing state
+            // Capture sources from current state
             const capturedSources = [...usedSources]
             console.log('[Chat] 💾 Saving message with sources:', capturedSources)
             
@@ -518,9 +520,6 @@ export default function ChatPage() {
                     sources: capturedSources.length > 0 ? capturedSources : undefined
                 }]
             })
-            
-            // Clear sources AFTER saving message (so message has them captured)
-            setUsedSources([])
 
             // Save Bot Message (without thinking block)
             await fetch('/api/chat-sessions', {
@@ -716,14 +715,19 @@ export default function ChatPage() {
                                 <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 {m.role === 'assistant' ? (
                                     <div className="flex gap-3 max-w-[90%] md:max-w-[80%] min-w-0">
-                                        <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center flex-shrink-0 mt-1">
-                                            {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
-                                        </div>
+                                        {/* Only show avatar if message has content (not empty temp-bot) */}
+                                        {m.content && (
+                                            <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center flex-shrink-0 mt-1">
+                                                {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
+                                            </div>
+                                        )}
                                         <div className="min-w-0 flex-1">
                                             {/* Render MeLi Skill result if applicable (returns null if not) */}
                                             <MeliSkillsRenderer content={m.rawContent || m.content} />
                                             {/* Always render the message content */}
-                                            <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                            {m.content && (
+                                                <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                            )}
                                             
                                             {/* Show ToolBadge BELOW content for completed messages */}
                                             {m.sources && m.sources.length > 0 && !isStreamingBot && (
@@ -740,12 +744,9 @@ export default function ChatPage() {
                             </div>
                             )
                         })}
-                        {/* Show "Pensando..." immediately when loading starts, before first tool event */}
+                        {/* Show rotating ThinkingIndicator when loading starts, before first tool event */}
                         {isLoading && !currentStep && messages.some(m => m.id === 'temp-bot') && (
-                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3 animate-in fade-in duration-300">
-                                <span className="animate-pulse">💭</span>
-                                <span className="text-gray-600">Pensando...</span>
-                            </div>
+                            <ThinkingIndicator />
                         )}
                         <div ref={messagesEndRef} />
                     </div>
