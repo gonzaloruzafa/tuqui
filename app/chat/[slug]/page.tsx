@@ -448,9 +448,14 @@ export default function ChatPage() {
                             // Update current step for ExecutionProgress display
                             setCurrentStep(step)
                             
-                            // Collect source for final badge
-                            if (step.source && !usedSources.includes(step.source)) {
-                                setUsedSources(prev => [...prev, step.source])
+                            // Collect source for final badge (check against current state, not stale closure)
+                            if (step.source) {
+                                setUsedSources(prev => {
+                                    if (!prev.includes(step.source)) {
+                                        return [...prev, step.source]
+                                    }
+                                    return prev
+                                })
                             }
                         } catch (e) {
                             console.warn('[Chat] Failed to parse tool event:', line)
