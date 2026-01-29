@@ -20,6 +20,7 @@ export { getPendingSaleOrders } from './get-pending-sale-orders';
 // Invoice/Debt Skills
 export { getDebtByCustomer, type GetDebtByCustomerInput, type GetDebtByCustomerOutput } from './get-debt-by-customer';
 export { getInvoicesByCustomer } from './get-invoices-by-customer';
+export { getInvoiceLines } from './get-invoice-lines';
 export { getOverdueInvoices } from './get-overdue-invoices';
 
 // Stock Skills
@@ -64,6 +65,7 @@ import { getTopCustomers } from './get-top-customers';
 import { getProductSalesHistory } from './get-product-sales-history';
 import { getDebtByCustomer } from './get-debt-by-customer';
 import { getInvoicesByCustomer } from './get-invoices-by-customer';
+import { getInvoiceLines } from './get-invoice-lines';
 import { getOverdueInvoices } from './get-overdue-invoices';
 import { getProductStock } from './get-product-stock';
 import { getLowStockProducts } from './get-low-stock-products';
@@ -94,9 +96,10 @@ export const odooSkills = [
   getProductSalesHistory,
   compareSalesPeriods,
   getPendingSaleOrders, // NEW
-  // Invoices/Debt (3)
+  // Invoices/Debt (4)
   getDebtByCustomer,
   getInvoicesByCustomer,
+  getInvoiceLines, // NEW - line-level detail
   getOverdueInvoices,
   // Stock (4)
   getProductStock,
