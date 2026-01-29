@@ -14,8 +14,8 @@ import {
 } from 'lucide-react'
 import { marked } from 'marked'
 import { VoiceChat } from '@/components/chat/VoiceChat'
-import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
-import { ThinkingStream } from '@/components/chat/ThinkingStream'
+import { ExecutionProgress } from '@/components/chat/ExecutionProgress'
+import { ToolBadge } from '@/components/chat/ToolBadge'
 import { MessageSources } from '@/components/chat/MessageSources'
 import { MeliSkillsRenderer } from '@/components/chat/MeliSkillsRenderer'
 import type { ThinkingStep, ThinkingSource } from '@/lib/thinking/types'
@@ -121,18 +121,6 @@ const AudioVisualizer = ({ isRecording }: { isRecording: boolean }) => {
 /**
  * Wrapper for ThinkingStream in completed messages - has its own toggle state
  */
-function CollapsibleThinkingStream({ steps, thinkingText }: { steps: ThinkingStep[], thinkingText?: string }) {
-    const [isExpanded, setIsExpanded] = useState(true) // Expanded by default for completed messages
-    return (
-        <ThinkingStream 
-            steps={steps}
-            thinkingText={thinkingText}
-            isExpanded={isExpanded}
-            onToggle={() => setIsExpanded(!isExpanded)}
-        />
-    )
-}
-
 interface TuquiCapability {
     icon: string
     title: string
@@ -159,8 +147,7 @@ interface Message {
     role: 'user' | 'assistant'
     content: string
     rawContent?: string
-    sources?: ThinkingSource[]  // Sources used to generate this message
-    thinkingSteps?: ThinkingStep[]  // Tool execution steps for this message
+    sources?: ThinkingSource[]  // Sources used (for ToolBadge display)
 }
 
 interface Session {
@@ -195,11 +182,8 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([])
-    const [thinkingText, setThinkingText] = useState<string>('') // Chain of Thought text
-    const [thinkingExpanded, setThinkingExpanded] = useState(false) // Collapsed by default
-    const collectedSourcesRef = useRef<ThinkingSource[]>([]) // Track sources during streaming
-    const collectedStepsRef = useRef<ThinkingStep[]>([]) // Track steps during streaming (ref for capturing)
+    const [currentStep, setCurrentStep] = useState<ThinkingStep | null>(null) // Current executing step
+    const [usedSources, setUsedSources] = useState<ThinkingSource[]>([]) // Sources for final badge
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [sessions, setSessions] = useState<Session[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
@@ -383,10 +367,9 @@ export default function ChatPage() {
         setMessages(prev => [...prev, tempUserMsg])
         setIsLoading(true)
         
-        // Clear previous thinking state AFTER adding user message
-        setThinkingSteps([])
-        setThinkingText('')
-        collectedSourcesRef.current = []
+        // Clear previous execution state
+        setCurrentStep(null)
+        setUsedSources([])
 
         try {
             // Create session if needed
@@ -460,40 +443,21 @@ export default function ChatPage() {
                         // Parse tool execution event
                         try {
                             const step = JSON.parse(line.slice(2)) as ThinkingStep
-                            console.log('[Chat] 🔧 Tool step received:', step.tool, step.status)
-                            // Collect sources in ref for later use
-                            if (step.source && !collectedSourcesRef.current.includes(step.source)) {
-                                collectedSourcesRef.current.push(step.source)
+                            console.log('[Chat] 🔧 Tool step:', step.tool, step.status)
+                            
+                            // Update current step for ExecutionProgress display
+                            setCurrentStep(step)
+                            
+                            // Collect source for final badge
+                            if (step.source && !usedSources.includes(step.source)) {
+                                setUsedSources(prev => [...prev, step.source])
                             }
-                            // Also collect in steps ref for capturing later
-                            const existingIdx = collectedStepsRef.current.findIndex(s => s.tool === step.tool && s.startedAt === step.startedAt)
-                            if (existingIdx >= 0) {
-                                collectedStepsRef.current[existingIdx] = step
-                            } else {
-                                collectedStepsRef.current.push(step)
-                            }
-                            setThinkingSteps(prev => {
-                                // Update existing step or add new one
-                                const existing = prev.findIndex(s => s.tool === step.tool && s.startedAt === step.startedAt)
-                                if (existing >= 0) {
-                                    const updated = [...prev]
-                                    updated[existing] = step
-                                    return updated
-                                }
-                                return [...prev, step]
-                            })
                         } catch (e) {
-                            console.warn('[Chat] Failed to parse thinking event:', line)
+                            console.warn('[Chat] Failed to parse tool event:', line)
                         }
                     } else if (line.startsWith('th:')) {
-                        // Parse thinking summary (Chain of Thought from model)
-                        try {
-                            const { text } = JSON.parse(line.slice(3))
-                            console.log('[Chat] 🧠 Thinking summary:', text.slice(0, 100) + '...')
-                            setThinkingText(prev => prev + text)
-                        } catch (e) {
-                            console.warn('[Chat] Failed to parse thinking summary:', line)
-                        }
+                        // Ignore thinking summary - we don't show it anymore
+                        continue
                     } else {
                         textChunk += line + '\n'
                     }
@@ -522,9 +486,6 @@ export default function ChatPage() {
                         botText += textChunk
                     }
                 }
-
-                // No need to extract <thinking> blocks anymore - they come as th: events
-                // Just display the text directly
                 const displayText = botText
                 
                 // Only create/update temp-bot message when there's actual visible content
@@ -542,15 +503,10 @@ export default function ChatPage() {
             }
 
             // Final cleanup - remove thinking from saved/displayed text
-            // No need to clean thinking blocks - they come separately now
             const finalText = botText
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(finalText))
             
-            // Use refs collected during streaming (state may not be updated yet)
-            const usedSources = [...collectedSourcesRef.current] as ThinkingSource[]
-            const finalThinkingSteps = [...collectedStepsRef.current]
-            
-            console.log('[Chat] 💾 Saving message with thinking steps:', finalThinkingSteps.length, finalThinkingSteps.map(s => s.tool))
+            console.log('[Chat] 💾 Saving message with sources:', usedSources)
             
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')
@@ -559,8 +515,7 @@ export default function ChatPage() {
                     role: 'assistant', 
                     content: finalHtml, 
                     rawContent: finalText,
-                    sources: usedSources.length > 0 ? usedSources : undefined,
-                    thinkingSteps: finalThinkingSteps.length > 0 ? finalThinkingSteps : undefined
+                    sources: usedSources.length > 0 ? usedSources : undefined
                 }]
             })
 
@@ -603,8 +558,7 @@ export default function ChatPage() {
             setMessages(prev => [...prev.filter(m => m.id !== 'temp-bot'), { id: Date.now().toString(), role: 'assistant', content: errorHtml, rawContent: errorMessage }])
         } finally {
             setIsLoading(false)
-            // Don't clear thinkingSteps here - they're saved in the message
-            // and will be cleared at the start of the next handleSend
+            setCurrentStep(null) // Clear execution progress
         }
     }
 
@@ -751,14 +705,9 @@ export default function ChatPage() {
                             
                             return (
                             <div key={i}>
-                                {/* Show ThinkingStream BEFORE the streaming bot message */}
-                                {isStreamingBot && (thinkingText || thinkingSteps.length > 0) && (
-                                    <ThinkingStream 
-                                        thinkingText={thinkingText}
-                                        steps={thinkingSteps} 
-                                        isExpanded={thinkingExpanded}
-                                        onToggle={() => setThinkingExpanded(!thinkingExpanded)}
-                                    />
+                                {/* Show ExecutionProgress BEFORE streaming bot message */}
+                                {isStreamingBot && currentStep && (
+                                    <ExecutionProgress step={currentStep} />
                                 )}
                                 
                                 <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -768,17 +717,15 @@ export default function ChatPage() {
                                             {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            {/* Show ThinkingStream for completed messages with steps - BEFORE content */}
-                                            {m.thinkingSteps && m.thinkingSteps.length > 0 && !isStreamingBot && (
-                                                <div className="mb-3">
-                                                    <CollapsibleThinkingStream steps={m.thinkingSteps} />
-                                                </div>
-                                            )}
-                                            
                                             {/* Render MeLi Skill result if applicable (returns null if not) */}
                                             <MeliSkillsRenderer content={m.rawContent || m.content} />
                                             {/* Always render the message content */}
                                             <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                            
+                                            {/* Show ToolBadge BELOW content for completed messages */}
+                                            {m.sources && m.sources.length > 0 && !isStreamingBot && (
+                                                <ToolBadge sources={m.sources} />
+                                            )}
                                         </div>
                                     </div>
                                 ) : (
@@ -790,18 +737,9 @@ export default function ChatPage() {
                             </div>
                             )
                         })}
-                        {/* Show ThinkingIndicator when loading but no thinking content yet */}
-                        {isLoading && !messages.some(m => m.id === 'temp-bot') && (
-                            (thinkingText || thinkingSteps.length > 0) ? (
-                                <ThinkingStream 
-                                    thinkingText={thinkingText}
-                                    steps={thinkingSteps} 
-                                    isExpanded={thinkingExpanded}
-                                    onToggle={() => setThinkingExpanded(!thinkingExpanded)}
-                                />
-                            ) : (
-                                <ThinkingIndicator />
-                            )
+                        {/* Show ExecutionProgress when loading but no temp-bot yet */}
+                        {isLoading && !messages.some(m => m.id === 'temp-bot') && currentStep && (
+                            <ExecutionProgress step={currentStep} />
                         )}
                         <div ref={messagesEndRef} />
                     </div>
