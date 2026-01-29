@@ -714,26 +714,18 @@ export default function ChatPage() {
                                 
                                 <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 {m.role === 'assistant' ? (
-                                    <div className="flex gap-3 max-w-[90%] md:max-w-[80%] min-w-0">
-                                        {/* Only show avatar if message has content (not empty temp-bot) */}
+                                    <div className="max-w-[90%] md:max-w-[80%] min-w-0">
+                                        {/* Render MeLi Skill result if applicable (returns null if not) */}
+                                        <MeliSkillsRenderer content={m.rawContent || m.content} />
+                                        {/* Always render the message content */}
                                         {m.content && (
-                                            <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center flex-shrink-0 mt-1">
-                                                {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
-                                            </div>
+                                            <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
                                         )}
-                                        <div className="min-w-0 flex-1">
-                                            {/* Render MeLi Skill result if applicable (returns null if not) */}
-                                            <MeliSkillsRenderer content={m.rawContent || m.content} />
-                                            {/* Always render the message content */}
-                                            {m.content && (
-                                                <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
-                                            )}
-                                            
-                                            {/* Show ToolBadge BELOW content for completed messages */}
-                                            {m.sources && m.sources.length > 0 && !isStreamingBot && (
-                                                <ToolBadge sources={m.sources} />
-                                            )}
-                                        </div>
+                                        
+                                        {/* Show ToolBadge BELOW content for completed messages */}
+                                        {m.sources && m.sources.length > 0 && !isStreamingBot && (
+                                            <ToolBadge sources={m.sources} />
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="bg-adhoc-lavender/30 px-4 py-2 rounded-3xl rounded-br-lg max-w-[80%] text-[15px] text-gray-900 whitespace-pre-wrap">
