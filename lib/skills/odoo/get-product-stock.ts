@@ -1,8 +1,9 @@
 /**
  * Skill: get_product_stock
  *
- * Retrieves stock level for one or more products.
- * Replaces the LLM-generated query for "stock", "inventory", etc.
+ * Retrieves stock level for one or more products using stock.quant model.
+ * Note: product.product.qty_available is a computed field and cannot be used
+ * for ordering or filtering. We use stock.quant which has real stock data.
  *
  * @example
  * User: "¿Cuánto stock tenemos del producto X?"
@@ -21,20 +22,15 @@ import { errorToResult } from '../errors';
 // ============================================
 
 export const GetProductStockInputSchema = z.object({
-  /** Product ID (if querying specific product) */
-  productId: z.number().positive().optional(),
   /** Product name/code search (partial match) */
   productSearch: z.string().min(1).optional(),
-  /** Warehouse ID (filter by location) */
-  warehouseId: z.number().positive().optional(),
+  /** Location ID (filter by warehouse/location) */
+  locationId: z.number().positive().optional(),
   /** Only show products with stock below this quantity */
   lowStockThreshold: z.number().min(0).optional(),
   /** Maximum products to return */
   limit: z.number().min(1).max(100).default(20),
-}).refine(
-  (data) => data.productId !== undefined || data.productSearch !== undefined || data.lowStockThreshold !== undefined,
-  { message: 'At least productId, productSearch, or lowStockThreshold must be provided' }
-);
+});
 
 export type GetProductStockInput = z.infer<typeof GetProductStockInputSchema>;
 
@@ -47,20 +43,10 @@ export interface ProductStockLevel {
   productId: number;
   /** Product display name */
   productName: string;
-  /** Internal reference/SKU */
-  productCode?: string;
   /** Available quantity */
-  quantityAvailable: number;
-  /** Reserved quantity */
-  quantityReserved: number;
-  /** Free quantity (available - reserved) */
-  quantityFree: number;
-  /** Unit of measure */
-  uom: string;
-  /** Stock value (if available) */
-  stockValue?: number;
-  /** Warehouse name (if filtered) */
-  warehouseName?: string;
+  quantity: number;
+  /** Location name (if filtered) */
+  locationName?: string;
 }
 
 export interface GetProductStockOutput {
@@ -68,8 +54,6 @@ export interface GetProductStockOutput {
   products: ProductStockLevel[];
   /** Total quantity across all products */
   totalQuantity: number;
-  /** Total stock value (if available) */
-  totalValue?: number;
   /** Number of products */
   productCount: number;
 }
@@ -84,10 +68,10 @@ export const getProductStock: Skill<
 > = {
   name: 'get_product_stock',
 
-  description: `Get stock levels for products.
+  description: `Get stock levels for products using stock.quant model.
 Use when user asks: "stock", "inventory", "how many do we have",
 "stock disponible", "inventario", "cuánto tenemos", "existencias".
-Can search by product ID, name, or show low stock items.`,
+Can search by product name or show low stock items.`,
 
   tool: 'odoo',
 
@@ -108,100 +92,71 @@ Can search by product ID, name, or show low stock items.`,
     try {
       const odoo = createOdooClient(context.credentials.odoo);
 
-      // Build product domain
-      const productDomain: OdooDomain = [['type', '=', 'product']]; // Only stockable products
-
-      if (input.productId) {
-        productDomain.push(['id', '=', input.productId]);
-      }
-
+      // If searching by product name, first find matching products
+      let productIds: number[] | undefined;
       if (input.productSearch) {
-        // Search in name and default_code (OR condition)
-        productDomain.push(
-          '|',
-          ['name', 'ilike', input.productSearch],
-          ['default_code', 'ilike', input.productSearch]
-        );
-      }
-
-      // Get products with stock info
-      const products = await odoo.searchRead<{
-        id: number;
-        name: string;
-        default_code: string | false;
-        qty_available: number;
-        virtual_available: number;
-        uom_id: [number, string];
-        standard_price: number;
-      }>(
-        'product.product',
-        productDomain,
-        {
-          fields: [
-            'name',
-            'default_code',
-            'qty_available',
-            'virtual_available',
-            'uom_id',
-            'standard_price',
+        const products = await odoo.searchRead<{ id: number; name: string }>(
+          'product.product',
+          [
+            '|',
+            ['name', 'ilike', input.productSearch],
+            ['default_code', 'ilike', input.productSearch],
           ],
-          limit: input.limit * 2, // Extra for filtering
-          order: 'qty_available desc',
-        }
-      );
-
-      if (products.length === 0) {
-        if (input.productId) {
-          return failure('NOT_FOUND', `Product with ID ${input.productId} not found`);
-        }
-        return success({
-          products: [],
-          totalQuantity: 0,
-          productCount: 0,
-        });
-      }
-
-      // Transform and filter results
-      let stockLevels: ProductStockLevel[] = products.map((p) => {
-        const quantityAvailable = p.qty_available || 0;
-        // virtual_available includes incoming - outgoing, so reserved = available - virtual (simplified)
-        const quantityFree = p.virtual_available || 0;
-        const quantityReserved = Math.max(0, quantityAvailable - quantityFree);
-
-        return {
-          productId: p.id,
-          productName: p.name,
-          productCode: p.default_code || undefined,
-          quantityAvailable,
-          quantityReserved,
-          quantityFree,
-          uom: p.uom_id?.[1] || 'Units',
-          stockValue: p.standard_price ? quantityAvailable * p.standard_price : undefined,
-        };
-      });
-
-      // Filter by low stock threshold
-      if (input.lowStockThreshold !== undefined) {
-        stockLevels = stockLevels.filter(
-          (p) => p.quantityAvailable <= input.lowStockThreshold!
+          { fields: ['id', 'name'], limit: 50 }
         );
+        
+        if (products.length === 0) {
+          return success({
+            products: [],
+            totalQuantity: 0,
+            productCount: 0,
+          });
+        }
+        productIds = products.map(p => p.id);
       }
 
-      // Apply final limit
-      stockLevels = stockLevels.slice(0, input.limit);
+      // Build stock.quant domain
+      const domain: OdooDomain = [];
+      
+      // Filter by products if searching
+      if (productIds?.length) {
+        domain.push(['product_id', 'in', productIds]);
+      }
+      
+      // Filter by location if specified
+      if (input.locationId) {
+        domain.push(['location_id', '=', input.locationId]);
+      }
 
-      // Calculate totals
-      const totalQuantity = stockLevels.reduce((sum, p) => sum + p.quantityAvailable, 0);
-      const totalValue = stockLevels.reduce(
-        (sum, p) => sum + (p.stockValue || 0),
-        0
+      // For low stock, we need quantity > 0 OR to show all
+      if (input.lowStockThreshold !== undefined) {
+        domain.push(['quantity', '<=', input.lowStockThreshold]);
+        domain.push(['quantity', '>=', 0]); // Don't show negative
+      } else {
+        domain.push(['quantity', '>', 0]);
+      }
+
+      // Use read_group to aggregate by product
+      const stockData = await odoo.readGroup(
+        'stock.quant',
+        domain,
+        ['product_id', 'quantity:sum'],
+        ['product_id'],
+        { limit: input.limit, orderBy: 'quantity desc' }
       );
+
+      const products: ProductStockLevel[] = stockData.map((row: any) => ({
+        productId: row.product_id?.[0] || 0,
+        productName: row.product_id?.[1] || 'Sin nombre',
+        quantity: row.quantity || 0,
+      }));
+
+      const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
 
       return success({
-        products: stockLevels,
+        products,
         totalQuantity,
-        totalValue: totalValue > 0 ? totalValue : undefined,
-        productCount: stockLevels.length,
+        productCount: products.length,
       });
     } catch (error) {
       return errorToResult(error);

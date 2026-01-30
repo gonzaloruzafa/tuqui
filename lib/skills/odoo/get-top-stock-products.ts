@@ -1,34 +1,32 @@
 /**
  * Skill: get_top_stock_products
  *
- * Get products with the highest stock quantity.
+ * Get products with the highest stock quantity using stock.quant model.
+ * Note: product.product.qty_available is a computed field and cannot be used
+ * for ordering or filtering in SQL. We use stock.quant with read_group instead.
  */
 
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient } from './_client';
+import { createOdooClient, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetTopStockProductsInputSchema = z.object({
   limit: z.number().int().min(1).max(50).default(10),
-  warehouseId: z.number().int().optional().describe('Filtrar por depósito específico'),
-  stockableOnly: z.boolean().default(true).describe('Solo productos almacenables'),
+  locationId: z.number().int().optional().describe('Filtrar por ubicación específica'),
 });
 
 export interface TopStockProduct {
   productId: number;
   productName: string;
-  internalRef: string | null;
-  qtyOnHand: number;
-  qtyAvailable: number;
-  uom: string;
-  category: string | null;
+  quantity: number;
 }
 
 export interface TopStockProductsOutput {
   products: TopStockProduct[];
   totalProducts: number;
+  totalQuantity: number;
 }
 
 export const getTopStockProducts: Skill<
@@ -38,7 +36,8 @@ export const getTopStockProducts: Skill<
   name: 'get_top_stock_products',
   description: `Productos con más stock - lista ordenada por cantidad disponible.
 Use for: "productos con más stock", "qué tenemos más", "mayor inventario", "top stock".
-Devuelve los productos ordenados de mayor a menor cantidad en stock.`,
+Devuelve los productos ordenados de mayor a menor cantidad en stock.
+Usa stock.quant (modelo real de stock) agrupado por producto.`,
   tool: 'odoo',
   tags: ['inventory', 'stock', 'products', 'reporting'],
   inputSchema: GetTopStockProductsInputSchema,
@@ -51,37 +50,34 @@ Devuelve los productos ordenados de mayor a menor cantidad en stock.`,
     try {
       const odoo = createOdooClient(context.credentials.odoo);
 
-      // Build domain
-      const domain: any[] = [['qty_available', '>', 0]];
+      // Build domain for stock.quant
+      const domain: OdooDomain = [['quantity', '>', 0]];
       
-      if (input.stockableOnly) {
-        domain.push(['type', '=', 'product']);
+      if (input.locationId) {
+        domain.push(['location_id', '=', input.locationId]);
       }
 
-      // Search products with stock, ordered by qty_available desc
-      const products = await odoo.searchRead(
-        'product.product',
+      // Use read_group on stock.quant to get aggregated stock by product
+      const stockData = await odoo.readGroup(
+        'stock.quant',
         domain,
-        { 
-          fields: ['id', 'name', 'default_code', 'qty_available', 'free_qty', 'uom_id', 'categ_id'],
-          limit: input.limit, 
-          order: 'qty_available desc' 
-        }
+        ['product_id', 'quantity:sum'],
+        ['product_id'],
+        { limit: input.limit, orderBy: 'quantity desc' }
       );
 
-      const result: TopStockProduct[] = products.map((p: any) => ({
-        productId: p.id,
-        productName: p.name || 'Sin nombre',
-        internalRef: p.default_code || null,
-        qtyOnHand: p.qty_available || 0,
-        qtyAvailable: p.free_qty || p.qty_available || 0,
-        uom: Array.isArray(p.uom_id) ? p.uom_id[1] : 'Unidad',
-        category: Array.isArray(p.categ_id) ? p.categ_id[1] : null,
+      const products: TopStockProduct[] = stockData.map((row: any) => ({
+        productId: row.product_id?.[0] || 0,
+        productName: row.product_id?.[1] || 'Sin nombre',
+        quantity: row.quantity || 0,
       }));
 
+      const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
+
       return success({
-        products: result,
-        totalProducts: result.length,
+        products,
+        totalProducts: products.length,
+        totalQuantity,
       });
     } catch (error) {
       return errorToResult(error);
