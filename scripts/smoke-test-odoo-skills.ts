@@ -34,6 +34,7 @@ import { createOdooClient } from '../lib/skills/odoo/_client.ts'
 import type { OdooClientConfig } from '../lib/skills/odoo/_client.ts'
 import { odooSkills } from '../lib/skills/odoo/index.ts'
 import type { SkillContext } from '../lib/skills/types.ts'
+import { decrypt } from '../lib/crypto.ts'
 
 // ============ CONFIGURATION ============
 const DEFAULT_TENANT_ID = 'de7ef34a-12bd-4fe9-9d02-3d876a9393c2'
@@ -52,14 +53,19 @@ const testInputs: Record<string, () => unknown> = {
   get_sales_summary: () => ({}),
   get_sales_by_customer: () => ({ limit: 5, period: defaultPeriod }),
   get_sales_by_product: () => ({ limit: 5, period: defaultPeriod }),
+  get_sales_total: () => ({ period: defaultPeriod }),
+  get_sales_by_seller: () => ({ limit: 5, period: defaultPeriod }),
   get_top_customers: () => ({ limit: 5, period: defaultPeriod }),
   get_top_products: () => ({ limit: 5, period: defaultPeriod }),
-  get_purchase_orders: () => null, // TODO: Fix categ_id error in skill
+  get_purchase_orders: () => ({ limit: 5, period: defaultPeriod }),
+  get_purchases_by_supplier: () => ({ limit: 5, period: defaultPeriod }),
+  get_vendor_bills: () => ({ limit: 5, period: defaultPeriod }),
   get_stock_levels: () => ({ limit: 5 }),
   get_low_stock_products: () => null, // Disabled: qty_available not storable in Odoo
   get_stock_valuation: () => ({}),
   get_stock_movements: () => ({ limit: 5 }),
   search_partners: () => ({ query: 'test', limit: 3 }),
+  search_customers: () => ({ query: 'empresa', limit: 5 }),
   get_partner_details: () => null, // Needs partner_id, skip
   search_products: () => ({ query: 'producto', limit: 3 }),
   get_product_details: () => null, // Needs product_id, skip
@@ -72,6 +78,10 @@ const testInputs: Record<string, () => unknown> = {
   // NEW SKILLS
   get_cash_balance: () => ({}),
   get_accounts_receivable: () => ({ limit: 5 }),
+  get_payments_received: () => ({ period: defaultPeriod, groupByJournal: true }),
+  get_pending_sale_orders: () => ({ limit: 5 }),
+  get_new_customers: () => ({ limit: 5 }),
+  get_ar_aging: () => ({}),
   compare_sales_periods: () => ({
     currentPeriod: {
       start: weekAgo,
@@ -156,11 +166,15 @@ async function main() {
   console.log()
 
   // Create Odoo client (support both old and new field names)
+  // Decrypt the API key if it's encrypted
+  const rawApiKey = config.odoo_password || config.api_key
+  const apiKey = decrypt(rawApiKey)
+  
   const clientConfig: OdooClientConfig = {
     url: config.odoo_url || config.url,
     db: config.odoo_db || config.db,
     username: config.odoo_user || config.username,
-    apiKey: config.odoo_password || config.api_key
+    apiKey
   }
 
   const client = createOdooClient(clientConfig)
