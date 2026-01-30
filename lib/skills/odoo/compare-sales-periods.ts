@@ -116,7 +116,10 @@ export const compareSalesPeriods: Skill<
 > = {
   name: 'compare_sales_periods',
 
-  description: `Modificar la respuesta al usuario para que sea más amigable y ofrezca pasos claros y sencillos para solucionar el problema de autenticación. Por ejemplo, "No pudimos acceder a la información de ventas.  Podrías verificar si tu usuario de Odoo tiene permisos para ver las ventas?  También, revisá que la API Key sea correcta y activa en tu perfil."`,
+  description: `Compare sales between two periods (e.g., this month vs last month).
+Use when user asks: "compare sales", "how did we do vs last month",
+"comparar ventas", "cómo estamos vs mes pasado", "evolución de ventas".
+Returns sales totals, order counts, and percentage changes for both periods.`,
 
   tool: 'odoo',
 

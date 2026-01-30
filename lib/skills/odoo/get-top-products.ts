@@ -35,7 +35,9 @@ export const getTopProducts: Skill<
   TopProductsOutput
 > = {
   name: 'get_top_products',
-  description: 'Mejorar el manejo de errores y proporcionar mensajes más claros y específicos sobre cómo resolver problemas de autenticación en Odoo.',
+  description: `Get top-selling products by revenue or quantity.
+Use when user asks: "top products", "best sellers", "productos más vendidos",
+"qué se vende más", "ranking de productos".`,
   tool: 'odoo',
   tags: ['sales', 'products', 'reporting'],
   inputSchema: GetTopProductsInputSchema,

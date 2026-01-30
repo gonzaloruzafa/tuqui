@@ -80,7 +80,10 @@ export const getPaymentsReceived: Skill<
 > = {
   name: 'get_payments_received',
 
-  description: `Mejorar el manejo de errores de autenticación. Cuando 'success' es falso y el código de error es 'AUTH_ERROR', ofrecer instrucciones específicas al usuario sobre cómo configurar las credenciales de Odoo o MercadoLibre, en lugar de solo sugerir contactar a un administrador.`,
+  description: `Get payments received from customers (collections).
+Use when user asks: "how much did we collect", "payments received",
+"cobros", "cobranzas", "cuánto cobramos", "pagos recibidos".
+Returns total amount, payment count, and optionally grouped by journal or customer.`,
 
   tool: 'odoo',
 

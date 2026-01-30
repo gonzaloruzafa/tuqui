@@ -73,18 +73,16 @@ describe('Skill: compare_sales_periods', () => {
       expect(result.success).toBe(true);
     });
 
-    it('requires currentPeriod', () => {
-      const result = CompareSalesPeriodsInputSchema.safeParse({
-        previousPeriod: validInput.previousPeriod,
-      });
-      expect(result.success).toBe(false);
+    it('accepts empty input (uses defaults)', () => {
+      const result = CompareSalesPeriodsInputSchema.safeParse({});
+      expect(result.success).toBe(true);
     });
 
-    it('requires previousPeriod', () => {
+    it('accepts only currentPeriod (previousPeriod uses default)', () => {
       const result = CompareSalesPeriodsInputSchema.safeParse({
         currentPeriod: validInput.currentPeriod,
       });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
 
     it('rejects invalid date in currentPeriod', () => {
