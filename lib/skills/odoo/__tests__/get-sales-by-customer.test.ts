@@ -486,8 +486,9 @@ describe('Skill: get_sales_by_customer', () => {
     });
 
     it('has descriptive description for LLM', () => {
-      expect(getSalesByCustomer.description).toContain('sales');
-      expect(getSalesByCustomer.description).toContain('customer');
+      // Description is in Spanish - check for "ventas" and "cliente"
+      expect(getSalesByCustomer.description).toContain('ventas');
+      expect(getSalesByCustomer.description).toContain('cliente');
     });
 
     it('has tags for categorization', () => {

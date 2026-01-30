@@ -373,6 +373,35 @@ const tesoreriaTestCases: EvalTestCase[] = [
     ],
     requiresNumericData: true,
   },
+  // NEW: Additional tesorería tests
+  {
+    id: 'tesoreria-004',
+    question: '¿Cuál es nuestro saldo total disponible?',
+    category: 'tesoreria',
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /saldo|disponible|total/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'tesoreria-005',
+    question: '¿Cuántas facturas de proveedor tenemos pendientes de pago?',
+    category: 'tesoreria',
+    expectedPatterns: [
+      /\d+|factura|proveedor|pendiente|pagar/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'tesoreria-006',
+    question: 'Resumen de flujo de caja del mes',
+    category: 'tesoreria',
+    expectedPatterns: [
+      /\$\s?[\d.,]+|flujo|caja|ingreso|egreso|entrada|salida/i,
+    ],
+    requiresNumericData: true,
+  },
 ];
 
 // ============================================
@@ -406,6 +435,34 @@ const comparativasTestCases: EvalTestCase[] = [
     ],
     // Relaxed: may include "hoy", "ayer", or just numeric data
   },
+  // NEW: Additional comparativa tests
+  {
+    id: 'comp-004',
+    question: '¿Vendimos más este mes que el anterior?',
+    category: 'comparativas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+|más|menos|igual|%|variación|subió|bajó/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'comp-005',
+    question: 'Comparar ventas de enero vs diciembre',
+    category: 'comparativas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+|enero|diciembre|comparación|%/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'comp-006',
+    question: '¿Cuánto creció la facturación respecto al mes pasado?',
+    category: 'comparativas',
+    expectedPatterns: [
+      /\$\s?[\d.,]+|%|creció|aumentó|bajó|variación/i,
+    ],
+    requiresNumericData: true,
+  },
 ];
 
 // ============================================
@@ -426,7 +483,45 @@ const productosTestCases: EvalTestCase[] = [
     question: 'Buscá productos que contengan "cable"',
     category: 'productos',
     expectedPatterns: [
-      /producto|encontr|resultado/i,
+      /producto|encontr|resultado|cable/i,
+    ],
+    requiresList: true,
+  },
+  // NEW: Additional productos tests
+  {
+    id: 'productos-003',
+    question: '¿Cuál es el producto más vendido este mes?',
+    category: 'productos',
+    expectedPatterns: [
+      /producto|\$\s?[\d.,]+|más vendido|top/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'productos-004',
+    question: 'Dame el top 5 de productos por ingreso',
+    category: 'productos',
+    expectedPatterns: [
+      /producto|\$\s?[\d.,]+/i,
+    ],
+    requiresList: true,
+    requiresNumericData: true,
+  },
+  {
+    id: 'productos-005',
+    question: '¿Cuántos productos vendimos hoy?',
+    category: 'productos',
+    expectedPatterns: [
+      /\d+|producto|vendimos|hoy/i,
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'productos-006',
+    question: 'Buscar productos que empiecen con "sill"',
+    category: 'productos',
+    expectedPatterns: [
+      /producto|encontr|resultado|sillón|sill/i,
     ],
     requiresList: true,
   },

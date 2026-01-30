@@ -80,10 +80,10 @@ export const getSalesByCustomer: Skill<
 > = {
   name: 'get_sales_by_customer',
 
-  description: `Get sales grouped by customer for a period.
-Use when user asks: "top customers", "sales by client", "who bought the most",
-"mejores clientes", "ventas por cliente", "quién compró más".
-Returns customers with order count, total amount, and average order value.`,
+  description: `Análisis detallado de ventas por cliente - incluye cantidad de órdenes, monto total, y valor promedio.
+USAR PARA: análisis detallado, "cuánto le vendimos a X", "detalle de ventas por cliente", métricas por cliente.
+NO usar para ranking rápido (usar get_top_customers en su lugar).
+Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cliente".`,
 
   tool: 'odoo',
 

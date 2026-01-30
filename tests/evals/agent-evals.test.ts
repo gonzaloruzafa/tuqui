@@ -27,7 +27,7 @@ const BASE_URL = process.env.EVAL_BASE_URL || 'http://localhost:3000';
 const INTERNAL_KEY = process.env.INTERNAL_TEST_KEY || 'test-key-change-in-prod';
 const TENANT_ID = process.env.TEST_TENANT_ID || 'de7ef34a-12bd-4fe9-9d02-3d876a9393c2';
 const AGENT_SLUG = process.env.TEST_AGENT_SLUG || 'tuqui';
-const DEFAULT_TIMEOUT = 45000; // 45s per test (LLM can be slow)
+const DEFAULT_TIMEOUT = 60000; // 60s per test (unified with vitest.config.ts)
 
 // Skip if no API key
 const SKIP_EVALS = !process.env.GEMINI_API_KEY;

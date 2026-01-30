@@ -1,0 +1,18 @@
+[
+  {
+    "iterationNumber": 1,
+    "timestamp": "2026-01-30T01:37:37.451Z",
+    "scenariosRun": 52,
+    "scenariosPassed": 42,
+    "totalTurns": 52,
+    "turnsPassed": 42,
+    "averageScore": 4.485576923076923,
+    "changesProposed": 17,
+    "changesApplied": 0,
+    "changesReverted": 0,
+    "passRateBefore": 0.8076923076923077,
+    "passRateAfter": 0.8076923076923077,
+    "improvement": 0,
+    "goldStandardPassed": true
+  }
+]

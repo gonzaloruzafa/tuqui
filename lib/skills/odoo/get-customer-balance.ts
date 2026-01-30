@@ -32,10 +32,12 @@ export const getCustomerBalance: Skill<
   CustomerBalanceOutput
 > = {
   name: 'get_customer_balance',
-  description: 'Get customer account balance (receivables). Use for "saldo de cliente", "cuánto nos debe", "customer balance", "accounts receivable", "who owes us", "quién nos debe más".',
+  description: `**DEPRECATED** - NO USAR. Use 'get_debt_by_customer' para ver quién nos debe, o 'get_accounts_receivable' para totales.
+Esta skill está deprecada y será removida. Las alternativas son mejores y más completas.`,
   tool: 'odoo',
-  tags: ['accounting', 'receivables', 'customers'],
+  tags: ['accounting', 'receivables', 'customers', 'deprecated'],
   inputSchema: GetCustomerBalanceInputSchema,
+  priority: 100, // Very low priority - deprecated
 
   async execute(input, context): Promise<SkillResult<CustomerBalanceOutput>> {
     if (!context.credentials.odoo) {

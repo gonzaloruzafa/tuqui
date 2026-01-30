@@ -73,10 +73,9 @@ export const getAccountsReceivable: Skill<
 > = {
   name: 'get_accounts_receivable',
 
-  description: `Get accounts receivable (customer debts).
-Use when user asks: "accounts receivable", "what do customers owe",
-"cuánto nos deben", "cuentas por cobrar", "deuda de clientes", "a cobrar".
-Can filter by due date and group by customer.`,
+  description: `TOTAL de cuentas por cobrar (deuda agregada). USAR PARA: montos totales, resumen de deuda, "cuánto nos deben en total".
+NO usar para ranking de clientes individuales (usar get_debt_by_customer en su lugar).
+Keywords: "total por cobrar", "monto de cuentas por cobrar", "deuda total de clientes", "accounts receivable total".`,
 
   tool: 'odoo',
 
