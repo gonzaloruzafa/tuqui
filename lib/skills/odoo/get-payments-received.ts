@@ -106,9 +106,11 @@ Returns total amount, payment count, and optionally grouped by journal or custom
       const period = input.period || getDefaultPeriod();
 
       // Build domain for inbound payments (collections)
+      // Note: account.payment uses state='paid' (not 'posted' like account.move)
       const baseDomain: DomainFilter[] = [
         ['payment_type', '=', 'inbound'],
-        ['state', '=', 'posted'],
+        ['partner_type', '=', 'customer'],
+        ['state', '=', 'paid'],
       ];
 
       let domain: OdooDomain = combineDomains(
