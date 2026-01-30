@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema, DocumentStateSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -81,16 +81,18 @@ export const getSalesByProduct: Skill<
 
       // Build domain - sale.order.line doesn't have date_order, must use order_id.date_order
       // Same for state: must use order_id.state
-      const stateCondition = input.state === 'all' 
-        ? [] 
-        : input.state === 'confirmed' 
-          ? [['order_id.state', 'in', ['sale', 'done']]] 
-          : [['order_id.state', '=', input.state === 'draft' ? 'draft' : 'cancel']];
+      const baseDomain = dateRange('order_id.date_order', period.start, period.end);
       
-      const domain = combineDomains(
-        dateRange('order_id.date_order', period.start, period.end),
-        stateCondition
-      );
+      // Add state filter if not 'all'
+      let domain: OdooDomain;
+      if (input.state === 'all') {
+        domain = [...baseDomain];
+      } else if (input.state === 'confirmed') {
+        domain = combineDomains(baseDomain, [['order_id.state', 'in', ['sale', 'done']]]);
+      } else {
+        const stateValue = input.state === 'draft' ? 'draft' : 'cancel';
+        domain = combineDomains(baseDomain, [['order_id.state', '=', stateValue]]);
+      }
 
       if (input.categoryId) {
         domain.push(['product_id.categ_id', '=', input.categoryId]);
