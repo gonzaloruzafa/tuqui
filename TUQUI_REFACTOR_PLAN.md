@@ -28,6 +28,10 @@
 │   └─ FASE 1: Base de Conocimiento          [✓] █████████░ 90%              │
 │   └─ MERGE → main                          [ ] Listo para merge            │
 ├─────────────────────────────────────────────────────────────────────────────┤
+│ BRANCH 2B: refactor/fase-1b-orchestrator                                    │
+│   └─ FASE 1B: Orquestador LLM Lean         [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ MERGE → main                          [ ] Pendiente                   │
+├─────────────────────────────────────────────────────────────────────────────┤
 │ BRANCH 3: refactor/fase-2-3-pwa-db                                          │
 │   └─ FASE 2: PWA Base                      [ ] ⬜⬜⬜⬜⬜ 0%               │
 │   └─ FASE 3: Modelo de Datos               [ ] ⬜⬜⬜⬜⬜ 0%               │
@@ -71,12 +75,12 @@
 ### Flujo de trabajo
 
 ```
-main ─────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────
-          │             │             │             │             │
-          ▼             ▼             ▼             ▼             ▼
-     fase-0-limpieza   fase-1-rag   fase-2-3-pwa  fase-4-5-onb  fase-6-8-brief
-          │             │             │             │             │
-          └──merge──────┴──merge──────┴──merge──────┴──merge──────┴──merge──▶ main
+main ─────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────
+          │             │             │             │             │             │
+          ▼             ▼             ▼             ▼             ▼             ▼
+     fase-0-limpieza   fase-1-rag   fase-1b-orch  fase-2-3-pwa  fase-4-5-onb  fase-6-8-brief
+          │             │             │             │             │             │
+          └──merge──────┴──merge──────┴──merge──────┴──merge──────┴──merge──────┴──merge──▶ main
 ```
 
 ### Agrupación de fases
@@ -85,6 +89,7 @@ main ─────┬─────────────┬─────
 |--------|-------|-------------|---------------|
 | `refactor/fase-0-limpieza` | 0 | ~45 min | Limpieza independiente, bajo riesgo |
 | `refactor/fase-1-rag-tool` | 1 | ~1 hora | RAG autocontenido |
+| `refactor/fase-1b-orchestrator` | 1B | ~3 horas | Orquestador LLM lean, reemplaza router keywords |
 | `refactor/fase-2-3-pwa-db` | 2+3 | ~4 horas | PWA + migrations van juntas |
 | `refactor/fase-4-5b-onboarding` | 4+5+5B | ~14 horas | Push + wizard + heartbeat engine |
 | `refactor/fase-6-8-briefings` | 6+7+8 | ~12 horas | Briefings + settings + alertas (usan heartbeat) |
@@ -1117,7 +1122,422 @@ const ragTestCases: EvalTestCase[] = [
   git push origin --delete refactor/fase-1-rag-tool
   ```
 
-**✅ MERGE 2/5 COMPLETADO → Actualizar ESTADO ACTUAL y avanzar a FASE 2+3**
+**✅ MERGE 2/6 COMPLETADO → Actualizar ESTADO ACTUAL y avanzar a FASE 1B**
+
+---
+
+## FASE 1B: ORQUESTADOR LLM LEAN [~3 horas]
+
+> **Branch:** `refactor/fase-1b-orchestrator`  
+> **Objetivo:** Reemplazar router por keywords con orquestador LLM liviano  
+> **Riesgo:** MEDIO - Cambia la lógica de routing, requiere testing exhaustivo
+
+### Contexto: Por qué un Orquestador LLM
+
+**Problema actual:**
+El router en `lib/agents/router.ts` usa ~400 líneas de keywords hardcodeados para decidir qué agente/prompt usar. Es determinístico y no entiende contexto semántico.
+
+**Solución:**
+Un orquestador LLM **lean** que:
+1. Recibe el mensaje del usuario
+2. Clasifica la intención con una llamada LLM mínima (~100 tokens)
+3. Delega al agente especializado o usa el general
+4. NO es un mega-prompt — es un clasificador simple
+
+### Arquitectura objetivo (5 capas)
+
+```
+┌─────────────────────────────────────────────────┐
+│              CAPA 5: PROACTIVIDAD                │
+│  Briefings, Alertas, Heartbeat, Push PWA        │
+└─────────────────────┬───────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────┐
+│         CAPA 4: ORQUESTADOR LLM LEAN            │ ← ESTA FASE
+│  Clasifica → delega a agente especializado      │
+│  lib/agents/orchestrator.ts                      │
+└─────────────────────┬───────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────┐
+│              CAPA 3: AGENTES                     │
+│  tuqui-general / tuqui-ventas / tuqui-stock     │
+│  lib/agents/definitions/                         │
+└─────────────────────┬───────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────┐
+│              CAPA 2: TOOLS                       │
+│  Wrappers Zod sobre skills                       │
+│  lib/tools/definitions/                          │
+└─────────────────────┬───────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────┐
+│              CAPA 1: SKILLS                      │
+│  Código puro, sin IA, testeable                  │
+│  lib/skills/odoo/ + lib/skills/market/          │
+└─────────────────────────────────────────────────┘
+```
+
+### F1B.0: Crear branch
+
+- [ ] **Crear branch desde main (después del merge de F1)**
+  ```bash
+  git checkout main && git pull origin main
+  git checkout -b refactor/fase-1b-orchestrator
+  git push -u origin refactor/fase-1b-orchestrator
+  ```
+
+### F1B.1: Crear definiciones de agentes especializados
+
+> **Objetivo:** Definir agentes con prompts específicos y tools limitadas
+
+- [ ] **Crear estructura de carpetas**
+  ```bash
+  mkdir -p lib/agents/definitions
+  ```
+
+- [ ] **Crear tipos de agentes** `lib/agents/definitions/types.ts`
+  ```typescript
+  export interface AgentDefinition {
+    id: string
+    name: string
+    description: string  // Para que el orquestador sepa cuándo usarlo
+    systemPrompt: string
+    tools: string[]      // IDs de tools que puede usar
+    examples: string[]   // Ejemplos de mensajes que debería manejar
+  }
+  ```
+
+- [ ] **Crear agente general** `lib/agents/definitions/general.ts`
+  ```typescript
+  import { AgentDefinition } from './types'
+  
+  export const generalAgent: AgentDefinition = {
+    id: 'tuqui-general',
+    name: 'Tuqui General',
+    description: 'Agente general para consultas que no encajan en otros agentes especializados',
+    systemPrompt: `Sos Tuqui, el asistente de negocio de {{company_name}}.
+Respondés consultas generales de forma clara y concisa.
+Si el usuario pregunta algo que requiere datos de Odoo, usá las herramientas disponibles.`,
+    tools: ['web_search', 'rag_search'],
+    examples: [
+      'Hola, ¿cómo estás?',
+      '¿Qué podés hacer?',
+      'Contame sobre la empresa',
+    ],
+  }
+  ```
+
+- [ ] **Crear agente de ventas** `lib/agents/definitions/sales.ts`
+  ```typescript
+  import { AgentDefinition } from './types'
+  
+  export const salesAgent: AgentDefinition = {
+    id: 'tuqui-ventas',
+    name: 'Tuqui Ventas',
+    description: 'Especialista en ventas, facturación, clientes y presupuestos',
+    systemPrompt: `Sos Tuqui Ventas, especialista en consultas comerciales.
+Podés consultar ventas, facturas, clientes, presupuestos y pedidos.
+Siempre mostrás números concretos y comparás con períodos anteriores si es relevante.`,
+    tools: [
+      'odoo_intelligent_query',
+      'odoo_compare_sales_periods',
+      'odoo_get_top_selling_products',
+      'odoo_search_partners',
+    ],
+    examples: [
+      '¿Cuánto vendimos ayer?',
+      '¿Cuáles son los clientes más importantes?',
+      'Comparame las ventas de enero vs febrero',
+      '¿Hay presupuestos pendientes?',
+    ],
+  }
+  ```
+
+- [ ] **Crear agente de stock** `lib/agents/definitions/inventory.ts`
+  ```typescript
+  import { AgentDefinition } from './types'
+  
+  export const inventoryAgent: AgentDefinition = {
+    id: 'tuqui-stock',
+    name: 'Tuqui Stock',
+    description: 'Especialista en inventario, productos y stock',
+    systemPrompt: `Sos Tuqui Stock, especialista en inventario.
+Podés consultar niveles de stock, productos, movimientos y alertas de stock bajo.`,
+    tools: [
+      'odoo_intelligent_query',
+      'odoo_get_low_stock_products',
+      'odoo_search_products',
+    ],
+    examples: [
+      '¿Cuánto stock tenemos de X?',
+      '¿Qué productos tienen stock bajo?',
+      '¿Cuáles son los productos más vendidos?',
+    ],
+  }
+  ```
+
+- [ ] **Crear agente de finanzas** `lib/agents/definitions/finance.ts`
+  ```typescript
+  import { AgentDefinition } from './types'
+  
+  export const financeAgent: AgentDefinition = {
+    id: 'tuqui-finanzas',
+    name: 'Tuqui Finanzas',
+    description: 'Especialista en cobranzas, pagos y finanzas',
+    systemPrompt: `Sos Tuqui Finanzas, especialista en cobranzas y pagos.
+Podés consultar cuentas por cobrar, pagos pendientes, vencimientos y flujo de caja.`,
+    tools: [
+      'odoo_intelligent_query',
+      'odoo_get_accounts_receivable',
+      'odoo_get_overdue_invoices',
+    ],
+    examples: [
+      '¿Cuánto nos deben?',
+      '¿Qué facturas están vencidas?',
+      '¿Cuánto cobramos esta semana?',
+    ],
+  }
+  ```
+
+- [ ] **Crear registry de agentes** `lib/agents/definitions/index.ts`
+  ```typescript
+  import { AgentDefinition } from './types'
+  import { generalAgent } from './general'
+  import { salesAgent } from './sales'
+  import { inventoryAgent } from './inventory'
+  import { financeAgent } from './finance'
+  
+  export const AGENT_DEFINITIONS: AgentDefinition[] = [
+    salesAgent,
+    inventoryAgent,
+    financeAgent,
+    generalAgent,  // Siempre último (fallback)
+  ]
+  
+  export function getAgentById(id: string): AgentDefinition | undefined {
+    return AGENT_DEFINITIONS.find(a => a.id === id)
+  }
+  
+  export function getAgentDescriptions(): string {
+    return AGENT_DEFINITIONS.map(a => 
+      `- ${a.id}: ${a.description}`
+    ).join('\n')
+  }
+  
+  export * from './types'
+  ```
+
+### F1B.2: Crear el Orquestador LLM
+
+> **Objetivo:** Clasificador liviano que decide qué agente usar
+
+- [ ] **Crear orquestador** `lib/agents/orchestrator.ts`
+  ```typescript
+  import { google } from '@ai-sdk/google'
+  import { generateText } from 'ai'
+  import { AGENT_DEFINITIONS, getAgentById, getAgentDescriptions } from './definitions'
+  import type { AgentDefinition } from './definitions/types'
+  
+  const ORCHESTRATOR_PROMPT = `Sos un clasificador de intenciones para Tuqui, asistente empresarial.
+
+AGENTES DISPONIBLES:
+{{agent_descriptions}}
+
+Tu tarea: dado el mensaje del usuario, respondé SOLO con el ID del agente más apropiado.
+- Si no estás seguro, usá "tuqui-general"
+- Respondé SOLO el ID, sin explicación
+
+Mensaje del usuario: "{{user_message}}"
+
+Agente:`
+
+  export interface OrchestrationResult {
+    agentId: string
+    agent: AgentDefinition
+    confidence: 'high' | 'medium' | 'low'
+  }
+
+  export async function orchestrate(
+    userMessage: string,
+    conversationHistory?: string[]
+  ): Promise<OrchestrationResult> {
+    // Contexto: últimos 2 mensajes si hay historial
+    const context = conversationHistory?.slice(-2).join('\n') || ''
+    const fullMessage = context ? `${context}\n${userMessage}` : userMessage
+    
+    try {
+      const { text } = await generateText({
+        model: google('gemini-2.0-flash'),  // Modelo rápido y barato
+        prompt: ORCHESTRATOR_PROMPT
+          .replace('{{agent_descriptions}}', getAgentDescriptions())
+          .replace('{{user_message}}', fullMessage),
+        maxTokens: 20,  // Solo necesitamos el ID
+        temperature: 0,  // Determinístico
+      })
+      
+      const agentId = text.trim().toLowerCase()
+      const agent = getAgentById(agentId)
+      
+      if (agent) {
+        return { agentId, agent, confidence: 'high' }
+      }
+      
+      // Fallback a general si no se reconoce
+      const generalAgent = getAgentById('tuqui-general')!
+      return { 
+        agentId: 'tuqui-general', 
+        agent: generalAgent, 
+        confidence: 'low' 
+      }
+      
+    } catch (error) {
+      console.error('[Orchestrator] Error:', error)
+      // Fallback sin LLM
+      const generalAgent = getAgentById('tuqui-general')!
+      return { 
+        agentId: 'tuqui-general', 
+        agent: generalAgent, 
+        confidence: 'low' 
+      }
+    }
+  }
+  ```
+
+### F1B.3: Integrar orquestador en chat engine
+
+> **Objetivo:** Usar el orquestador en lugar del router por keywords
+
+- [ ] **Modificar** `lib/chat/engine.ts`
+  
+  Buscar donde se usa `routeToAgent()` o similar y reemplazar por:
+  ```typescript
+  import { orchestrate } from '@/lib/agents/orchestrator'
+  
+  // En la función principal de chat:
+  const { agent, agentId, confidence } = await orchestrate(
+    userMessage,
+    conversationHistory.map(m => m.content)
+  )
+  
+  console.log(`[ChatEngine] Orquestador eligió: ${agentId} (${confidence})`)
+  
+  // Usar agent.systemPrompt y agent.tools
+  const tools = await getToolsForAgent(tenantId, agent.tools, userEmail)
+  ```
+
+- [ ] **Mantener compatibilidad:** El código del router viejo queda pero no se usa
+  - Renombrar `router.ts` a `router.legacy.ts`
+  - Agregar comentario: `// DEPRECATED: Usar orchestrator.ts`
+
+### F1B.4: Tests del orquestador
+
+- [ ] **Crear tests unitarios** `tests/unit/orchestrator.test.ts`
+  ```typescript
+  import { describe, it, expect } from 'vitest'
+  import { orchestrate } from '@/lib/agents/orchestrator'
+  
+  describe('Orchestrator', () => {
+    it('routes sales queries to tuqui-ventas', async () => {
+      const result = await orchestrate('¿Cuánto vendimos ayer?')
+      expect(result.agentId).toBe('tuqui-ventas')
+    })
+    
+    it('routes stock queries to tuqui-stock', async () => {
+      const result = await orchestrate('¿Cuánto stock hay de producto X?')
+      expect(result.agentId).toBe('tuqui-stock')
+    })
+    
+    it('routes finance queries to tuqui-finanzas', async () => {
+      const result = await orchestrate('¿Cuánto nos deben los clientes?')
+      expect(result.agentId).toBe('tuqui-finanzas')
+    })
+    
+    it('routes greetings to tuqui-general', async () => {
+      const result = await orchestrate('Hola, ¿cómo estás?')
+      expect(result.agentId).toBe('tuqui-general')
+    })
+    
+    it('handles ambiguous queries with fallback', async () => {
+      const result = await orchestrate('asdfghjkl')
+      expect(result.agentId).toBe('tuqui-general')
+      expect(result.confidence).toBe('low')
+    })
+  })
+  ```
+
+- [ ] **Agregar evals de routing** `tests/evals/test-cases.ts`
+  ```typescript
+  // Agregar casos de evaluación de routing
+  {
+    id: 'routing-001',
+    question: '¿Cuánto vendimos el mes pasado?',
+    category: 'routing',
+    expectedAgent: 'tuqui-ventas',
+  },
+  {
+    id: 'routing-002', 
+    question: '¿Qué productos tienen stock bajo?',
+    category: 'routing',
+    expectedAgent: 'tuqui-stock',
+  },
+  // ... más casos
+  ```
+
+### F1B.5: Métricas y logging
+
+- [ ] **Agregar métricas al orquestador**
+  ```typescript
+  // En orchestrator.ts, agregar tracking:
+  interface OrchestrationMetrics {
+    agentId: string
+    inputTokens: number
+    latencyMs: number
+    confidence: string
+  }
+  
+  // Log para análisis:
+  console.log('[Orchestrator] Metrics:', {
+    agentId,
+    latencyMs: Date.now() - startTime,
+    messageLength: userMessage.length,
+    confidence,
+  })
+  ```
+
+### ✅ Checkpoint F1B - Orquestador LLM
+
+| Check | Estado |
+|-------|--------|
+| `lib/agents/definitions/` creado con 4 agentes | [ ] |
+| `lib/agents/orchestrator.ts` creado | [ ] |
+| `lib/chat/engine.ts` usa orquestador | [ ] |
+| `lib/agents/router.ts` → `router.legacy.ts` | [ ] |
+| Tests unitarios pasan | [ ] |
+| Routing correcto en preview deploy | [ ] |
+
+### F1B.6: Merge a main
+
+- [ ] **Verificar todo en preview:**
+  - Preguntas de ventas van a tuqui-ventas
+  - Preguntas de stock van a tuqui-stock
+  - Saludos van a tuqui-general
+  - Latencia del orquestador < 500ms
+
+- [ ] **Merge a main**
+  ```bash
+  git checkout main
+  git pull origin main
+  git merge refactor/fase-1b-orchestrator
+  git push origin main
+  ```
+
+- [ ] **Cleanup del branch**
+  ```bash
+  git branch -d refactor/fase-1b-orchestrator
+  git push origin --delete refactor/fase-1b-orchestrator
+  ```
+
+**✅ MERGE 3/6 COMPLETADO → Actualizar ESTADO ACTUAL y avanzar a FASE 2+3**
 
 ---
 
