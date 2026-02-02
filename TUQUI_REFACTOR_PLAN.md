@@ -10,21 +10,21 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Fase actual** | `FASE 0` - Preparación |
-| **Branch actual** | ❌ Ninguno (empezar con `refactor/fase-0-limpieza`) |
-| **Último checkpoint** | ❌ No iniciado |
-| **Merges completados** | 0 / 5 |
+| **Fase actual** | `FASE 1` - Estandarización de Skills |
+| **Branch actual** | Crear `refactor/fase-1-skill-types` |
+| **Último checkpoint** | ✅ F0.5 - Fase 0 completada |
+| **Merges completados** | 1 / 5 (F0 directo a main - próximas usar branches) |
 
 ### Progreso General - Branches y Merges
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ BRANCH 1: refactor/fase-0-limpieza                          ← PRÓXIMO      │
-│   └─ FASE 0: Preparación y limpieza        [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ MERGE → main                          [ ] Pendiente                   │
+│ BRANCH 1: refactor/fase-0-limpieza                          ✅ COMPLETADO  │
+│   └─ FASE 0: Preparación y limpieza        [✓] ██████████ 100%             │
+│   └─ MERGE → main                          [✓] Completado (directo)        │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 2: refactor/fase-1-rag-tool                                          │
-│   └─ FASE 1: RAG como Tool                 [ ] ⬜⬜⬜⬜⬜ 0%               │
+│ BRANCH 2: refactor/fase-1-skill-types                       ← PRÓXIMO      │
+│   └─ FASE 1: Skill Types & Runner          [ ] ⬜⬜⬜⬜⬜ 0%               │
 │   └─ MERGE → main                          [ ] Pendiente                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ BRANCH 3: refactor/fase-2-3-pwa-db                                          │
