@@ -8,7 +8,7 @@ import { createRagTool } from './definitions/rag-tool'
 export interface AgentToolConfig {
     id: string
     tools: string[]
-    rag_enabled?: boolean
+    rag_enabled?: boolean  // Deprecated: use tools.includes('knowledge_base')
 }
 
 /**
@@ -17,8 +17,8 @@ export interface AgentToolConfig {
  * Tool Categories:
  * - web_search: Búsqueda web unificada (Tavily + Google Grounding)
  *   Handles: búsquedas generales, precios ecommerce, noticias, info actualizada
- * - search_knowledge_base: RAG tool (only if agent.rag_enabled)
- *   Searches documents uploaded for this agent
+ * - knowledge_base: RAG tool - búsqueda en documentos cargados
+ *   Activated when tools.includes('knowledge_base') OR agent.rag_enabled (legacy)
  * - odoo_*: Skills-based Odoo queries (NEW: atomic, typed, testable)
  *   Replaces the monolithic "odoo_intelligent_query" God Tool
  *
@@ -45,10 +45,12 @@ export async function getToolsForAgent(
         tools.web_search = webSearchTool
     }
 
-    // RAG Tool - On-demand document search (replaces automatic injection)
-    if (agent.rag_enabled) {
+    // Knowledge Base (RAG) - On-demand document search
+    // Activated by: tools.includes('knowledge_base') OR legacy rag_enabled flag
+    const hasKnowledgeBase = agentTools.includes('knowledge_base') || agent.rag_enabled
+    if (hasKnowledgeBase) {
         tools.search_knowledge_base = createRagTool(tenantId, agent.id)
-        console.log('[Tools/Executor] RAG tool loaded for agent:', agent.id)
+        console.log('[Tools/Executor] Knowledge Base tool loaded for agent:', agent.id)
     }
 
     // Odoo Skills - New atomic skills architecture

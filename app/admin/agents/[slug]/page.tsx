@@ -1,12 +1,12 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Bot, FileText, Wrench, Brain, Lock, Pencil, Info } from 'lucide-react'
+import { ArrowLeft, Bot, FileText, Wrench, Brain, Lock, Pencil, Info, Database } from 'lucide-react'
 import { getTenantClient } from '@/lib/supabase/client'
 import { revalidatePath } from 'next/cache'
 import { Switch } from '@/components/ui/Switch'
 import { SaveButton } from '@/components/ui/SaveButton'
-import { DocumentSelector } from '@/components/ui/DocumentSelector'
+import { ToolWithDocs } from '@/components/admin/ToolWithDocs'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
@@ -49,11 +49,13 @@ async function updateAgent(formData: FormData) {
     // For custom agents: update everything
     const customInstructions = formData.get('custom_instructions') as string
     const systemPrompt = formData.get('system_prompt') as string
-    const ragEnabled = formData.get('rag_enabled') === 'on'
     const isActive = formData.get('is_active') === 'on'
 
     // Tools handling (multi-value) - only for custom agents
     const tools = formData.getAll('tools') as string[]
+    
+    // rag_enabled is now derived from tools - if knowledge_base is in tools, RAG is enabled
+    const ragEnabled = tools.includes('knowledge_base')
 
     // Docs handling
     const docIds = formData.getAll('doc_ids') as string[]
@@ -127,8 +129,14 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
 
     const AVAILABLE_TOOLS = [
         { slug: 'web_search', label: 'Búsqueda Web', description: 'TODO-EN-UNO: Tavily + Google Grounding (precios, noticias, info general)' },
-        { slug: 'odoo_intelligent_query', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' }
+        { slug: 'odoo_intelligent_query', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' },
+        { slug: 'knowledge_base', label: 'Base de Conocimiento', description: 'Buscar en documentos cargados (manuales, catálogos, políticas)', hasDocSelector: true }
     ]
+    
+    // For display purposes: if rag_enabled but knowledge_base not in tools, add it
+    const displayTools = agent.rag_enabled && !agent.tools?.includes('knowledge_base')
+        ? [...(agent.tools || []), 'knowledge_base']
+        : agent.tools || []
 
     return (
         <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">
@@ -237,26 +245,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                             </div>
                         </section>
 
-                        {/* RAG Config */}
-                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
-                            <div className="p-8 border-b border-gray-100 bg-gray-50/20 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-adhoc-violet" />
-                                    <h2 className="text-xl font-bold text-gray-900 font-display">Base de Conocimiento (RAG)</h2>
-                                </div>
-                                <Switch name="rag_enabled" defaultChecked={agent.rag_enabled} label="Habilitar RAG" />
-                            </div>
-                            <div className="p-8">
-                                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Documentos Vinculados</h3>
-                                <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-4">
-                                    <DocumentSelector
-                                        documents={allDocs}
-                                        selectedIds={agent.linkedDocIds}
-                                    />
-                                </div>
-                                <p className="text-[11px] text-gray-400 mt-4 italic">El agente consultará estos documentos antes de responder.</p>
-                            </div>
-                        </section>
+                        {/* RAG Config section removed - now integrated into Tools via knowledge_base */}
                     </div>
 
                     {/* Sidebar / Tools */}
@@ -273,19 +262,16 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                             {agent.isBaseAgent ? (
                                 /* Base Agent: Show tools as readonly */
                                 <div className="space-y-3">
-                                    {AVAILABLE_TOOLS.map(tool => {
-                                        const isEnabled = agent.tools?.includes(tool.slug)
-                                        return (
-                                            <div key={tool.slug} className={`p-4 rounded-2xl border transition-all duration-300 ${isEnabled ? 'bg-adhoc-lavender/10 border-adhoc-lavender/30' : 'bg-gray-50 border-gray-100 opacity-50'}`}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-4 h-4 rounded-full ${isEnabled ? 'bg-adhoc-violet' : 'bg-gray-300'}`} />
-                                                    <span className="text-sm font-medium text-gray-700">{tool.label}</span>
-                                                    {isEnabled && <span className="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-auto">Activa</span>}
-                                                </div>
-                                                <p className="text-[10px] text-gray-400 mt-2 pl-7 leading-tight">{tool.description}</p>
-                                            </div>
-                                        )
-                                    })}
+                                    {AVAILABLE_TOOLS.map(tool => (
+                                        <ToolWithDocs
+                                            key={tool.slug}
+                                            tool={tool}
+                                            isEnabled={displayTools.includes(tool.slug)}
+                                            documents={allDocs}
+                                            selectedDocIds={agent.linkedDocIds}
+                                            isReadOnly={true}
+                                        />
+                                    ))}
                                     <p className="text-[10px] text-amber-600 mt-4 flex items-center gap-1">
                                         <Info className="w-3 h-3" />
                                         Las herramientas de agentes base se configuran centralmente.
@@ -295,15 +281,14 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                                 /* Custom Agent: Editable tools */
                                 <div className="space-y-3">
                                     {AVAILABLE_TOOLS.map(tool => (
-                                        <div key={tool.slug} className="group p-4 bg-gray-50 hover:bg-adhoc-lavender/10 border border-gray-100 rounded-2xl transition-all duration-300">
-                                            <Switch
-                                                name="tools"
-                                                value={tool.slug}
-                                                defaultChecked={agent.tools?.includes(tool.slug)}
-                                                label={tool.label}
-                                            />
-                                            <p className="text-[10px] text-gray-400 mt-2 pl-12 leading-tight">{tool.description}</p>
-                                        </div>
+                                        <ToolWithDocs
+                                            key={tool.slug}
+                                            tool={tool}
+                                            isEnabled={displayTools.includes(tool.slug)}
+                                            documents={allDocs}
+                                            selectedDocIds={agent.linkedDocIds}
+                                            isReadOnly={false}
+                                        />
                                     ))}
                                 </div>
                             )}

@@ -36,6 +36,30 @@
 ### Refactor en progreso
 Ver `TUQUI_REFACTOR_PLAN.md` para el plan completo con fases y checkpoints.
 
+### ⚠️ REGLA: Actualizar el Plan de Refactor
+
+**Después de completar cada paso o tarea:**
+
+1. **Marcar como completado** en `TUQUI_REFACTOR_PLAN.md`:
+   - Cambiar `[ ]` → `[✓]` o `[x]`
+   - Actualizar barras de progreso `⬜⬜⬜⬜⬜` → `██████░░░░`
+   - Llenar resultados: `Resultado: ___` → `Resultado: 159/159 passed`
+
+2. **Actualizar estado actual** en la sección `📍 ESTADO ACTUAL`:
+   - Branch actual
+   - Último checkpoint
+   - Fase actual
+
+3. **Commit del plan** junto con los cambios de código:
+   ```bash
+   git add TUQUI_REFACTOR_PLAN.md <otros-archivos>
+   git commit -m "feat: descripción + update plan"
+   ```
+
+**Esto mantiene el plan como fuente de verdad del progreso.**
+
+---
+
 ### Estructura de Tests
 
 ```

@@ -934,45 +934,38 @@ DESPUÉS (tool on-demand):
 **Estado actual de la UI:**
 - ✅ `/admin/rag` - Subir documentos funciona
 - ✅ `DocumentSelector` - Componente con búsqueda y checkboxes
-- ⚠️ `/admin/agents/[slug]` - RAG está separado de Tools
-- ⚠️ No aparece "Base de Conocimiento" en lista de AVAILABLE_TOOLS
+- ✅ `/admin/agents/[slug]` - Integrado en Tools
+- ✅ "Base de Conocimiento" aparece en lista de AVAILABLE_TOOLS
 
-**Cambios necesarios:**
+**Cambios realizados:**
 
-- [ ] **F1.7.1: Agregar "knowledge_base" a AVAILABLE_TOOLS**
-  ```typescript
-  // En app/admin/agents/[slug]/page.tsx
-  const AVAILABLE_TOOLS = [
-    { slug: 'web_search', label: 'Búsqueda Web', ... },
-    { slug: 'odoo_intelligent_query', label: 'Odoo ERP', ... },
-    { slug: 'knowledge_base', label: 'Base de Conocimiento', 
-      description: 'Buscar en documentos cargados (manuales, catálogos, etc.)',
-      hasDocSelector: true  // Flag para mostrar DocumentSelector
-    }
-  ]
-  ```
+- [✓] **F1.7.1: Agregar "knowledge_base" a AVAILABLE_TOOLS**
+  - Agregado en `app/admin/agents/[slug]/page.tsx`
+  - Con `hasDocSelector: true` para expandir DocumentSelector
 
-- [ ] **F1.7.2: Mostrar DocumentSelector cuando se activa knowledge_base**
-  - Al activar el toggle de "Base de Conocimiento", expandir y mostrar DocumentSelector
-  - Similar a cómo Odoo podría mostrar configuración adicional
+- [✓] **F1.7.2: Mostrar DocumentSelector cuando se activa knowledge_base**
+  - Creado componente `components/admin/ToolWithDocs.tsx`
+  - Se expande automáticamente al activar el tool
 
-- [ ] **F1.7.3: Sincronizar tools array con rag_enabled**
-  - Si `tools.includes('knowledge_base')` → `rag_enabled = true`
-  - Remover toggle separado de RAG
+- [✓] **F1.7.3: Sincronizar tools array con rag_enabled**
+  - Server action actualiza `rag_enabled` basado en `tools.includes('knowledge_base')`
+  - Sección separada de RAG eliminada
 
-- [ ] **F1.7.4: Actualizar executor.ts para usar 'knowledge_base' en lugar de rag_enabled**
-  ```typescript
-  // Antes:
-  if (agent.rag_enabled) { ... }
-  // Después:
-  if (agent.tools.includes('knowledge_base')) { ... }
-  ```
+- [✓] **F1.7.4: Actualizar executor.ts para usar 'knowledge_base'**
+  - Ahora soporta: `tools.includes('knowledge_base') || agent.rag_enabled` (legacy)
+  - Backwards compatible
 
-- [ ] **F1.7.5: Renaming en toda la UI**
-  - "RAG" → "Base de Conocimiento"
-  - Verificar consistencia
+- [✓] **F1.7.5: Renaming en toda la UI**
+  - Tool label: "Base de Conocimiento"
+  - Consistente en toda la página
 
-### F1.6: Merge a main
+**Archivos modificados:**
+- `components/admin/ToolWithDocs.tsx` - NUEVO
+- `components/ui/Switch.tsx` - Agregado `onChange` prop
+- `app/admin/agents/[slug]/page.tsx` - Integración completa
+- `lib/tools/executor.ts` - Soporte para `knowledge_base` tool
+
+### F1.8: Merge a main
 
 - [ ] **Merge a main**
   ```bash
