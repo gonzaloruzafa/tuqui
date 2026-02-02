@@ -3,11 +3,13 @@ import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import { createClient } from "@supabase/supabase-js"
 
-// Supabase client for auth
-const supabaseAuth = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Lazy Supabase client for auth (avoid build-time env issues)
+function getSupabaseAuthClient() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+}
 
 export const authConfig = {
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -35,7 +37,8 @@ export const authConfig = {
                 }
 
                 try {
-                    // Authenticate with Supabase Auth
+                    // Authenticate with Supabase Auth (lazy init)
+                    const supabaseAuth = getSupabaseAuthClient()
                     const { data, error } = await supabaseAuth.auth.signInWithPassword({
                         email: credentials.email as string,
                         password: credentials.password as string,
