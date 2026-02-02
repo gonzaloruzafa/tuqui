@@ -1,8 +1,8 @@
 # 🧠 TUQUI REFACTOR - PLAN EXHAUSTIVO CON CHECKPOINTS
 
-> **Branch:** `refactor/mejoras-v2`  
+> **Estrategia:** Branches por grupo de fases → Merge incremental a main  
 > **Fecha inicio:** 2026-02-01  
-> **Última actualización:** 2026-02-01  
+> **Última actualización:** 2026-02-02  
 
 ---
 
@@ -11,22 +11,110 @@
 | Campo | Valor |
 |-------|-------|
 | **Fase actual** | `FASE 0` - Preparación |
+| **Branch actual** | ❌ Ninguno (empezar con `refactor/fase-0-limpieza`) |
 | **Último checkpoint** | ❌ No iniciado |
-| **Branch creado** | ❌ No |
-| **Tests baseline** | ❌ Pendiente verificar |
+| **Merges completados** | 0 / 5 |
 
-### Progreso General
+### Progreso General - Branches y Merges
 
 ```
-FASE 0: Preparación        [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 1: RAG como Tool      [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 2: PWA Base           [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 3: Modelo de Datos    [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 4: Push Sender        [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 5: Onboarding Wizard  [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 6: Briefing Engine    [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 7: Settings           [ ] ⬜⬜⬜⬜⬜ 0%
-FASE 8: Alertas Proactivas [ ] ⬜⬜⬜⬜⬜ 0%
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ BRANCH 1: refactor/fase-0-limpieza                          ← PRÓXIMO      │
+│   └─ FASE 0: Preparación y limpieza        [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ MERGE → main                          [ ] Pendiente                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ BRANCH 2: refactor/fase-1-rag-tool                                          │
+│   └─ FASE 1: RAG como Tool                 [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ MERGE → main                          [ ] Pendiente                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ BRANCH 3: refactor/fase-2-3-pwa-db                                          │
+│   └─ FASE 2: PWA Base                      [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ FASE 3: Modelo de Datos               [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ MERGE → main                          [ ] Pendiente                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ BRANCH 4: refactor/fase-4-5b-onboarding                                     │
+│   └─ FASE 4: Push Sender Genérico          [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ FASE 5: Onboarding Wizard             [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ FASE 5B: Heartbeat Engine             [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ MERGE → main                          [ ] Pendiente                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ BRANCH 5: refactor/fase-6-8-briefings                                       │
+│   └─ FASE 6: Briefing Engine (sin cron)    [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ FASE 7: Settings                      [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ FASE 8: Alertas (sin cron)            [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ MERGE → main                          [ ] Pendiente                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Archivos de soporte creados
+
+| Archivo | Propósito | Estado |
+|---------|-----------|--------|
+| `ANALISIS_COHERENCIA.md` | Análisis integral del sistema | ✅ Creado |
+| `lib/config/api-keys.ts` | Helper unificado para API keys | ✅ Creado |
+| `tests/config.ts` | Config centralizada de tests | ✅ Creado |
+
+---
+
+## 🌿 ESTRATEGIA DE BRANCHES
+
+### Por qué branches múltiples
+
+| Ventaja | Descripción |
+|---------|-------------|
+| **Rollback quirúrgico** | Si falla una fase, revertimos solo esa |
+| **Entregables incrementales** | Cada merge va a producción, feedback real |
+| **Code review manejable** | PRs pequeños y focalizados |
+| **Testing en producción** | Preview deploys para cada branch |
+
+### Flujo de trabajo
+
+```
+main ─────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────
+          │             │             │             │             │
+          ▼             ▼             ▼             ▼             ▼
+     fase-0-limpieza   fase-1-rag   fase-2-3-pwa  fase-4-5-onb  fase-6-8-brief
+          │             │             │             │             │
+          └──merge──────┴──merge──────┴──merge──────┴──merge──────┴──merge──▶ main
+```
+
+### Agrupación de fases
+
+| Branch | Fases | Tiempo est. | Justificación |
+|--------|-------|-------------|---------------|
+| `refactor/fase-0-limpieza` | 0 | ~45 min | Limpieza independiente, bajo riesgo |
+| `refactor/fase-1-rag-tool` | 1 | ~1 hora | RAG autocontenido |
+| `refactor/fase-2-3-pwa-db` | 2+3 | ~4 horas | PWA + migrations van juntas |
+| `refactor/fase-4-5b-onboarding` | 4+5+5B | ~14 horas | Push + wizard + heartbeat engine |
+| `refactor/fase-6-8-briefings` | 6+7+8 | ~12 horas | Briefings + settings + alertas (usan heartbeat) |
+
+### Proceso por branch
+
+```bash
+# 1. Crear branch desde main actualizado
+git checkout main && git pull
+git checkout -b refactor/fase-X-nombre
+
+# 2. Desarrollar y testear
+# ... trabajo ...
+npm run test
+npm run test:integration
+
+# 3. Push y preview deploy
+git push -u origin refactor/fase-X-nombre
+# Vercel crea preview automáticamente
+
+# 4. Verificar en preview deploy
+# Testear manualmente la funcionalidad
+
+# 5. Merge a main
+git checkout main
+git merge refactor/fase-X-nombre
+git push origin main
+
+# 6. Cleanup
+git branch -d refactor/fase-X-nombre
+git push origin --delete refactor/fase-X-nombre
 ```
 
 ---
@@ -98,16 +186,59 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN
 
 ---
 
-## 🧪 TESTS DISPONIBLES COMO RED DE SEGURIDAD
+## 🧪 TESTS - ESTRUCTURA UNIFICADA
+
+### Estructura de carpetas (después de reorganización F0.0b)
+
+```
+tests/
+├── config.ts                     # Config centralizada (tenant, URLs, timeouts)
+├── setup.ts                      # Setup de env vars
+│
+├── unit/                         # 🚀 RÁPIDOS (~15s) - Con mocks
+│   ├── odoo-client.test.ts
+│   └── skills/                   # ← Migrados desde lib/**/__tests__/
+│       ├── compare-sales-periods.test.ts
+│       ├── get-accounts-receivable.test.ts
+│       └── ... (12 tests de skills)
+│
+├── integration/                  # ⚡ MODERADOS (~2min) - APIs reales
+│   ├── smoke.test.ts
+│   └── skills-loader.test.ts
+│
+└── evals/                        # 🐢 LENTOS (~20min) - Agente completo
+    ├── agent-evals.test.ts       # 60 casos de evaluación
+    └── test-cases.ts
+```
+
+### Comandos de test
+
+| Test | Comando | Tiempo | Cuándo correr |
+|------|---------|--------|---------------|
+| **Unit** | `npm run test` | ~15s | CI (cada push) |
+| **Integration** | `npm run test:integration` | ~2min | CI (cada PR) |
+| **Evals** | `npm run test:evals` | ~20min | Pre-deploy |
+| **Todo** | `npm run test:all` | ~25min | Nightly |
+
+### Scripts en package.json
+
+```json
+{
+  "test": "vitest run tests/unit",
+  "test:integration": "vitest run tests/integration",
+  "test:evals": "vitest run tests/evals",
+  "test:all": "vitest run",
+  "test:ci": "vitest run tests/unit tests/integration --reporter=verbose"
+}
+```
 
 ### Tests que DEBEN pasar antes de cada fase
 
 | Test | Comando | Criterio de éxito |
 |------|---------|-------------------|
-| **Quick test** | `npx tsx scripts/e2e-tests/quick-test.ts` | ✅ PASS |
-| **Agent evals** | `npx tsx tests/evals/run-agent-evals.ts` | ≥80% (baseline: 82.2%) |
 | **Unit tests** | `npm run test` | All pass |
-| **Skills integration** | `npx tsx tests/skills-integration.test.ts` | All pass |
+| **Integration** | `npm run test:integration` | All pass |
+| **Agent evals** | `npm run test:evals` | ≥80% (baseline: 82.2%) |
 
 ### Tests específicos por fase
 
@@ -117,99 +248,359 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN
 | F2: PWA | Lighthouse PWA ≥90 |
 | F3: Modelo datos | Queries a tablas nuevas funcionan |
 | F5: Onboarding | Flujo completo de 5 pasos |
-| F6: Briefings | Cron genera y envía briefing |
+| F5B: Heartbeat | `/api/heartbeat` responde con `{ status: "ok" }` |
+| F6: Briefings | Heartbeat genera y envía briefing |
+| F8: Alertas | Heartbeat detecta y envía alertas |
 
 ---
 
-## FASE 0: PREPARACIÓN Y LIMPIEZA [~45 min]
+## 💓 HEARTBEAT PATTERN (inspirado en OpenClaw)
+
+> **Concepto clave:** Un solo cron unificado que decide qué hacer en cada tick.
+
+### ¿Por qué NO crons separados?
+
+El plan original tenía 3 crons independientes:
+- `/api/prometeo/run` — tareas programadas (cada 5 min)
+- `/api/internal/briefings` — briefings matutinos (cada hora)  
+- `/api/internal/alerts` — alertas proactivas (cada 4 horas)
+
+**Problemas:**
+
+| Problema | Impacto |
+|----------|---------|
+| Sin priorización | Si hay alerta crítica + briefing pendiente, llegan ambos push sin coordinación |
+| Contexto frío | Cada cron arranca de cero, carga contexto, queries a Odoo duplicadas |
+| Timing gaps | Si algo crítico pasa a las 10:01 y alertas corre a las 12:00, llegamos 2h tarde |
+| Costos duplicados | Cada cron genera tokens LLM por separado |
+
+### Solución: Heartbeat unificado
+
+```
+Cron (cada 10 min) → /api/heartbeat
+                           │
+                           ▼
+                   ┌───────────────┐
+                   │   Heartbeat   │
+                   │    Engine     │
+                   └───────┬───────┘
+                           │
+       ┌───────────────────┼───────────────────┐
+       ▼                   ▼                   ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Alertas   │    │  Briefings  │    │   Tareas    │
+│  (prio 1)   │    │  (prio 2)   │    │  (prio 3)   │
+└─────────────┘    └─────────────┘    └─────────────┘
+```
+
+### Ventajas del heartbeat
+
+| Ventaja | Descripción |
+|---------|-------------|
+| **Priorización** | Si hay alerta crítica, el briefing puede esperar |
+| **Anti-spam** | No manda briefing + alerta + tarea en 10 min al mismo usuario |
+| **Contexto compartido** | Carga datos de Odoo una vez, evalúa todo junto |
+| **Economía de tokens** | Una llamada LLM puede evaluar alertas Y decidir briefing |
+| **Un solo punto de falla** | Si el heartbeat falla, sabés exactamente dónde buscar |
+
+### Flujo de decisión del heartbeat
+
+```
+heartbeat() {
+  1. ¿Hay alertas críticas? → Procesar (prio máxima)
+     └─ Marcar usuarios notificados para no saturar
+  
+  2. ¿Es hora de briefing para alguien? → Generar y enviar
+     └─ Solo si no le mandamos alerta recién
+  
+  3. ¿Hay tareas Prometeo pendientes? → Ejecutar
+     └─ Solo si queda tiempo (max 45s para Vercel)
+  
+  4. ¿Nada que hacer? → return { status: "ok" } (sin gastar tokens)
+}
+```
+
+### Estructura de archivos
+
+```
+lib/heartbeat/
+├── engine.ts           ← Motor central (orquesta todo)
+├── checklist.ts        ← Tipos y checks registrados
+└── checks/
+    ├── alerts.ts       ← Check: evaluar alertas críticas
+    ├── briefings.ts    ← Check: generar briefings si es hora
+    ├── tasks.ts        ← Check: ejecutar tareas Prometeo
+    └── maintenance.ts  ← Check: limpiar push expirados, logs
+
+app/api/heartbeat/
+└── route.ts            ← Único cron endpoint
+```
+
+### vercel.json con UN SOLO CRON
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/heartbeat",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
+```
+
+> `*/10 * * * *` = cada 10 minutos, 24/7. El heartbeat decide internamente qué hacer según hora/día.
+
+### Costos estimados (por tenant/mes)
+
+| Concepto | Cálculo | Costo |
+|----------|---------|-------|
+| Briefings | 5 users × 30 días × 1/día × ~2K tokens | ~$0.30/mes |
+| Alertas | ~4 evaluaciones/día × 30 × ~500 tokens | ~$0.15/mes |
+| Heartbeats vacíos | $0 (no llaman LLM si no hay nada) | $0.00/mes |
+| **Total** | | **~$0.45/mes** |
+
+**Optimización clave:** El heartbeat primero chequea la DB (¿hay briefings pendientes? ¿hay alertas configuradas?) ANTES de llamar al LLM. Si no hay nada → retorna OK sin gastar tokens.
+
+---
+
+## FASE 0: PREPARACIÓN [~45 min]
 
 > **Objetivo:** Limpiar codebase, crear branch de trabajo y establecer baseline de tests
 
-### F0.0: Limpieza y Coherencia del Sistema
+### F0.0: Limpieza y coherencia del sistema
 
-> **Pre-requisito:** Antes de empezar cualquier desarrollo, limpiar archivos basura
-> y asegurar coherencia del sistema.
+> **Análisis completo disponible en:** `ANALISIS_COHERENCIA.md`
 
-#### 📊 Análisis de Coherencia Realizado (2026-02-01)
+**Resumen del análisis:**
+- ✅ Arquitectura multi-tenant coherente (RLS correctamente implementado)
+- ✅ Flujo de sesión/auth consistente (session.tenant.id)
+- ⚠️ Variables de entorno: hay duplicados y naming inconsistente
+- ⚠️ Función `getTenantClient()` deprecated pero aún en uso (migrar post-merge)
+- ⚠️ Tests con tenant ID hardcodeado en 7 archivos
 
-| Categoría | Estado | Notas |
-|-----------|--------|-------|
-| Arquitectura Multi-tenant | ✅ OK | RLS correctamente implementado |
-| Flujo de Sesión/Auth | ✅ OK | session.tenant.id consistente |
-| Variables de Entorno | ⚠️ Limpiado | Había duplicados |
-| Archivos Temporales | ⚠️ Limpiado | 16 JSON eliminados |
-| Documentación | ⚠️ Limpiado | Obsoletos movidos a archive |
-| API Keys | ⚠️ Helper creado | `lib/config/api-keys.ts` |
-| Test Config | ⚠️ Helper creado | `tests/config.ts` |
+**Paso 1: Eliminar archivos temporales**
 
-#### Pasos de limpieza
-
-- [x] **Eliminar JSON temporales**
+- [ ] **Eliminar JSON de reports temporales** (16 archivos)
   ```bash
   cd /home/gonza/adhoc\ x/tuqui-agents-alpha
   rm -f improvement-summary-*.json meli-accuracy-report-*.json
+  echo "✅ JSON temporales eliminados"
   ```
-  > ✅ Completado: 16 archivos eliminados
 
-- [x] **Mover documentación obsoleta**
+**Paso 2: Archivar documentación obsoleta**
+
+- [ ] **Mover docs obsoletos a archivo**
   ```bash
   mkdir -p docs/archive
-  mv PLAN_SKILLS_REFACTOR.md docs/archive/
-  mv RESUMEN_MEJORAS_IMPLEMENTADAS.md docs/archive/
-  mv RESUMEN_SESION_2026-01-09.md docs/archive/
-  mv "Todo tuqui.md" docs/archive/
+  mv PLAN_SKILLS_REFACTOR.md docs/archive/ 2>/dev/null || true
+  mv RESUMEN_MEJORAS_IMPLEMENTADAS.md docs/archive/ 2>/dev/null || true
+  mv RESUMEN_SESION_2026-01-09.md docs/archive/ 2>/dev/null || true
+  mv "Todo tuqui.md" docs/archive/ 2>/dev/null || true
+  echo "✅ Documentación obsoleta archivada"
+  ls docs/archive/
   ```
-  > ✅ Completado: 4 archivos movidos a docs/archive/
 
-- [x] **Eliminar archivos .env duplicados**
+**Paso 3: Eliminar archivos .env duplicados**
+
+- [ ] **Limpiar .env duplicados**
   ```bash
   rm -f .env.prod .env.tuqui.prod
-  # Mantener: .env.example, .env.local, .env.production, .env.test, .env.tuqui
+  echo "✅ Archivos .env duplicados eliminados"
+  ls -la .env*
   ```
-  > ✅ Completado: 2 archivos eliminados
+  
+  Archivos que deben quedar:
+  - `.env.example` - Template
+  - `.env.local` - Desarrollo local
+  - `.env.production` - Producción
+  - `.env.test` - Tests
+  - `.env.tuqui` - Config específica Tuqui
 
-- [x] **Crear helper unificado para API keys**
-  > ✅ Creado: `lib/config/api-keys.ts`
-  > Resuelve inconsistencia GEMINI_API_KEY vs GOOGLE_GENERATIVE_AI_API_KEY
+**Paso 4: Verificar archivos de config creados**
 
-- [x] **Crear configuración centralizada de tests**
-  > ✅ Creado: `tests/config.ts`
-  > Exporta TEST_TENANT_ID para evitar hardcodeos
+> Estos archivos ya fueron creados durante el análisis de coherencia:
 
-#### ⚠️ Deuda técnica identificada (resolver post-merge)
+- [ ] **Verificar `lib/config/api-keys.ts`** (helper unificado para API keys)
+  ```bash
+  cat lib/config/api-keys.ts | head -20
+  ```
 
-| Issue | Archivos afectados | Prioridad |
-|-------|-------------------|-----------|
-| `getTenantClient()` deprecated | 8+ archivos | Media |
-| Tests con TENANT_ID hardcodeado | 7 tests e2e | Baja |
-| `supabaseAdmin` alias confuso | 1 archivo | Baja |
-| TODOs en código | 3 archivos | Baja |
+- [ ] **Verificar `tests/config.ts`** (config centralizada de tests)
+  ```bash
+  cat tests/config.ts
+  ```
 
-### F0.1: Verificar estado actual de tests
+**Paso 5: Verificar compilación post-limpieza**
+
+- [ ] **TypeScript compila sin errores**
+  ```bash
+  npx tsc --noEmit && echo "✅ TypeScript OK" || echo "❌ Errores de compilación"
+  ```
+
+### ✅ Checkpoint F0.0 - Limpieza
+
+| Check | Estado |
+|-------|--------|
+| JSON temporales eliminados | [ ] |
+| Docs obsoletos en docs/archive/ | [ ] |
+| .env duplicados eliminados | [ ] |
+| lib/config/api-keys.ts existe | [ ] |
+| tests/config.ts existe | [ ] |
+| TypeScript compila | [ ] |
+
+---
+
+### F0.0b: Reorganizar estructura de tests
+
+> **Objetivo:** Unificar tests dispersos en estructura clara de 3 niveles
+
+**Paso 1: Crear estructura de carpetas**
+
+- [ ] **Crear carpetas**
+  ```bash
+  mkdir -p tests/unit/skills
+  mkdir -p tests/integration
+  # tests/evals ya existe
+  ```
+
+**Paso 2: Mover unit tests de skills (desde lib/__tests__/)**
+
+- [ ] **Mover tests de skills Odoo**
+  ```bash
+  mv lib/skills/odoo/__tests__/*.test.ts tests/unit/skills/
+  rmdir lib/skills/odoo/__tests__
+  ```
+
+- [ ] **Mover tests de MercadoLibre**
+  ```bash
+  mv lib/skills/web-search/mercadolibre/__tests__/*.test.ts tests/unit/skills/
+  rmdir lib/skills/web-search/mercadolibre/__tests__
+  ```
+
+**Paso 3: Reorganizar tests existentes**
+
+- [ ] **Mover skills-integration a integration/**
+  ```bash
+  mv tests/skills-integration.test.ts tests/integration/skills-loader.test.ts
+  ```
+
+**Paso 4: Eliminar archivos debug/obsoletos**
+
+- [ ] **Eliminar tests de debug en tests/e2e/**
+  ```bash
+  rm -f tests/e2e/debug-*.test.ts
+  rm -f tests/e2e/verify-*.test.ts
+  rm -f tests/e2e/check-*.test.ts
+  echo "✅ Tests de debug eliminados"
+  ```
+
+- [ ] **Eliminar scripts e2e duplicados**
+  ```bash
+  rm -rf scripts/e2e-tests/
+  echo "✅ scripts/e2e-tests/ eliminado (usar tests/evals/ en su lugar)"
+  ```
+
+- [ ] **Eliminar scripts manuales obsoletos**
+  ```bash
+  rm -f scripts/test-*.ts
+  rm -f scripts/verify-*.ts
+  rm -f scripts/quick-test-skill.ts
+  rm -f scripts/price-accuracy-loop.ts
+  rm -f scripts/run-improvement-loop.ts
+  echo "✅ Scripts obsoletos eliminados"
+  ```
+
+**Paso 5: Actualizar package.json**
+
+- [ ] **Modificar scripts de test en package.json**
+  
+  Cambiar:
+  ```json
+  {
+    "test": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:evals": "vitest run tests/evals",
+    "test:all": "vitest run",
+    "test:ci": "vitest run tests/unit tests/integration --reporter=verbose"
+  }
+  ```
+
+**Paso 6: Actualizar vite.config.ts**
+
+- [ ] **Actualizar includes de vitest**
+  
+  Cambiar la sección `test.include`:
+  ```typescript
+  test: {
+    include: ['tests/**/*.test.ts'],
+    // Eliminar: 'lib/**/__tests__/*.test.ts' (ya no existe)
+  }
+  ```
+
+**Paso 7: Actualizar GitHub workflows**
+
+- [ ] **Actualizar .github/workflows/ci.yml**
+  - Cambiar `npm run test:ci` a usar nuevos paths
+  
+- [ ] **Actualizar .github/workflows/e2e.yml** (si existe)
+  - Eliminar referencias a `scripts/e2e-tests/`
+
+**Paso 8: Verificar que tests pasan**
+
+- [ ] **Correr unit tests**
+  ```bash
+  npm run test
+  ```
+  - Resultado: `_______________`
+
+- [ ] **Correr integration tests**
+  ```bash
+  npm run test:integration
+  ```
+  - Resultado: `_______________`
+
+### ✅ Checkpoint F0.0b - Tests reorganizados
+
+| Check | Estado |
+|-------|--------|
+| tests/unit/skills/ tiene 12+ archivos | [ ] |
+| tests/integration/skills-loader.test.ts existe | [ ] |
+| lib/**/__tests__/ eliminados | [ ] |
+| scripts/e2e-tests/ eliminado | [ ] |
+| tests/e2e/debug-*.test.ts eliminados | [ ] |
+| package.json actualizado | [ ] |
+| vite.config.ts actualizado | [ ] |
+| npm run test pasa | [ ] |
+| npm run test:integration pasa | [ ] |
+
+---
+
+### F0.1: Verificar baseline de tests
 
 **⛔ GATE: No avanzar si fallan**
 
-- [ ] **Quick test**
-  ```bash
-  cd /home/gonza/adhoc\ x/tuqui-agents-alpha
-  npx tsx scripts/e2e-tests/quick-test.ts
-  ```
-  - Resultado esperado: `✅ PASS`
-  - Resultado actual: `_______________`
-
-- [ ] **Agent evals**
-  ```bash
-  npx tsx tests/evals/run-agent-evals.ts 2>&1 | tee /tmp/baseline-evals.log
-  ```
-  - Resultado esperado: ≥80% pass rate
-  - Resultado actual: `_____ / _____ = _____%`
-
 - [ ] **Unit tests**
   ```bash
+  cd /home/gonza/adhoc\ x/tuqui-agents-alpha
   npm run test
   ```
   - Resultado esperado: All pass
   - Resultado actual: `_______________`
+
+- [ ] **Integration tests**
+  ```bash
+  npm run test:integration
+  ```
+  - Resultado esperado: All pass
+  - Resultado actual: `_______________`
+
+- [ ] **Agent evals**
+  ```bash
+  npm run test:evals 2>&1 | tee /tmp/baseline-evals.log
+  ```
+  - Resultado esperado: ≥80% pass rate
+  - Resultado actual: `_____ / _____ = _____%`
 
 ### F0.2: Crear backup y branch
 
@@ -219,45 +610,92 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN
   git push origin backup-pre-refactor-v2
   ```
 
-- [ ] **Crear branch de trabajo**
+- [ ] **Crear branch FASE 0**
   ```bash
-  git checkout -b refactor/mejoras-v2
-  git push -u origin refactor/mejoras-v2
+  git checkout -b refactor/fase-0-limpieza
+  git push -u origin refactor/fase-0-limpieza
   ```
 
 - [ ] **Verificar branch**
   ```bash
   git branch --show-current
-  # Debe mostrar: refactor/mejoras-v2
+  # Debe mostrar: refactor/fase-0-limpieza
   ```
 
-### F0.3: Documentar baseline
+### F0.3: Commit y push de limpieza
+
+- [ ] **Commit de todos los cambios de limpieza**
+  ```bash
+  git add -A
+  git status  # Verificar qué se va a commitear
+  git commit -m "chore: Phase 0 cleanup and coherence fixes
+
+  - Removed temporary JSON files (improvement-summary, meli-accuracy)
+  - Archived obsolete documentation to docs/archive/
+  - Removed duplicate .env files (.env.prod, .env.tuqui.prod)
+  - Added lib/config/api-keys.ts for unified API key handling
+  - Added tests/config.ts for centralized test configuration
+  - Added ANALISIS_COHERENCIA.md with system analysis"
+  ```
+
+- [ ] **Push al branch**
+  ```bash
+  git push origin refactor/fase-0-limpieza
+  ```
+
+### F0.4: Merge a main
+
+- [ ] **Verificar que Vercel preview deploy funciona**
+  - URL: (automática de Vercel)
+  - Estado: `_______________`
+
+- [ ] **Merge a main**
+  ```bash
+  git checkout main
+  git pull origin main
+  git merge refactor/fase-0-limpieza
+  git push origin main
+  ```
+
+- [ ] **Cleanup del branch**
+  ```bash
+  git branch -d refactor/fase-0-limpieza
+  git push origin --delete refactor/fase-0-limpieza
+  ```
+
+### F0.5: Documentar baseline
 
 - [ ] **Guardar resultados de tests como baseline**
   ```bash
   echo "Baseline tests - $(date)" > /tmp/baseline-tests.txt
-  echo "Quick test: PASS/FAIL" >> /tmp/baseline-tests.txt
-  echo "Agent evals: XX/YY = ZZ%" >> /tmp/baseline-tests.txt
   echo "Unit tests: PASS/FAIL" >> /tmp/baseline-tests.txt
+  echo "Integration tests: PASS/FAIL" >> /tmp/baseline-tests.txt
+  echo "Agent evals: XX/YY = ZZ%" >> /tmp/baseline-tests.txt
   ```
 
-### ✅ Checkpoint F0
+### ✅ Checkpoint F0 - BRANCH 1 COMPLETO
 
 | Check | Estado |
 |-------|--------|
-| Quick test pasa | [ ] |
-| Agent evals ≥80% | [ ] |
-| Unit tests pasan | [ ] |
-| Tag backup creado | [ ] |
-| Branch refactor/mejoras-v2 creado | [ ] |
-| Estamos en el branch correcto | [ ] |
+| F0.0: Limpieza completada | [ ] |
+| F0.0b: Tests reorganizados | [ ] |
+| F0.1: Unit tests pasan | [ ] |
+| F0.1: Integration tests pasan | [ ] |
+| F0.1: Agent evals ≥80% | [ ] |
+| F0.2: Tag backup creado | [ ] |
+| F0.2: Branch fase-0-limpieza creado | [ ] |
+| F0.3: Commit de limpieza | [ ] |
+| F0.4: Merge a main | [ ] |
+| F0.4: Branch eliminado | [ ] |
+| F0.5: Baseline documentado | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 1**
+**✅ MERGE 1/5 COMPLETADO → Actualizar ESTADO ACTUAL y avanzar a FASE 1**
 
 ---
 
 ## FASE 1: RAG COMO TOOL [~1 hora] ⭐
 
+> **Branch:** `refactor/fase-1-rag-tool`  
 > **Objetivo:** Cambiar RAG de inyección automática a tool on-demand  
 > **Riesgo:** BAJO - Si el LLM no llama la tool, es equivalente a no inyectar  
 > **Beneficio:** Ahorro de tokens, respuestas más limpias
@@ -287,6 +725,19 @@ DESPUÉS (tool on-demand):
 │ Respuesta (solo usa docs si los necesitó)   │
 └─────────────────────────────────────────────┘
 ```
+
+### F1.0: Crear branch
+
+- [ ] **Asegurar main actualizado**
+  ```bash
+  git checkout main && git pull origin main
+  ```
+
+- [ ] **Crear branch FASE 1**
+  ```bash
+  git checkout -b refactor/fase-1-rag-tool
+  git push -u origin refactor/fase-1-rag-tool
+  ```
 
 ### F1.1: Crear RAG tool
 
@@ -442,15 +893,15 @@ DESPUÉS (tool on-demand):
 
 **⛔ GATE: Todos deben pasar antes de continuar**
 
-- [ ] **Quick test**
+- [ ] **Unit tests**
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
 - [ ] **Agent evals** (NO debe haber regresión)
   ```bash
-  npx tsx tests/evals/run-agent-evals.ts 2>&1 | tee /tmp/f1-evals.log
+  npm run test:evals 2>&1 | tee /tmp/f1-evals.log
   tail -5 /tmp/f1-evals.log
   ```
   - Resultado: `_____ / _____ = _____%`
@@ -464,23 +915,50 @@ DESPUÉS (tool on-demand):
 
 | Check | Estado |
 |-------|--------|
-| rag-tool.ts creado y compila | [ ] |
-| executor.ts modificado y compila | [ ] |
-| engine.ts modificado y compila | [ ] |
-| Commit y push exitoso | [ ] |
-| Preview deploy funciona | [ ] |
-| Quick test pasa | [ ] |
+| F1.0: Branch creado | [ ] |
+| F1.1: rag-tool.ts creado y compila | [ ] |
+| F1.2: executor.ts modificado y compila | [ ] |
+| F1.3: engine.ts modificado y compila | [ ] |
+| F1.4: Commit y push exitoso | [ ] |
+| F1.5: Preview deploy funciona | [ ] |
+| Unit tests pasan | [ ] |
 | Agent evals ≥ baseline | [ ] |
 | RAG tool se carga para agentes con rag_enabled | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 2**
+### F1.6: Merge a main
+
+- [ ] **Merge a main**
+  ```bash
+  git checkout main
+  git pull origin main
+  git merge refactor/fase-1-rag-tool
+  git push origin main
+  ```
+
+- [ ] **Cleanup del branch**
+  ```bash
+  git branch -d refactor/fase-1-rag-tool
+  git push origin --delete refactor/fase-1-rag-tool
+  ```
+
+**✅ MERGE 2/5 COMPLETADO → Actualizar ESTADO ACTUAL y avanzar a FASE 2+3**
 
 ---
 
-## FASE 2: PWA BASE [~4 horas]
+## FASE 2: PWA BASE [~2 horas]
 
+> **Branch:** `refactor/fase-2-3-pwa-db` (junto con Fase 3)  
 > **Objetivo:** Tuqui se instala como app nativa desde el browser  
 > **Riesgo:** BAJO - Son cambios frontend, no afectan lógica de negocio
+
+### F2.0: Crear branch (si no existe)
+
+- [ ] **Crear branch combinado para Fases 2+3**
+  ```bash
+  git checkout main && git pull origin main
+  git checkout -b refactor/fase-2-3-pwa-db
+  git push -u origin refactor/fase-2-3-pwa-db
+  ```
 
 ### F2.1: Crear manifest.json
 
@@ -677,9 +1155,9 @@ DESPUÉS (tool on-demand):
 
 ### ✅ Checkpoint F2: Tests de validación
 
-- [ ] **Quick test**
+- [ ] **Unit tests**
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
@@ -704,6 +1182,7 @@ DESPUÉS (tool on-demand):
 
 | Check | Estado |
 |-------|--------|
+| F2.0: Branch creado | [ ] |
 | manifest.json creado | [ ] |
 | Íconos generados | [ ] |
 | Layout con metadata PWA | [ ] |
@@ -715,12 +1194,13 @@ DESPUÉS (tool on-demand):
 | Offline funciona | [ ] |
 | Push funciona | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 3**
+**Continuar con FASE 3 en el mismo branch**
 
 ---
 
 ## FASE 3: MODELO DE DATOS [~2 horas]
 
+> **Branch:** `refactor/fase-2-3-pwa-db` (mismo que Fase 2)  
 > **Objetivo:** Crear tablas para user profiles, briefing history  
 > **Riesgo:** MEDIO - Modifica DB de producción, pero con IF NOT EXISTS  
 > **⚠️ IMPORTANTE:** Las migrations se aplican a la DB de producción (compartida entre main y refactor)
@@ -1085,20 +1565,20 @@ DESPUÉS (tool on-demand):
 
 - [ ] **Push al branch**
   ```bash
-  git push origin refactor/mejoras-v2
+  git push origin refactor/fase-2-3-pwa-db
   ```
 
 ### ✅ Checkpoint F3: Tests de validación
 
-- [ ] **Quick test** (verificar que no rompimos nada)
+- [ ] **Unit tests** (verificar que no rompimos nada)
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
 - [ ] **Agent evals** (verificar que no rompimos nada)
   ```bash
-  npx tsx tests/evals/run-agent-evals.ts 2>&1 | tail -5
+  npm run test:evals 2>&1 | tail -5
   ```
   - Resultado: `_____ / _____ = _____%`
 
@@ -1118,22 +1598,41 @@ DESPUÉS (tool on-demand):
 
 | Check | Estado |
 |-------|--------|
-| Migration user_profiles aplicada | [ ] |
-| Migration tenant columns aplicada | [ ] |
-| Migration briefing_history aplicada | [ ] |
-| Tipos TypeScript creados | [ ] |
-| Servicio profiles creado | [ ] |
+| F2.0: Branch creado | [ ] |
+| F2: PWA completa | [ ] |
+| F3: Migration user_profiles aplicada | [ ] |
+| F3: Migration tenant columns aplicada | [ ] |
+| F3: Migration briefing_history aplicada | [ ] |
+| F3: Tipos TypeScript creados | [ ] |
+| F3: Servicio profiles creado | [ ] |
 | Todo compila | [ ] |
-| Quick test pasa | [ ] |
+| Unit tests pasan | [ ] |
 | Agent evals ≥ baseline | [ ] |
 | Insert/Select en user_profiles funciona | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 4**
+### F3.6: Merge a main
+
+- [ ] **Merge a main**
+  ```bash
+  git checkout main
+  git pull origin main
+  git merge refactor/fase-2-3-pwa-db
+  git push origin main
+  ```
+
+- [ ] **Cleanup del branch**
+  ```bash
+  git branch -d refactor/fase-2-3-pwa-db
+  git push origin --delete refactor/fase-2-3-pwa-db
+  ```
+
+**✅ MERGE 3/5 COMPLETADO → Actualizar ESTADO ACTUAL y avanzar a FASE 4+5**
 
 ---
 
 ## FASE 4: PUSH SENDER GENÉRICO [~2 horas]
 
+> **Branch:** `refactor/fase-4-5-onboarding` (junto con Fase 5)  
 > **Objetivo:** Extraer lógica de push a un módulo reutilizable  
 > **Riesgo:** BAJO - Refactor interno, misma funcionalidad  
 > **Dependencias:** Fase 3 completada (tablas existen)
@@ -1157,6 +1656,15 @@ DESPUÉS (tool on-demand):
 **Confirmación:** [ ] Usuario revisó y aprobó → Proceder con desarrollo
 
 ---
+
+### F4.0: Crear branch (si no existe)
+
+- [ ] **Crear branch combinado para Fases 4+5**
+  ```bash
+  git checkout main && git pull origin main
+  git checkout -b refactor/fase-4-5-onboarding
+  git push -u origin refactor/fase-4-5-onboarding
+  ```
 
 ### F4.1: Crear módulo push sender
 
@@ -1394,9 +1902,9 @@ DESPUÉS (tool on-demand):
 
 ### ✅ Checkpoint F4: Tests de validación
 
-- [ ] **Quick test**
+- [ ] **Unit tests**
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
@@ -1419,16 +1927,17 @@ DESPUÉS (tool on-demand):
 | lib/push/types.ts creado | [ ] |
 | prometeo/notifier.ts refactorizado | [ ] |
 | Todo compila | [ ] |
-| Quick test pasa | [ ] |
+| Unit tests pasan | [ ] |
 | Push notification llega | [ ] |
 | Prometeo sigue funcionando | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 5**
+**Continuar con FASE 5 en el mismo branch**
 
 ---
 
 ## FASE 5: ONBOARDING WIZARD [~8 horas]
 
+> **Branch:** `refactor/fase-4-5-onboarding` (mismo que Fase 4)  
 > **Objetivo:** Wizard de 5 pasos para configurar empresa, perfil y alertas  
 > **Riesgo:** MEDIO - Nuevo flujo de usuario, afecta UX  
 > **Dependencias:** Fase 3 (user_profiles), Fase 4 (push sender)
@@ -1948,9 +2457,9 @@ DESPUÉS (tool on-demand):
 
 ### ✅ Checkpoint F5: Tests de validación
 
-- [ ] **Quick test**
+- [ ] **Unit tests**
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
@@ -1977,55 +2486,599 @@ DESPUÉS (tool on-demand):
 
 | Check | Estado |
 |-------|--------|
-| API onboarding funciona | [ ] |
-| Wizard container renderiza | [ ] |
-| Todos los steps funcionan | [ ] |
-| Parseo de intereses funciona | [ ] |
-| Parseo de alertas funciona | [ ] |
-| Gate en homepage funciona | [ ] |
-| Quick test pasa | [ ] |
+| F4.0: Branch creado | [ ] |
+| F4: Push sender completo | [ ] |
+| F5: API onboarding funciona | [ ] |
+| F5: Wizard container renderiza | [ ] |
+| F5: Todos los steps funcionan | [ ] |
+| F5: Parseo de intereses funciona | [ ] |
+| F5: Parseo de alertas funciona | [ ] |
+| F5: Gate en homepage funciona | [ ] |
+| Unit tests pasan | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 6**
+**Continuar con FASE 5B en el mismo branch**
 
 ---
 
-## FASE 6: BRIEFING ENGINE [~8 horas]
+## FASE 5B: HEARTBEAT ENGINE [~4 horas]
 
-> **Objetivo:** Generar briefings matutinos personalizados y enviarlos por push  
-> **Riesgo:** MEDIO - Nuevo proceso cron, consume API de LLM  
-> **Dependencias:** Fase 3 (profiles), Fase 4 (push), Fase 5 (intereses parseados)
+> **Branch:** `refactor/fase-4-5b-onboarding` (mismo que Fases 4 y 5)  
+> **Objetivo:** Motor central de proactividad que unifica briefings, alertas y tareas  
+> **Riesgo:** MEDIO - Nuevo patrón arquitectural, reemplaza crons separados  
+> **Dependencias:** Fase 4 (push sender), Fase 5 (user profiles con intereses/alertas)  
+> **Inspiración:** OpenClaw heartbeat pattern adaptado a Vercel serverless
+
+### 🔴 CONTEXTO - Por qué el heartbeat
+
+Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
+
+**En resumen:** UN SOLO CRON que corre cada 10 minutos y decide:
+1. ¿Hay alertas críticas? → Enviar push (prioridad máxima)
+2. ¿Es hora de briefing para alguien? → Generar y enviar
+3. ¿Hay tareas Prometeo pendientes? → Ejecutar
+4. ¿Nada? → Retornar `{ status: "ok" }` sin gastar tokens
+
+---
+
+### F5B.1: Tipos del heartbeat
+
+- [ ] **Crear archivo** `lib/heartbeat/types.ts`
+  
+  ```typescript
+  /**
+   * Heartbeat Types
+   * 
+   * Define las estructuras para el motor de heartbeat.
+   */
+  
+  export interface HeartbeatResult {
+    status: 'ok' | 'acted' | 'error'
+    briefings_sent: number
+    alerts_triggered: number
+    tasks_executed: number
+    total_duration_ms: number
+    actions: string[]  // Log legible de qué hizo
+    errors?: string[]
+  }
+  
+  export interface HeartbeatContext {
+    now: Date
+    currentTime: string     // "07:00"
+    currentHour: number     // 0-23
+    currentDay: number      // 1=Lun...7=Dom
+    isBusinessHours: boolean
+    elapsedMs: number       // Tiempo desde inicio del heartbeat
+    maxDurationMs: number   // Límite (45000 para Vercel)
+    notifiedUsers: Set<string>  // Usuarios ya notificados en este tick
+  }
+  
+  export interface CheckResult {
+    acted: boolean
+    count: number
+    details: string
+    usersNotified: string[]
+  }
+  
+  export type HeartbeatCheck = {
+    name: string
+    description: string
+    priority: number        // 1 = máxima
+    shouldRun: (ctx: HeartbeatContext) => boolean
+    run: (ctx: HeartbeatContext) => Promise<CheckResult>
+  }
+  ```
+
+### F5B.2: Motor central del heartbeat
+
+- [ ] **Crear archivo** `lib/heartbeat/engine.ts`
+  
+  ```typescript
+  /**
+   * Tuqui Heartbeat — Motor central de proactividad
+   * 
+   * Inspirado en OpenClaw heartbeat pattern.
+   * Corre como Vercel Cron cada 10 minutos.
+   * Unifica: briefings + alertas + tareas Prometeo.
+   * 
+   * Principio: UN SOLO PUNTO DE ENTRADA para toda la proactividad.
+   */
+  
+  import type { HeartbeatResult, HeartbeatContext } from './types'
+  import { checkAlerts } from './checks/alerts'
+  import { checkBriefings } from './checks/briefings'
+  import { checkTasks } from './checks/tasks'
+  
+  const MAX_DURATION_MS = 45_000 // Dejar 15s de margen para Vercel (max 60s)
+  
+  export async function heartbeat(): Promise<HeartbeatResult> {
+    const start = Date.now()
+    const now = new Date()
+    
+    // Construir contexto inicial
+    const ctx: HeartbeatContext = {
+      now,
+      currentTime: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+      currentHour: now.getHours(),
+      currentDay: now.getDay() === 0 ? 7 : now.getDay(), // 1=Lun...7=Dom
+      isBusinessHours: isBusinessHours(now),
+      elapsedMs: 0,
+      maxDurationMs: MAX_DURATION_MS,
+      notifiedUsers: new Set<string>(),
+    }
+    
+    const result: HeartbeatResult = {
+      status: 'ok',
+      briefings_sent: 0,
+      alerts_triggered: 0,
+      tasks_executed: 0,
+      total_duration_ms: 0,
+      actions: [],
+      errors: [],
+    }
+  
+    try {
+      // ========================================
+      // PASO 1: ALERTAS CRÍTICAS (máxima prioridad)
+      // Si hay algo urgente, avisamos AHORA
+      // ========================================
+      const alertResults = await checkAlerts(ctx)
+      result.alerts_triggered = alertResults.count
+      
+      if (alertResults.count > 0) {
+        result.actions.push(`🔴 ${alertResults.count} alertas enviadas`)
+      }
+      
+      // Actualizar contexto con usuarios ya notificados
+      alertResults.usersNotified.forEach(u => ctx.notifiedUsers.add(u))
+      ctx.elapsedMs = Date.now() - start
+  
+      // ========================================
+      // PASO 2: BRIEFINGS (si es hora)
+      // Solo si no acabamos de mandar alertas al mismo usuario
+      // ========================================
+      if (ctx.elapsedMs < MAX_DURATION_MS - 10_000) { // Dejar margen
+        const briefingResults = await checkBriefings(ctx)
+        result.briefings_sent = briefingResults.count
+        
+        if (briefingResults.count > 0) {
+          result.actions.push(`☀️ ${briefingResults.count} briefings enviados`)
+        }
+        
+        briefingResults.usersNotified.forEach(u => ctx.notifiedUsers.add(u))
+        ctx.elapsedMs = Date.now() - start
+      }
+  
+      // ========================================
+      // PASO 3: TAREAS PROMETEO (background)
+      // Solo si queda tiempo
+      // ========================================
+      if (ctx.elapsedMs < MAX_DURATION_MS - 5_000) {
+        const taskResults = await checkTasks(ctx)
+        result.tasks_executed = taskResults.count
+        
+        if (taskResults.count > 0) {
+          result.actions.push(`⚙️ ${taskResults.count} tareas ejecutadas`)
+        }
+      }
+  
+      // ========================================
+      // RESULTADO
+      // ========================================
+      result.status = result.actions.length > 0 ? 'acted' : 'ok'
+      result.total_duration_ms = Date.now() - start
+  
+      if (result.status === 'ok') {
+        console.log(`[Heartbeat] ❤️ OK — nada que hacer (${result.total_duration_ms}ms)`)
+      } else {
+        console.log(`[Heartbeat] ❤️ ${result.actions.join(' | ')} (${result.total_duration_ms}ms)`)
+      }
+  
+      return result
+  
+    } catch (error) {
+      console.error('[Heartbeat] ❌ Error:', error)
+      result.status = 'error'
+      result.errors?.push(error instanceof Error ? error.message : String(error))
+      result.total_duration_ms = Date.now() - start
+      return result
+    }
+  }
+  
+  function isBusinessHours(date: Date): boolean {
+    const hour = date.getHours()
+    const day = date.getDay()
+    // Lunes a viernes, 6 a 20 Argentina
+    return day >= 1 && day <= 5 && hour >= 6 && hour <= 20
+  }
+  ```
+
+### F5B.3: Check de alertas
+
+- [ ] **Crear archivo** `lib/heartbeat/checks/alerts.ts`
+  
+  ```typescript
+  /**
+   * Heartbeat Check: Alertas
+   * Prioridad 1 (máxima)
+   * 
+   * Evalúa condiciones de alerta para todos los usuarios
+   * que tienen alertas configuradas.
+   */
+  
+  import type { HeartbeatContext, CheckResult } from '../types'
+  import { getProfilesWithAlerts } from '@/lib/profiles/service'
+  import { evaluateAlerts } from '@/lib/briefing/alert-checker'
+  import { sendPushToUser } from '@/lib/push/sender'
+  
+  export async function checkAlerts(ctx: HeartbeatContext): Promise<CheckResult> {
+    const result: CheckResult = {
+      acted: false,
+      count: 0,
+      details: '',
+      usersNotified: [],
+    }
+    
+    // Solo correr en horario laboral
+    if (!ctx.isBusinessHours) {
+      result.details = 'Fuera de horario laboral, skip'
+      return result
+    }
+    
+    try {
+      const profiles = await getProfilesWithAlerts()
+      
+      if (profiles.length === 0) {
+        result.details = 'Sin perfiles con alertas configuradas'
+        return result
+      }
+      
+      for (const profile of profiles) {
+        // Skip si ya notificamos a este usuario en este tick
+        if (ctx.notifiedUsers.has(profile.user_email)) {
+          continue
+        }
+        
+        // Evaluar alertas para este perfil
+        const triggered = await evaluateAlerts(profile)
+        
+        for (const alert of triggered) {
+          await sendPushToUser({
+            tenantId: profile.tenant_id,
+            userEmail: profile.user_email,
+            title: alert.title,
+            body: alert.body,
+            type: 'alert',
+            priority: alert.priority,
+          })
+          
+          result.count++
+          result.usersNotified.push(profile.user_email)
+        }
+      }
+      
+      result.acted = result.count > 0
+      result.details = `${result.count} alertas enviadas a ${result.usersNotified.length} usuarios`
+      
+      return result
+      
+    } catch (error) {
+      console.error('[Heartbeat:Alerts] Error:', error)
+      result.details = `Error: ${error instanceof Error ? error.message : String(error)}`
+      return result
+    }
+  }
+  ```
+
+### F5B.4: Check de briefings
+
+- [ ] **Crear archivo** `lib/heartbeat/checks/briefings.ts`
+  
+  ```typescript
+  /**
+   * Heartbeat Check: Briefings
+   * Prioridad 2
+   * 
+   * Genera y envía briefings matutinos para usuarios
+   * cuya hora preferida es ahora (con tolerancia de ±10 min).
+   */
+  
+  import type { HeartbeatContext, CheckResult } from '../types'
+  import { getProfilesForBriefing } from '@/lib/profiles/service'
+  import { generateBriefing } from '@/lib/briefing/generator'
+  import { sendPushToUser } from '@/lib/push/sender'
+  import { saveBriefingHistory } from '@/lib/briefing/history'
+  
+  export async function checkBriefings(ctx: HeartbeatContext): Promise<CheckResult> {
+    const result: CheckResult = {
+      acted: false,
+      count: 0,
+      details: '',
+      usersNotified: [],
+    }
+    
+    // Solo correr de 6 a 11 AM en días de semana
+    if (ctx.currentHour < 6 || ctx.currentHour > 11 || ctx.currentDay > 5) {
+      result.details = 'Fuera de ventana de briefings (6-11 AM lun-vie)'
+      return result
+    }
+    
+    try {
+      // Obtener perfiles cuya hora de briefing es "ahora"
+      const profiles = await getProfilesForBriefing(ctx.currentTime)
+      
+      if (profiles.length === 0) {
+        result.details = 'Sin briefings pendientes para esta hora'
+        return result
+      }
+      
+      for (const profile of profiles) {
+        // Skip si ya notificamos (ej: le mandamos alerta recién)
+        if (ctx.notifiedUsers.has(profile.user_email)) {
+          console.log(`[Heartbeat:Briefings] Skip ${profile.user_email} - ya notificado`)
+          continue
+        }
+        
+        // Check tiempo restante
+        if (Date.now() - ctx.now.getTime() + ctx.elapsedMs > ctx.maxDurationMs - 15_000) {
+          console.log('[Heartbeat:Briefings] Sin tiempo, abortando')
+          break
+        }
+        
+        // Generar briefing
+        const briefing = await generateBriefing(profile)
+        
+        if (!briefing) {
+          console.log(`[Heartbeat:Briefings] No se pudo generar para ${profile.user_email}`)
+          continue
+        }
+        
+        // Enviar push
+        await sendPushToUser({
+          tenantId: profile.tenant_id,
+          userEmail: profile.user_email,
+          title: briefing.push_title,
+          body: briefing.push_body,
+          type: 'briefing',
+          data: { briefingId: briefing.id },
+        })
+        
+        // Guardar en historial
+        await saveBriefingHistory({
+          tenantId: profile.tenant_id,
+          userEmail: profile.user_email,
+          briefing,
+        })
+        
+        result.count++
+        result.usersNotified.push(profile.user_email)
+      }
+      
+      result.acted = result.count > 0
+      result.details = `${result.count} briefings enviados`
+      
+      return result
+      
+    } catch (error) {
+      console.error('[Heartbeat:Briefings] Error:', error)
+      result.details = `Error: ${error instanceof Error ? error.message : String(error)}`
+      return result
+    }
+  }
+  ```
+
+### F5B.5: Check de tareas Prometeo
+
+- [ ] **Crear archivo** `lib/heartbeat/checks/tasks.ts`
+  
+  ```typescript
+  /**
+   * Heartbeat Check: Tareas Prometeo
+   * Prioridad 3
+   * 
+   * Ejecuta tareas programadas pendientes.
+   * Solo si queda tiempo en el heartbeat.
+   */
+  
+  import type { HeartbeatContext, CheckResult } from '../types'
+  import { runPendingTasks } from '@/lib/prometeo/runner'
+  
+  export async function checkTasks(ctx: HeartbeatContext): Promise<CheckResult> {
+    const result: CheckResult = {
+      acted: false,
+      count: 0,
+      details: '',
+      usersNotified: [],
+    }
+    
+    try {
+      const taskResult = await runPendingTasks({
+        maxDurationMs: ctx.maxDurationMs - ctx.elapsedMs - 5_000, // Dejar margen
+      })
+      
+      result.count = taskResult.executed
+      result.acted = taskResult.executed > 0
+      result.details = `${taskResult.executed} tareas ejecutadas`
+      
+      return result
+      
+    } catch (error) {
+      console.error('[Heartbeat:Tasks] Error:', error)
+      result.details = `Error: ${error instanceof Error ? error.message : String(error)}`
+      return result
+    }
+  }
+  ```
+
+### F5B.6: API endpoint del heartbeat
+
+- [ ] **Crear archivo** `app/api/heartbeat/route.ts`
+  
+  ```typescript
+  import { NextRequest, NextResponse } from 'next/server'
+  import { heartbeat } from '@/lib/heartbeat/engine'
+  
+  export const maxDuration = 60
+  
+  export async function GET(request: NextRequest) {
+    // Auth: solo Vercel Cron o llamada interna
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    console.log('[Heartbeat API] Starting heartbeat')
+    
+    const result = await heartbeat()
+    
+    return NextResponse.json(result, {
+      status: result.status === 'error' ? 500 : 200,
+    })
+  }
+  ```
+
+### F5B.7: Actualizar vercel.json con UN SOLO CRON
+
+- [ ] **Reemplazar** `vercel.json` - eliminar crons separados
+  
+  ```json
+  {
+    "crons": [
+      {
+        "path": "/api/heartbeat",
+        "schedule": "*/10 * * * *"
+      }
+    ]
+  }
+  ```
+  
+  > Nota: `*/10 * * * *` = cada 10 minutos, 24/7. El heartbeat decide internamente qué hacer.
+
+### F5B.8: Commit y push
+
+- [ ] **Commit de cambios**
+  ```bash
+  git add lib/heartbeat/ app/api/heartbeat/ vercel.json
+  git commit -m "feat: Heartbeat engine (unified proactivity)
+
+  - Central engine that runs every 10 minutes
+  - Priority-based checks: alerts > briefings > tasks
+  - Anti-spam: tracks notified users per tick
+  - Time budgeting: respects Vercel 60s limit
+  - Single cron instead of 3 separate ones
+  
+  Inspired by OpenClaw heartbeat pattern."
+  ```
+
+- [ ] **Push al branch**
+  ```bash
+  git push origin refactor/fase-4-5b-onboarding
+  ```
+
+### ✅ Checkpoint F5B: Tests de validación
+
+- [ ] **Unit tests**
+  ```bash
+  npm run test
+  ```
+  - Resultado: `_______________`
+
+- [ ] **Test del endpoint heartbeat**
+  ```bash
+  # Sin alertas ni briefings pendientes → debe retornar "ok"
+  curl -X GET "https://preview-url/api/heartbeat" \
+    -H "Authorization: Bearer $CRON_SECRET"
+  ```
+  - Resultado esperado: `{ "status": "ok", "actions": [], ... }`
+  - Resultado actual: `_______________`
+
+- [ ] **Test de priorización** (manual)
+  1. Configurar un usuario con alerta que se cumple
+  2. Configurar briefing para hora actual
+  3. Llamar al heartbeat
+  4. Verificar que llega alerta PERO NO briefing (anti-spam)
+  - Resultado: [ ] Funciona / [ ] Mandó ambos
+
+- [ ] **Verificar que NO se crearon crons separados**
+  ```bash
+  cat vercel.json | grep -E "briefings|alerts|prometeo"
+  ```
+  - Resultado esperado: ningún match
+
+| Check | Estado |
+|-------|--------|
+| lib/heartbeat/types.ts creado | [ ] |
+| lib/heartbeat/engine.ts creado | [ ] |
+| lib/heartbeat/checks/alerts.ts creado | [ ] |
+| lib/heartbeat/checks/briefings.ts creado | [ ] |
+| lib/heartbeat/checks/tasks.ts creado | [ ] |
+| app/api/heartbeat/route.ts creado | [ ] |
+| vercel.json tiene UN SOLO cron | [ ] |
+| Unit tests pasan | [ ] |
+| Heartbeat retorna OK | [ ] |
+
+### F5B.9: Merge a main
+
+- [ ] **Merge a main**
+  ```bash
+  git checkout main
+  git pull origin main
+  git merge refactor/fase-4-5b-onboarding
+  git push origin main
+  ```
+
+- [ ] **Cleanup del branch**
+  ```bash
+  git branch -d refactor/fase-4-5b-onboarding
+  git push origin --delete refactor/fase-4-5b-onboarding
+  ```
+
+**✅ MERGE 4/5 COMPLETADO → Actualizar ESTADO ACTUAL y avanzar a FASE 6+7+8**
+
+---
+
+## FASE 6: BRIEFING ENGINE [~6 horas]
+
+> **Branch:** `refactor/fase-6-8-briefings` (junto con Fases 7 y 8)  
+> **Objetivo:** Generar briefings matutinos personalizados (llamado desde heartbeat)  
+> **Riesgo:** BAJO - El heartbeat ya existe, solo creamos el generador  
+> **Dependencias:** Fase 3 (profiles), Fase 4 (push), Fase 5B (heartbeat)
+> 
+> ⚠️ **NOTA:** Esta fase YA NO crea su propio cron. El briefing es llamado por el heartbeat.
+
+### F6.0: Crear branch (si no existe)
+
+- [ ] **Crear branch combinado para Fases 6+7+8**
+  ```bash
+  git checkout main && git pull origin main
+  git checkout -b refactor/fase-6-8-briefings
+  git push -u origin refactor/fase-6-8-briefings
+  ```
 
 ### 🔴 VALIDACIÓN PREVIA - Revisar con usuario antes de desarrollar
 
 **Decisiones a confirmar:**
 
-1. **¿Frecuencia del cron?**
-   - [ ] Cada 5 minutos (de 6 a 11 AM)
-   - [ ] Cada 15 minutos
-   - [ ] Cada hora
-
-2. **¿Qué tools puede usar el briefing?**
+1. **¿Qué tools puede usar el briefing?**
    - [ ] Todas las skills de Odoo
    - [ ] Solo un subconjunto: `_______________`
    - [ ] También RAG
 
-3. **¿Formato del briefing?**
+2. **¿Formato del briefing?**
    - [ ] Push corto + link al chat con briefing completo
    - [ ] Solo push (todo en el cuerpo)
    - [ ] Email además de push
 
-4. **¿Guardar historial?**
+3. **¿Guardar historial?**
    - [ ] Sí, en briefing_history (ya tenemos la tabla)
    - [ ] No
 
-5. **¿Marcar como leído?**
+4. **¿Marcar como leído?**
    - [ ] Sí, cuando abre el link
    - [ ] No trackear
 
-6. **¿Límite de intentos si falla?**
-   - [ ] 1 intento (si falla, no reintenta hasta mañana)
-   - [ ] 3 intentos con backoff
-   - [ ] Sin límite
+> ⚠️ **Ya NO hay que decidir frecuencia de cron** — el heartbeat (Fase 5B) corre cada 10 min y decide si es hora de briefing para cada usuario según su `briefing_time` en el perfil.
 
 **Confirmación:** [ ] Usuario revisó y aprobó → Proceder con desarrollo
 
@@ -2328,52 +3381,36 @@ DESPUÉS (tool on-demand):
   }
   ```
 
-### F6.6: Agregar cron a vercel.json
+### ~~F6.6: Agregar cron a vercel.json~~ (ELIMINADO)
 
-- [ ] **Modificar** `vercel.json`
-  
-  ```json
-  {
-    "crons": [
-      {
-        "path": "/api/prometeo/run",
-        "schedule": "0 8 * * *"
-      },
-      {
-        "path": "/api/internal/briefings",
-        "schedule": "*/5 9-14 * * 1-5"
-      }
-    ]
-  }
-  ```
-  
-  > Nota: `*/5 9-14 * * 1-5` = cada 5 minutos, de 9 a 14 UTC (6 a 11 Argentina), lunes a viernes
+> ⚠️ **Ya no se necesita cron separado para briefings.**
+> El heartbeat (Fase 5B) es el único cron y llama a `checkBriefings()` internamente.
 
-### F6.7: Commit y push
+### F6.6: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
-  git add lib/briefing/ app/api/internal/briefings/ vercel.json
-  git commit -m "feat: Briefing engine with cron
+  git add lib/briefing/
+  git commit -m "feat: Briefing generator (called by heartbeat)
 
   - System prompt builder for personalized briefings
   - Briefing generator using Odoo skills
-  - Cron runner with deduplication
-  - API endpoint for Vercel cron
-  - Chat context loader for briefings
-  - Cron schedule: every 5 min, 6-11 AM Argentina, Mon-Fri"
+  - History service for persistence
+  - Chat context loader for viewing briefings
+  
+  Note: No cron here - heartbeat handles scheduling"
   ```
 
 - [ ] **Push al branch**
   ```bash
-  git push origin refactor/mejoras-v2
+  git push origin refactor/fase-6-8-briefings
   ```
 
 ### ✅ Checkpoint F6: Tests de validación
 
-- [ ] **Quick test**
+- [ ] **Unit tests**
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
@@ -2388,34 +3425,35 @@ DESPUÉS (tool on-demand):
       role_title: 'Gerente',
       interests_raw: 'ventas del día, stock bajo'
     }
-    generateBriefing('tenant-id', 'tuqui', profile).then(console.log)
+    generateBriefing(profile).then(console.log)
   "
   ```
   - Resultado: [ ] Genera briefing / [ ] Error
 
-- [ ] **Test del endpoint**
+- [ ] **Verificar que NO hay cron de briefings**
   ```bash
-  curl -X GET "https://preview-url/api/internal/briefings" \
-    -H "Authorization: Bearer $CRON_SECRET"
+  cat vercel.json | grep briefings
   ```
-  - Resultado: `_______________`
+  - Resultado esperado: ningún match
 
 | Check | Estado |
 |-------|--------|
+| F6.0: Branch creado | [ ] |
 | Prompts creados | [ ] |
 | Generator funciona | [ ] |
-| Runner funciona | [ ] |
-| API endpoint funciona | [ ] |
-| Cron configurado | [ ] |
+| History service funciona | [ ] |
+| Chat context loader funciona | [ ] |
+| ~~Cron configurado~~ | N/A (heartbeat) |
 | Historial se guarda | [ ] |
 | Quick test pasa | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 7**
+**Continuar con FASE 7 en el mismo branch**
 
 ---
 
 ## FASE 7: SETTINGS [~3 horas]
 
+> **Branch:** `refactor/fase-6-8-briefings` (mismo que Fase 6)  
 > **Objetivo:** Página para editar perfil, intereses, alertas y relanzar wizard  
 > **Riesgo:** BAJO - Nueva página, no afecta funcionalidad existente  
 > **Dependencias:** Fase 3 (profiles), Fase 5 (onboarding)
@@ -2768,9 +3806,9 @@ DESPUÉS (tool on-demand):
 
 ### ✅ Checkpoint F7: Tests de validación
 
-- [ ] **Quick test**
+- [ ] **Unit tests**
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
@@ -2787,40 +3825,40 @@ DESPUÉS (tool on-demand):
 | API guarda cambios | [ ] |
 | Re-parseo funciona | [ ] |
 | Link en menú | [ ] |
-| Quick test pasa | [ ] |
+| Unit tests pasan | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL arriba y avanzar a FASE 8**
+**Continuar con FASE 8 en el mismo branch**
 
 ---
 
-## FASE 8: ALERTAS PROACTIVAS [~4 horas]
+## FASE 8: ALERTAS PROACTIVAS [~3 horas]
 
-> **Objetivo:** Evaluar condiciones de alerta periódicamente y notificar si se cumplen  
-> **Riesgo:** MEDIO - Nuevo cron, consume LLM para evaluación  
-> **Dependencias:** Fase 3 (profiles con alertas), Fase 4 (push), Fase 6 (briefing patterns)
+> **Branch:** `refactor/fase-6-8-briefings` (mismo que Fases 6 y 7)  
+> **Objetivo:** Lógica de evaluación de alertas (llamada desde heartbeat)  
+> **Riesgo:** BAJO - El heartbeat ya existe, solo creamos el evaluador  
+> **Dependencias:** Fase 3 (profiles con alertas), Fase 4 (push), Fase 5B (heartbeat)
+> 
+> ⚠️ **NOTA:** Esta fase YA NO crea su propio cron. Las alertas son evaluadas por el heartbeat.
 
 ### 🔴 VALIDACIÓN PREVIA - Revisar con usuario antes de desarrollar
 
 **Decisiones a confirmar:**
 
-1. **¿Frecuencia del chequeo de alertas?**
-   - [ ] Cada 2 horas (de 8 a 20)
-   - [ ] Cada 4 horas
-   - [ ] Solo con briefing matutino
-
-2. **¿Deduplicación de alertas?**
+1. **¿Deduplicación de alertas?**
    - [ ] No enviar la misma alerta más de 1 vez por día
    - [ ] No enviar la misma alerta más de 1 vez por semana
    - [ ] Siempre enviar si la condición se cumple
 
-3. **¿Cómo marcar alertas como "vistas"?**
+2. **¿Cómo marcar alertas como "vistas"?**
    - [ ] Cuando abre la notificación
    - [ ] Botón "Entendido" en el chat
    - [ ] No trackear
 
-4. **¿Prioridad de alertas afecta push?**
+3. **¿Prioridad de alertas afecta push?**
    - [ ] High = con sonido/vibración, Normal = silencioso
    - [ ] Todas igual
+
+> ⚠️ **Ya NO hay que decidir frecuencia** — el heartbeat corre cada 10 min y evalúa alertas con prioridad máxima.
 
 **Confirmación:** [ ] Usuario revisó y aprobó → Proceder con desarrollo
 
@@ -2965,160 +4003,146 @@ Si ninguna condición se cumple: { "triggered": [] }`,
   }
   ```
 
-### F8.2: API del cron de alertas
+### ~~F8.2: API del cron de alertas~~ (ELIMINADO)
 
-- [ ] **Crear archivo** `app/api/internal/alerts/route.ts`
-  
-  ```typescript
-  import { NextRequest, NextResponse } from 'next/server'
-  import { checkAlerts } from '@/lib/briefing/alert-checker'
-  
-  export const maxDuration = 60
-  
-  export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    console.log('[Alerts API] Starting alert check')
-    
-    try {
-      const result = await checkAlerts()
-      return NextResponse.json(result)
-    } catch (error: any) {
-      console.error('[Alerts API] Error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-  }
-  ```
+> ⚠️ **Ya no se necesita endpoint separado para alertas.**
+> El heartbeat (Fase 5B) llama a `checkAlerts()` directamente desde `lib/heartbeat/checks/alerts.ts`.
+> 
+> Si querés testear alertas manualmente, podés llamar al heartbeat:
+> ```bash
+> curl -X GET "https://preview-url/api/heartbeat" \
+>   -H "Authorization: Bearer $CRON_SECRET"
+> ```
 
-### F8.3: Agregar cron de alertas a vercel.json
+### ~~F8.3: Agregar cron de alertas a vercel.json~~ (ELIMINADO)
 
-- [ ] **Modificar** `vercel.json`
-  
-  ```json
-  {
-    "crons": [
-      {
-        "path": "/api/prometeo/run",
-        "schedule": "0 8 * * *"
-      },
-      {
-        "path": "/api/internal/briefings",
-        "schedule": "*/5 9-14 * * 1-5"
-      },
-      {
-        "path": "/api/internal/alerts",
-        "schedule": "0 11,13,15,17,19,21,23 * * 1-5"
-      }
-    ]
-  }
-  ```
-  
-  > Nota: Cada 2 horas de 8 a 20 Argentina (11-23 UTC), lunes a viernes
+> ⚠️ **Ya no se necesita cron separado para alertas.**
+> El heartbeat es el único cron y evalúa alertas con prioridad máxima en cada tick.
 
-### F8.4: Commit y push
+### F8.2: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
-  git add lib/briefing/alert-checker.ts app/api/internal/alerts/ vercel.json
-  git commit -m "feat: Proactive alert checking
+  git add lib/briefing/alert-checker.ts
+  git commit -m "feat: Alert evaluation logic (called by heartbeat)
 
   - Alert checker that evaluates conditions with LLM
   - Deduplication (same alert only once per day)
-  - API endpoint for cron
-  - Cron schedule: every 2 hours, business hours"
+  - Called by heartbeat with priority 1
+  
+  Note: No cron here - heartbeat handles scheduling"
   ```
 
 - [ ] **Push al branch**
   ```bash
-  git push origin refactor/mejoras-v2
+  git push origin refactor/fase-6-8-briefings
   ```
 
 ### ✅ Checkpoint F8: Tests de validación
 
-- [ ] **Quick test**
+- [ ] **Unit tests**
   ```bash
-  npx tsx scripts/e2e-tests/quick-test.ts
+  npm run test
   ```
   - Resultado: `_______________`
 
 - [ ] **Agent evals** (verificación final de no regresión)
   ```bash
-  npx tsx tests/evals/run-agent-evals.ts 2>&1 | tail -5
+  npm run test:evals 2>&1 | tail -5
   ```
   - Resultado: `_____ / _____ = _____%`
   - Comparar con baseline: `_______________`
 
-- [ ] **Test del endpoint de alertas**
+- [ ] **Test de alertas via heartbeat**
   ```bash
-  curl -X GET "https://preview-url/api/internal/alerts" \
+  # Configurar un perfil con alerta que se cumple, luego:
+  curl -X GET "https://preview-url/api/heartbeat" \
     -H "Authorization: Bearer $CRON_SECRET"
   ```
-  - Resultado: `_______________`
+  - Resultado esperado: `{ "status": "acted", "alerts_triggered": 1, ... }`
+  - Resultado actual: `_______________`
+
+- [ ] **Verificar que NO hay crons separados**
+  ```bash
+  cat vercel.json
+  ```
+  - Resultado esperado: solo `/api/heartbeat`
 
 | Check | Estado |
 |-------|--------|
-| Alert checker creado | [ ] |
-| Deduplicación funciona | [ ] |
-| API endpoint funciona | [ ] |
-| Cron configurado | [ ] |
-| Quick test pasa | [ ] |
+| F6: Briefing generator completo | [ ] |
+| F7: Settings completo | [ ] |
+| F8: Alert checker creado | [ ] |
+| F8: Deduplicación funciona | [ ] |
+| ~~F8: API endpoint~~  | N/A (heartbeat) |
+| ~~F8: Cron configurado~~ | N/A (heartbeat) |
+| Unit tests pasan | [ ] |
 | Agent evals ≥ baseline | [ ] |
+| UN SOLO cron en vercel.json | [ ] |
 
-**Si todo está ✅, actualizar ESTADO ACTUAL y proceder a MERGE FINAL**
+### F8.3: Merge a main (MERGE FINAL)
 
----
-
-## 🚀 MERGE FINAL
-
-### Pre-requisitos
-
-- [ ] Todas las fases completadas (0-8)
-- [ ] Todos los checkpoints ✅
-- [ ] Agent evals ≥ baseline
-- [ ] Testing manual en preview exitoso
-- [ ] No hay errores en logs de Vercel
-
-### Proceso de merge
-
-- [ ] **Actualizar main**
+- [ ] **Merge a main**
   ```bash
   git checkout main
   git pull origin main
-  ```
-
-- [ ] **Merge del branch**
-  ```bash
-  git merge refactor/mejoras-v2
-  ```
-
-- [ ] **Push a producción**
-  ```bash
+  git merge refactor/fase-6-8-briefings
   git push origin main
   ```
+
+- [ ] **Cleanup del branch**
+  ```bash
+  git branch -d refactor/fase-6-8-briefings
+  git push origin --delete refactor/fase-6-8-briefings
+  ```
+
+**✅ MERGE 5/5 COMPLETADO → REFACTOR COMPLETO! 🎉**
+
+---
+
+## 🚀 VERIFICACIÓN FINAL POST-REFACTOR
+
+### Pre-requisitos completados
+
+- [ ] MERGE 1/5: fase-0-limpieza ✅
+- [ ] MERGE 2/5: fase-1-rag-tool ✅
+- [ ] MERGE 3/5: fase-2-3-pwa-db ✅
+- [ ] MERGE 4/5: fase-4-5b-onboarding ✅
+- [ ] MERGE 5/5: fase-6-8-briefings ✅
+
+### Verificación de producción
 
 - [ ] **Verificar deploy de producción**
   - URL: https://tuqui.app (o la que corresponda)
   - [ ] Login funciona
   - [ ] Chat funciona
-  - [ ] Onboarding funciona (si es usuario nuevo)
+  - [ ] RAG tool se llama cuando corresponde
+  - [ ] PWA instalable
+  - [ ] Onboarding funciona (usuario nuevo)
   - [ ] Settings funciona
+  - [ ] Heartbeat endpoint responde
 
-### Cleanup
-
-- [ ] **Eliminar branch local**
+- [ ] **Verificar heartbeat**
   ```bash
-  git branch -d refactor/mejoras-v2
+  curl -X GET "https://tuqui.app/api/heartbeat" \
+    -H "Authorization: Bearer $CRON_SECRET"
+  ```
+  - Resultado esperado: `{ "status": "ok" | "acted", ... }`
+  
+- [ ] **Verificar UN SOLO cron en Vercel**
+  - Dashboard → Settings → Crons
+  - Debe mostrar solo: `/api/heartbeat` cada 10 min
+  - NO debe haber: `/api/prometeo/run`, `/api/internal/briefings`, `/api/internal/alerts`
+
+### Cleanup final
+
+- [ ] **Eliminar tag de backup (opcional)**
+  ```bash
+  git tag -d backup-pre-refactor-v2
+  git push origin --delete backup-pre-refactor-v2
   ```
 
-- [ ] **Eliminar branch remoto**
-  ```bash
-  git push origin --delete refactor/mejoras-v2
-  ```
+- [ ] **Actualizar README con nuevas features**
 
 ---
 
@@ -3126,17 +4150,27 @@ Si ninguna condición se cumple: { "triggered": [] }`,
 
 ### Tests
 ```bash
-# Quick test
-npx tsx scripts/e2e-tests/quick-test.ts
-
-# Agent evals completos
-npx tsx tests/evals/run-agent-evals.ts 2>&1 | tee /tmp/evals.log
-
-# Unit tests
+# Unit tests (rápido, con mocks)
 npm run test
+
+# Integration tests (APIs reales)
+npm run test:integration
+
+# Agent evals (lento, agente completo)
+npm run test:evals
+
+# Todos los tests
+npm run test:all
+
+# CI pipeline (unit + integration)
+npm run test:ci
 
 # Verificar compilación
 npx tsc --noEmit
+
+# Test heartbeat local
+curl -X GET "http://localhost:3000/api/heartbeat" \
+  -H "Authorization: Bearer $CRON_SECRET"
 ```
 
 ### Git
@@ -3184,6 +4218,56 @@ psql $DATABASE_URL -c "SELECT * FROM user_profiles LIMIT 1;"
 - Decisión: PWA antes de onboarding para poder testear con notificaciones
 - Nota: Las migrations son aditivas, se aplican a producción desde el branch
 
+### 2026-02-02: Heartbeat pattern
+- Decisión: UN SOLO CRON (heartbeat) en lugar de 3 crons separados
+- Inspiración: OpenClaw heartbeat pattern adaptado a Vercel serverless
+- Justificación: Priorización, anti-spam, contexto compartido, economía de tokens
+- Fase 5B agregada para implementar el motor central
+
+---
+
+## 🤖 NOTAS PARA CLAUDE CODE
+
+### Heartbeat pattern:
+- **UN SOLO CRON** en vercel.json: `/api/heartbeat` cada 10 min
+- El heartbeat decide internamente qué hacer según hora, día, perfiles
+- Si no hay nada que hacer → retorna `{ status: "ok" }` sin llamar LLM
+- Orden de prioridad: alertas (1) > briefings (2) > tareas (3)
+- Anti-spam: si ya notificaste a un usuario en este tick, no lo vuelvas a notificar
+- Time budget: 45 segundos máximo (dejar 15s de margen para Vercel)
+- Cada check es independiente y puede fallar sin afectar a los demás
+
+### Archivos del heartbeat:
+```
+lib/heartbeat/
+├── types.ts            ← Tipos (HeartbeatResult, HeartbeatContext, etc.)
+├── engine.ts           ← Motor central (heartbeat() function)
+└── checks/
+    ├── alerts.ts       ← Prioridad 1
+    ├── briefings.ts    ← Prioridad 2
+    └── tasks.ts        ← Prioridad 3 (Prometeo)
+
+app/api/heartbeat/
+└── route.ts            ← Único cron endpoint
+```
+
+### Qué NO crear:
+- ❌ NO crear `app/api/internal/briefings/route.ts` (no tiene cron propio)
+- ❌ NO crear `app/api/internal/alerts/route.ts` (no tiene cron propio)
+- ❌ NO agregar múltiples crons a vercel.json
+
+### vercel.json final esperado:
+```json
+{
+  "crons": [
+    {
+      "path": "/api/heartbeat",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
+```
+
 ---
 
 ## ❓ PREGUNTAS PENDIENTES
@@ -3194,4 +4278,4 @@ psql $DATABASE_URL -c "SELECT * FROM user_profiles LIMIT 1;"
 
 ---
 
-*Última actualización: 2026-02-01*
+*Última actualización: 2026-02-02*
