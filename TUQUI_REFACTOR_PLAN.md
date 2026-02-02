@@ -10,10 +10,10 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Fase actual** | `FASE 1` - Estandarización de Skills |
-| **Branch actual** | Crear `refactor/fase-1-skill-types` |
-| **Último checkpoint** | ✅ F0.5 - Fase 0 completada |
-| **Merges completados** | 1 / 5 (F0 directo a main - próximas usar branches) |
+| **Fase actual** | `FASE 1` - Base de Conocimiento como Tool |
+| **Branch actual** | `refactor/fase-1-rag-tool` ✅ |
+| **Último checkpoint** | 🔄 F1.4 - RAG tool creado, falta UI |
+| **Merges completados** | 1 / 5 (F0 directo a main) |
 
 ### Progreso General - Branches y Merges
 
@@ -23,8 +23,8 @@
 │   └─ FASE 0: Preparación y limpieza        [✓] ██████████ 100%             │
 │   └─ MERGE → main                          [✓] Completado (directo)        │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 2: refactor/fase-1-skill-types                       ← PRÓXIMO      │
-│   └─ FASE 1: Skill Types & Runner          [ ] ⬜⬜⬜⬜⬜ 0%               │
+│ BRANCH 2: refactor/fase-1-rag-tool                          🔄 EN PROGRESO │
+│   └─ FASE 1: Base de Conocimiento          [✓] ██████░░░░ 60%              │
 │   └─ MERGE → main                          [ ] Pendiente                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ BRANCH 3: refactor/fase-2-3-pwa-db                                          │
@@ -893,11 +893,11 @@ DESPUÉS (tool on-demand):
 
 **⛔ GATE: Todos deben pasar antes de continuar**
 
-- [ ] **Unit tests**
+- [x] **Unit tests**
   ```bash
   npm run test
   ```
-  - Resultado: `_______________`
+  - Resultado: `159/159 passed ✅`
 
 - [ ] **Agent evals** (NO debe haber regresión)
   ```bash
@@ -910,20 +910,67 @@ DESPUÉS (tool on-demand):
 - [ ] **Verificar logs del RAG tool**
   ```bash
   # En los logs del preview deploy, buscar:
-  # "[Tools] RAG tool loaded for agent:"
+  # "[Tools/Executor] RAG tool loaded for agent:"
   ```
 
 | Check | Estado |
 |-------|--------|
-| F1.0: Branch creado | [ ] |
-| F1.1: rag-tool.ts creado y compila | [ ] |
-| F1.2: executor.ts modificado y compila | [ ] |
-| F1.3: engine.ts modificado y compila | [ ] |
-| F1.4: Commit y push exitoso | [ ] |
-| F1.5: Preview deploy funciona | [ ] |
-| Unit tests pasan | [ ] |
-| Agent evals ≥ baseline | [ ] |
-| RAG tool se carga para agentes con rag_enabled | [ ] |
+| F1.0: Branch creado | [✓] `refactor/fase-1-rag-tool` |
+| F1.1: rag-tool.ts creado y compila | [✓] `lib/tools/definitions/rag-tool.ts` |
+| F1.2: executor.ts modificado y compila | [✓] Backwards compatible |
+| F1.3: engine.ts modificado y compila | [✓] RAG automático comentado |
+| F1.4: Commit y push exitoso | [✓] `a915fd6` |
+| F1.5: Preview deploy funciona | [ ] Pendiente verificar |
+| Unit tests pasan | [✓] 159/159 |
+| Build pasa | [✓] |
+| Agent evals ≥ baseline | [ ] Pendiente |
+| RAG tool se carga para agentes con rag_enabled | [✓] Implementado |
+
+### F1.7: UI - Base de Conocimiento como Tool (AGREGADO)
+
+> **Contexto:** El backend ya soporta todo. Solo falta ajustar la UI para que
+> "Base de Conocimiento" aparezca como un Tool más, no como sección separada.
+
+**Estado actual de la UI:**
+- ✅ `/admin/rag` - Subir documentos funciona
+- ✅ `DocumentSelector` - Componente con búsqueda y checkboxes
+- ⚠️ `/admin/agents/[slug]` - RAG está separado de Tools
+- ⚠️ No aparece "Base de Conocimiento" en lista de AVAILABLE_TOOLS
+
+**Cambios necesarios:**
+
+- [ ] **F1.7.1: Agregar "knowledge_base" a AVAILABLE_TOOLS**
+  ```typescript
+  // En app/admin/agents/[slug]/page.tsx
+  const AVAILABLE_TOOLS = [
+    { slug: 'web_search', label: 'Búsqueda Web', ... },
+    { slug: 'odoo_intelligent_query', label: 'Odoo ERP', ... },
+    { slug: 'knowledge_base', label: 'Base de Conocimiento', 
+      description: 'Buscar en documentos cargados (manuales, catálogos, etc.)',
+      hasDocSelector: true  // Flag para mostrar DocumentSelector
+    }
+  ]
+  ```
+
+- [ ] **F1.7.2: Mostrar DocumentSelector cuando se activa knowledge_base**
+  - Al activar el toggle de "Base de Conocimiento", expandir y mostrar DocumentSelector
+  - Similar a cómo Odoo podría mostrar configuración adicional
+
+- [ ] **F1.7.3: Sincronizar tools array con rag_enabled**
+  - Si `tools.includes('knowledge_base')` → `rag_enabled = true`
+  - Remover toggle separado de RAG
+
+- [ ] **F1.7.4: Actualizar executor.ts para usar 'knowledge_base' en lugar de rag_enabled**
+  ```typescript
+  // Antes:
+  if (agent.rag_enabled) { ... }
+  // Después:
+  if (agent.tools.includes('knowledge_base')) { ... }
+  ```
+
+- [ ] **F1.7.5: Renaming en toda la UI**
+  - "RAG" → "Base de Conocimiento"
+  - Verificar consistencia
 
 ### F1.6: Merge a main
 
