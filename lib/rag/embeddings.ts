@@ -6,8 +6,16 @@ const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
 })
 
-// Using gemini-embedding-001 (text-embedding-004 was deprecated)
+// Using gemini-embedding-001 with reduced dimensions to match DB schema
 const EMBEDDING_MODEL = 'gemini-embedding-001'
+const EMBEDDING_DIMENSIONS = 768  // Match Supabase vector(768) column
+
+// Provider options to reduce embedding dimensions
+const embeddingProviderOptions = {
+    google: {
+        outputDimensionality: EMBEDDING_DIMENSIONS,
+    }
+}
 
 // Rate limiting configuration for Gemini API
 // Free tier: 1500 requests/min, Paid: higher limits
@@ -26,10 +34,14 @@ function getRetryDelay(attempt: number): number {
     return exponentialDelay + jitter
 }
 
+// Create embedding model
+const embeddingModel = google.textEmbeddingModel(EMBEDDING_MODEL)
+
 export async function generateEmbedding(text: string) {
     const { embedding } = await embed({
-        model: google.textEmbeddingModel(EMBEDDING_MODEL),
+        model: embeddingModel,
         value: text,
+        providerOptions: embeddingProviderOptions,
     })
     return embedding
 }
@@ -45,8 +57,9 @@ async function processBatchWithRetry(
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
             const { embeddings } = await embedMany({
-                model: google.textEmbeddingModel(EMBEDDING_MODEL),
+                model: embeddingModel,
                 values: batch,
+                providerOptions: embeddingProviderOptions,
             })
             return embeddings
         } catch (error: any) {
@@ -74,8 +87,9 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
     // If within batch limit, process all at once
     if (texts.length <= BATCH_SIZE) {
         const { embeddings } = await embedMany({
-            model: google.textEmbeddingModel(EMBEDDING_MODEL),
+            model: embeddingModel,
             values: texts,
+            providerOptions: embeddingProviderOptions,
         })
         return embeddings
     }
