@@ -1,4 +1,4 @@
-# 🧠 TUQUI REFACTOR - PLAN EXHAUSTIVO CON CHECKPOINTS
+# 🧠 TUQUI REFACTOR - PLAN EXHAUSTIVO
 
 > **Estrategia:** Branches por grupo de fases → Merge incremental a main  
 > **Fecha inicio:** 2026-02-01  
@@ -10,122 +10,85 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Fase actual** | `FASE 1` - Base de Conocimiento como Tool |
-| **Branch actual** | `refactor/fase-1-rag-tool` ✅ |
-| **Último checkpoint** | ✅ F1.7 - UI integrada, listo para merge |
-| **Último commit** | `fbfe458` - feat(ui): Integrate Knowledge Base as tool |
-| **Merges completados** | 1 / 5 (F0 directo a main) |
+| **Fase actual** | `F1` - RAG como Tool |
+| **Branch actual** | `refactor/fase-1-rag-tool` |
+| **Último checkpoint** | F1.9 - Upload grandes archivos implementado |
+| **Merges completados** | 1 / 6 |
 
-### Progreso General - Branches y Merges
+### Progreso General
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ BRANCH 1: refactor/fase-0-limpieza                          ✅ COMPLETADO  │
-│   └─ FASE 0: Preparación y limpieza        [✓] ██████████ 100%             │
-│   └─ MERGE → main                          [✓] Completado (directo)        │
+│   └─ F0: Preparación y limpieza            [✓] ██████████ 100%             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ BRANCH 2: refactor/fase-1-rag-tool                          🔄 EN PROGRESO │
-│   └─ FASE 1: Base de Conocimiento          [✓] █████████░ 90%              │
-│   └─ MERGE → main                          [ ] Listo para merge            │
+│   └─ F1: RAG como Tool                     [~] ████████░░ 85%              │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 2B: refactor/fase-1b-orchestrator                                    │
-│   └─ FASE 1B: Orquestador LLM Lean         [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ MERGE → main                          [ ] Pendiente                   │
+│ BRANCH 3: refactor/fase-2-orchestrator                      ⬜ PENDIENTE   │
+│   └─ F2: Orquestador LLM Lean              [ ] ⬜⬜⬜⬜⬜ 0%               │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 3: refactor/fase-2-3-pwa-db                                          │
-│   └─ FASE 2: PWA Base                      [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ FASE 3: Modelo de Datos               [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ MERGE → main                          [ ] Pendiente                   │
+│ BRANCH 4: refactor/fase-3-4-pwa-db                          ⬜ PENDIENTE   │
+│   └─ F3: PWA Base                          [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ F4: Modelo de Datos                   [ ] ⬜⬜⬜⬜⬜ 0%               │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 4: refactor/fase-4-5b-onboarding                                     │
-│   └─ FASE 4: Push Sender Genérico          [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ FASE 5: Onboarding Wizard             [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ FASE 5B: Heartbeat Engine             [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ MERGE → main                          [ ] Pendiente                   │
+│ BRANCH 5: refactor/fase-5-6-7-onboarding                    ⬜ PENDIENTE   │
+│   └─ F5: Push Sender Genérico              [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ F6: Onboarding Wizard                 [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ F7: Heartbeat Engine                  [ ] ⬜⬜⬜⬜⬜ 0%               │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 5: refactor/fase-6-8-briefings                                       │
-│   └─ FASE 6: Briefing Engine (sin cron)    [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ FASE 7: Settings                      [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ FASE 8: Alertas (sin cron)            [ ] ⬜⬜⬜⬜⬜ 0%               │
-│   └─ MERGE → main                          [ ] Pendiente                   │
+│ BRANCH 6: refactor/fase-8-9-10-briefings                    ⬜ PENDIENTE   │
+│   └─ F8: Briefing Engine                   [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ F9: Settings                          [ ] ⬜⬜⬜⬜⬜ 0%               │
+│   └─ F10: Alertas Proactivas               [ ] ⬜⬜⬜⬜⬜ 0%               │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Archivos de soporte creados
+### Resumen de Fases
 
-| Archivo | Propósito | Estado |
-|---------|-----------|--------|
-| `ANALISIS_COHERENCIA.md` | Análisis integral del sistema | ✅ Creado |
-| `lib/config/api-keys.ts` | Helper unificado para API keys | ✅ Creado |
-| `tests/config.ts` | Config centralizada de tests | ✅ Creado |
+| # | Fase | Tiempo | Descripción |
+|---|------|--------|-------------|
+| 0 | Preparación | ✅ 45min | Limpieza, estructura de tests |
+| 1 | RAG como Tool | 🔄 1h | Base de conocimiento integrada |
+| 2 | Orquestador LLM | ⬜ 3h | Clasificador lean, reemplaza keywords |
+| 3 | PWA Base | ⬜ 2h | Manifest, SW, offline |
+| 4 | Modelo de Datos | ⬜ 2h | user_profiles, briefing_history |
+| 5 | Push Sender | ⬜ 2h | Lib genérica de push |
+| 6 | Onboarding | ⬜ 8h | Wizard de 5 pasos |
+| 7 | Heartbeat | ⬜ 4h | Cron unificado |
+| 8 | Briefings | ⬜ 6h | Generación con IA |
+| 9 | Settings | ⬜ 3h | Página de configuración |
+| 10 | Alertas | ⬜ 3h | Evaluación proactiva |
 
 ---
 
 ## 🌿 ESTRATEGIA DE BRANCHES
 
-### Por qué branches múltiples
-
-| Ventaja | Descripción |
-|---------|-------------|
-| **Rollback quirúrgico** | Si falla una fase, revertimos solo esa |
-| **Entregables incrementales** | Cada merge va a producción, feedback real |
-| **Code review manejable** | PRs pequeños y focalizados |
-| **Testing en producción** | Preview deploys para cada branch |
-
 ### Flujo de trabajo
 
 ```
-main ─────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────
-          │             │             │             │             │             │
-          ▼             ▼             ▼             ▼             ▼             ▼
-     fase-0-limpieza   fase-1-rag   fase-1b-orch  fase-2-3-pwa  fase-4-5-onb  fase-6-8-brief
-          │             │             │             │             │             │
-          └──merge──────┴──merge──────┴──merge──────┴──merge──────┴──merge──────┴──merge──▶ main
+main ───┬───────────┬───────────┬───────────┬───────────┬───────────┬───────────
+        │           │           │           │           │           │
+        ▼           ▼           ▼           ▼           ▼           ▼
+       F0         F1          F2         F3+F4      F5+F6+F7   F8+F9+F10
+        │           │           │           │           │           │
+        └──merge────┴──merge────┴──merge────┴──merge────┴──merge────┴──merge──▶
 ```
 
-### Agrupación de fases
+### Agrupación de Branches
 
-| Branch | Fases | Tiempo est. | Justificación |
-|--------|-------|-------------|---------------|
-| `refactor/fase-0-limpieza` | 0 | ~45 min | Limpieza independiente, bajo riesgo |
-| `refactor/fase-1-rag-tool` | 1 | ~1 hora | RAG autocontenido |
-| `refactor/fase-1b-orchestrator` | 1B | ~3 horas | Orquestador LLM lean, reemplaza router keywords |
-| `refactor/fase-2-3-pwa-db` | 2+3 | ~4 horas | PWA + migrations van juntas |
-| `refactor/fase-4-5b-onboarding` | 4+5+5B | ~14 horas | Push + wizard + heartbeat engine |
-| `refactor/fase-6-8-briefings` | 6+7+8 | ~12 horas | Briefings + settings + alertas (usan heartbeat) |
-
-### Proceso por branch
-
-```bash
-# 1. Crear branch desde main actualizado
-git checkout main && git pull
-git checkout -b refactor/fase-X-nombre
-
-# 2. Desarrollar y testear
-# ... trabajo ...
-npm run test
-npm run test:integration
-
-# 3. Push y preview deploy
-git push -u origin refactor/fase-X-nombre
-# Vercel crea preview automáticamente
-
-# 4. Verificar en preview deploy
-# Testear manualmente la funcionalidad
-
-# 5. Merge a main
-git checkout main
-git merge refactor/fase-X-nombre
-git push origin main
-
-# 6. Cleanup
-git branch -d refactor/fase-X-nombre
-git push origin --delete refactor/fase-X-nombre
-```
+| Branch | Fases | Tiempo | Justificación |
+|--------|-------|--------|---------------|
+| `refactor/fase-0-limpieza` | F0 | ~45 min | ✅ Completado |
+| `refactor/fase-1-rag-tool` | F1 | ~1 hora | RAG autocontenido |
+| `refactor/fase-2-orchestrator` | F2 | ~3 horas | Orquestador lean |
+| `refactor/fase-3-4-pwa-db` | F3+F4 | ~4 horas | PWA + migrations |
+| `refactor/fase-5-6-7-onboarding` | F5+F6+F7 | ~14 horas | Push + wizard + heartbeat |
+| `refactor/fase-8-9-10-briefings` | F8+F9+F10 | ~12 horas | Briefings + settings + alertas |
 
 ---
 
-## ⚠️ MANEJO DE BASE DE DATOS CON BRANCHES
+## ⚠️ MANEJO DE BASE DE DATOS
 
 ### Estrategia: Migrations Aditivas
 
@@ -194,7 +157,7 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN
 
 ## 🧪 TESTS - ESTRUCTURA UNIFICADA
 
-### Estructura de carpetas (después de reorganización F0.0b)
+### Estructura de carpetas (después de reorganización F0.1b)
 
 ```
 tests/
@@ -370,11 +333,11 @@ app/api/heartbeat/
 
 ---
 
-## FASE 0: PREPARACIÓN [~45 min]
+## F0: PREPARACIÓN ✅
 
 > **Objetivo:** Limpiar codebase, crear branch de trabajo y establecer baseline de tests
 
-### F0.0: Limpieza y coherencia del sistema
+### F0.1: Limpieza y coherencia del sistema
 
 > **Análisis completo disponible en:** `ANALISIS_COHERENCIA.md`
 
@@ -444,7 +407,7 @@ app/api/heartbeat/
   npx tsc --noEmit && echo "✅ TypeScript OK" || echo "❌ Errores de compilación"
   ```
 
-### ✅ Checkpoint F0.0 - Limpieza
+### ✅ Checkpoint F0.1 - Limpieza
 
 | Check | Estado |
 |-------|--------|
@@ -457,7 +420,7 @@ app/api/heartbeat/
 
 ---
 
-### F0.0b: Reorganizar estructura de tests
+### F0.1b: Reorganizar estructura de tests
 
 > **Objetivo:** Unificar tests dispersos en estructura clara de 3 niveles
 
@@ -566,7 +529,7 @@ app/api/heartbeat/
   ```
   - Resultado: `_______________`
 
-### ✅ Checkpoint F0.0b - Tests reorganizados
+### ✅ Checkpoint F0.1b - Tests reorganizados
 
 | Check | Estado |
 |-------|--------|
@@ -683,8 +646,8 @@ app/api/heartbeat/
 
 | Check | Estado |
 |-------|--------|
-| F0.0: Limpieza completada | [ ] |
-| F0.0b: Tests reorganizados | [ ] |
+| F0.1: Limpieza completada | [ ] |
+| F0.1b: Tests reorganizados | [ ] |
 | F0.1: Unit tests pasan | [ ] |
 | F0.1: Integration tests pasan | [ ] |
 | F0.1: Agent evals ≥80% | [ ] |
@@ -699,7 +662,7 @@ app/api/heartbeat/
 
 ---
 
-## FASE 1: RAG COMO TOOL [~1 hora] ⭐
+## F1: RAG COMO TOOL 🔄
 
 > **Branch:** `refactor/fase-1-rag-tool`  
 > **Objetivo:** Cambiar RAG de inyección automática a tool on-demand  
@@ -1126,7 +1089,7 @@ const ragTestCases: EvalTestCase[] = [
 
 ---
 
-## FASE 1B: ORQUESTADOR LLM LEAN [~3 horas]
+## F2: ORQUESTADOR LLM LEAN
 
 > **Branch:** `refactor/fase-1b-orchestrator`  
 > **Objetivo:** Reemplazar router por keywords con orquestador LLM liviano  
@@ -1177,7 +1140,7 @@ Un orquestador LLM **lean** que:
 └─────────────────────────────────────────────────┘
 ```
 
-### F1B.0: Crear branch
+### F10.0: Crear branch
 
 - [ ] **Crear branch desde main (después del merge de F1)**
   ```bash
@@ -1186,7 +1149,7 @@ Un orquestador LLM **lean** que:
   git push -u origin refactor/fase-1b-orchestrator
   ```
 
-### F1B.1: Crear definiciones de agentes especializados
+### F10.1: Crear definiciones de agentes especializados
 
 > **Objetivo:** Definir agentes con prompts específicos y tools limitadas
 
@@ -1327,7 +1290,7 @@ Podés consultar cuentas por cobrar, pagos pendientes, vencimientos y flujo de c
   export * from './types'
   ```
 
-### F1B.2: Crear el Orquestador LLM
+### F10.2: Crear el Orquestador LLM
 
 > **Objetivo:** Clasificador liviano que decide qué agente usar
 
@@ -1403,7 +1366,7 @@ Agente:`
   }
   ```
 
-### F1B.3: Integrar orquestador en chat engine
+### F10.3: Integrar orquestador en chat engine
 
 > **Objetivo:** Usar el orquestador en lugar del router por keywords
 
@@ -1429,7 +1392,7 @@ Agente:`
   - Renombrar `router.ts` a `router.legacy.ts`
   - Agregar comentario: `// DEPRECATED: Usar orchestrator.ts`
 
-### F1B.4: Tests del orquestador
+### F10.4: Tests del orquestador
 
 - [ ] **Crear tests unitarios** `tests/unit/orchestrator.test.ts`
   ```typescript
@@ -1483,7 +1446,7 @@ Agente:`
   // ... más casos
   ```
 
-### F1B.5: Métricas y logging
+### F8.5: Métricas y logging
 
 - [ ] **Agregar métricas al orquestador**
   ```typescript
@@ -1515,7 +1478,7 @@ Agente:`
 | Tests unitarios pasan | [ ] |
 | Routing correcto en preview deploy | [ ] |
 
-### F1B.6: Merge a main
+### F4.6: Merge a main
 
 - [ ] **Verificar todo en preview:**
   - Preguntas de ventas van a tuqui-ventas
@@ -1541,13 +1504,13 @@ Agente:`
 
 ---
 
-## FASE 2: PWA BASE [~2 horas]
+## F3: PWA BASE
 
 > **Branch:** `refactor/fase-2-3-pwa-db` (junto con Fase 3)  
 > **Objetivo:** Tuqui se instala como app nativa desde el browser  
 > **Riesgo:** BAJO - Son cambios frontend, no afectan lógica de negocio
 
-### F2.0: Crear branch (si no existe)
+### F10.0: Crear branch (si no existe)
 
 - [ ] **Crear branch combinado para Fases 2+3**
   ```bash
@@ -1556,7 +1519,7 @@ Agente:`
   git push -u origin refactor/fase-2-3-pwa-db
   ```
 
-### F2.1: Crear manifest.json
+### F10.1: Crear manifest.json
 
 - [ ] **Crear archivo** `public/manifest.json`
   
@@ -1591,7 +1554,7 @@ Agente:`
   }
   ```
 
-### F2.2: Crear íconos PWA
+### F10.2: Crear íconos PWA
 
 - [ ] **Crear directorio** `public/icons/`
 - [ ] **Generar íconos** (usar logo Tuqui existente)
@@ -1599,7 +1562,7 @@ Agente:`
   - [ ] `icon-512.png` (512x512)
   - [ ] `icon-maskable.png` (512x512, con padding para safe zone)
 
-### F2.3: Agregar metadata PWA al layout
+### F10.3: Agregar metadata PWA al layout
 
 - [ ] **Modificar** `app/layout.tsx`
   
@@ -1624,7 +1587,7 @@ Agente:`
   }
   ```
 
-### F2.4: Mejorar Service Worker con caching
+### F10.4: Mejorar Service Worker con caching
 
 - [ ] **Modificar** `public/sw.js`
   
@@ -1692,7 +1655,7 @@ Agente:`
   // ... (el código de push que ya existe)
   ```
 
-### F2.5: Crear página offline
+### F8.5: Crear página offline
 
 - [ ] **Crear archivo** `app/offline/page.tsx`
   
@@ -1717,7 +1680,7 @@ Agente:`
   }
   ```
 
-### F2.6: Actualizar middleware
+### F4.6: Actualizar middleware
 
 - [ ] **Modificar** `middleware.ts`
   
@@ -1794,14 +1757,14 @@ Agente:`
 
 ---
 
-## FASE 3: MODELO DE DATOS [~2 horas]
+## F4: MODELO DE DATOS
 
 > **Branch:** `refactor/fase-2-3-pwa-db` (mismo que Fase 2)  
 > **Objetivo:** Crear tablas para user profiles, briefing history  
 > **Riesgo:** MEDIO - Modifica DB de producción, pero con IF NOT EXISTS  
 > **⚠️ IMPORTANTE:** Las migrations se aplican a la DB de producción (compartida entre main y refactor)
 
-### F3.1: Migration user_profiles
+### F10.1: Migration user_profiles
 
 - [ ] **Crear archivo** `supabase/migrations/20260201_001_user_profiles.sql`
   
@@ -1872,7 +1835,7 @@ Agente:`
     USING (auth.role() = 'service_role');
   ```
 
-### F3.2: Migration tenant columns
+### F10.2: Migration tenant columns
 
 - [ ] **Crear archivo** `supabase/migrations/20260201_002_tenant_onboarding.sql`
   
@@ -1893,7 +1856,7 @@ Agente:`
   ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_cuit TEXT;
   ```
 
-### F3.3: Migration briefing_history
+### F10.3: Migration briefing_history
 
 - [ ] **Crear archivo** `supabase/migrations/20260201_003_briefing_history.sql`
   
@@ -1939,7 +1902,7 @@ Agente:`
     USING (auth.role() = 'service_role');
   ```
 
-### F3.4: Aplicar migrations
+### F10.4: Aplicar migrations
 
 - [ ] **Verificar script de migrations existe**
   ```bash
@@ -1964,7 +1927,7 @@ Agente:`
   ```
   - Resultado: `_______________`
 
-### F3.5: Verificar tablas creadas
+### F8.5: Verificar tablas creadas
 
 - [ ] **Verificar user_profiles**
   ```bash
@@ -1988,7 +1951,7 @@ Agente:`
   ```
   - Resultado: [ ] Tabla existe con todas las columnas
 
-### F3.6: Crear tipos TypeScript
+### F4.6: Crear tipos TypeScript
 
 - [ ] **Crear archivo** `lib/types/user-profile.ts`
   
@@ -2049,7 +2012,7 @@ Agente:`
   npx tsc --noEmit lib/types/user-profile.ts
   ```
 
-### F3.7: Crear servicio de profiles
+### F4.7: Crear servicio de profiles
 
 - [ ] **Crear archivo** `lib/profiles/service.ts`
   
@@ -2206,7 +2169,7 @@ Agente:`
 | Agent evals ≥ baseline | [ ] |
 | Insert/Select en user_profiles funciona | [ ] |
 
-### F3.6: Merge a main
+### F4.6: Merge a main
 
 - [ ] **Merge a main**
   ```bash
@@ -2226,7 +2189,7 @@ Agente:`
 
 ---
 
-## FASE 4: PUSH SENDER GENÉRICO [~2 horas]
+## F5: PUSH SENDER GENÉRICO
 
 > **Branch:** `refactor/fase-4-5-onboarding` (junto con Fase 5)  
 > **Objetivo:** Extraer lógica de push a un módulo reutilizable  
@@ -2253,7 +2216,7 @@ Agente:`
 
 ---
 
-### F4.0: Crear branch (si no existe)
+### F10.0: Crear branch (si no existe)
 
 - [ ] **Crear branch combinado para Fases 4+5**
   ```bash
@@ -2262,7 +2225,7 @@ Agente:`
   git push -u origin refactor/fase-4-5-onboarding
   ```
 
-### F4.1: Crear módulo push sender
+### F10.1: Crear módulo push sender
 
 - [ ] **Crear archivo** `lib/push/sender.ts`
   
@@ -2390,7 +2353,7 @@ Agente:`
   npx tsc --noEmit lib/push/sender.ts
   ```
 
-### F4.2: Crear tipos de push
+### F10.2: Crear tipos de push
 
 - [ ] **Crear archivo** `lib/push/types.ts`
   
@@ -2424,7 +2387,7 @@ Agente:`
   }
   ```
 
-### F4.3: Refactorizar Prometeo notifier
+### F10.3: Refactorizar Prometeo notifier
 
 - [ ] **Modificar** `lib/prometeo/notifier.ts`
   
@@ -2457,7 +2420,7 @@ Agente:`
   npx tsc --noEmit lib/prometeo/notifier.ts
   ```
 
-### F4.4: Test de push sender
+### F10.4: Test de push sender
 
 - [ ] **Crear archivo** `tests/push/sender.test.ts`
   
@@ -2478,7 +2441,7 @@ Agente:`
   })
   ```
 
-### F4.5: Commit y push
+### F8.5: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
@@ -2531,7 +2494,7 @@ Agente:`
 
 ---
 
-## FASE 5: ONBOARDING WIZARD [~8 horas]
+## F6: ONBOARDING WIZARD
 
 > **Branch:** `refactor/fase-4-5-onboarding` (mismo que Fase 4)  
 > **Objetivo:** Wizard de 5 pasos para configurar empresa, perfil y alertas  
@@ -2572,7 +2535,7 @@ Agente:`
 
 ---
 
-### F5.1: API de onboarding
+### F10.1: API de onboarding
 
 - [ ] **Crear archivo** `app/api/onboarding/route.ts`
   
@@ -2717,7 +2680,7 @@ Agente:`
   npx tsc --noEmit app/api/onboarding/route.ts
   ```
 
-### F5.2: Parseo de intereses con IA
+### F10.2: Parseo de intereses con IA
 
 - [ ] **Crear archivo** `lib/onboarding/parse-interests.ts`
   
@@ -2770,7 +2733,7 @@ Agente:`
   }
   ```
 
-### F5.3: Parseo de alertas con IA
+### F10.3: Parseo de alertas con IA
 
 - [ ] **Crear archivo** `lib/onboarding/parse-alerts.ts`
   
@@ -2821,7 +2784,7 @@ Agente:`
   }
   ```
 
-### F5.4: Componente OnboardingWizard (container)
+### F10.4: Componente OnboardingWizard (container)
 
 - [ ] **Crear archivo** `components/onboarding/OnboardingWizard.tsx`
   
@@ -2947,7 +2910,7 @@ Agente:`
   }
   ```
 
-### F5.5: Steps individuales (esqueleto)
+### F8.5: Steps individuales (esqueleto)
 
 - [ ] **Crear archivo** `components/onboarding/steps/CompanyStep.tsx`
 - [ ] **Crear archivo** `components/onboarding/steps/IntegrationsStep.tsx`
@@ -2959,7 +2922,7 @@ Agente:`
 > **Nota:** Cada step se detallará en tickets individuales durante el desarrollo.
 > Por ahora, crear esqueletos básicos que muestren el nombre del paso.
 
-### F5.6: Página del wizard
+### F8.6: Página del wizard
 
 - [ ] **Crear archivo** `app/onboarding/page.tsx`
   
@@ -3017,7 +2980,7 @@ Agente:`
   }
   ```
 
-### F5.7: Gate en homepage
+### F8.7: Gate en homepage
 
 - [ ] **Modificar** `app/page.tsx`
   
@@ -3031,7 +2994,7 @@ Agente:`
   }
   ```
 
-### F5.8: Commit y push
+### F8.8: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
@@ -3096,7 +3059,7 @@ Agente:`
 
 ---
 
-## FASE 5B: HEARTBEAT ENGINE [~4 horas]
+## F7: HEARTBEAT ENGINE
 
 > **Branch:** `refactor/fase-4-5b-onboarding` (mismo que Fases 4 y 5)  
 > **Objetivo:** Motor central de proactividad que unifica briefings, alertas y tareas  
@@ -3116,7 +3079,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 
 ---
 
-### F5B.1: Tipos del heartbeat
+### F9.1: Tipos del heartbeat
 
 - [ ] **Crear archivo** `lib/heartbeat/types.ts`
   
@@ -3164,7 +3127,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F5B.2: Motor central del heartbeat
+### F9.2: Motor central del heartbeat
 
 - [ ] **Crear archivo** `lib/heartbeat/engine.ts`
   
@@ -3288,7 +3251,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F5B.3: Check de alertas
+### F9.3: Check de alertas
 
 - [ ] **Crear archivo** `lib/heartbeat/checks/alerts.ts`
   
@@ -3365,7 +3328,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F5B.4: Check de briefings
+### F9.4: Check de briefings
 
 - [ ] **Crear archivo** `lib/heartbeat/checks/briefings.ts`
   
@@ -3462,7 +3425,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F5B.5: Check de tareas Prometeo
+### F9.5: Check de tareas Prometeo
 
 - [ ] **Crear archivo** `lib/heartbeat/checks/tasks.ts`
   
@@ -3505,7 +3468,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F5B.6: API endpoint del heartbeat
+### F7.6: API endpoint del heartbeat
 
 - [ ] **Crear archivo** `app/api/heartbeat/route.ts`
   
@@ -3534,7 +3497,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F5B.7: Actualizar vercel.json con UN SOLO CRON
+### F7.7: Actualizar vercel.json con UN SOLO CRON
 
 - [ ] **Reemplazar** `vercel.json` - eliminar crons separados
   
@@ -3551,7 +3514,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   
   > Nota: `*/10 * * * *` = cada 10 minutos, 24/7. El heartbeat decide internamente qué hacer.
 
-### F5B.8: Commit y push
+### F7.8: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
@@ -3572,7 +3535,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   git push origin refactor/fase-4-5b-onboarding
   ```
 
-### ✅ Checkpoint F5B: Tests de validación
+### ✅ Checkpoint F7: Tests de validación
 
 - [ ] **Unit tests**
   ```bash
@@ -3614,7 +3577,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 | Unit tests pasan | [ ] |
 | Heartbeat retorna OK | [ ] |
 
-### F5B.9: Merge a main
+### F7.9: Merge a main
 
 - [ ] **Merge a main**
   ```bash
@@ -3634,7 +3597,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 
 ---
 
-## FASE 6: BRIEFING ENGINE [~6 horas]
+## F8: BRIEFING ENGINE
 
 > **Branch:** `refactor/fase-6-8-briefings` (junto con Fases 7 y 8)  
 > **Objetivo:** Generar briefings matutinos personalizados (llamado desde heartbeat)  
@@ -3643,7 +3606,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 > 
 > ⚠️ **NOTA:** Esta fase YA NO crea su propio cron. El briefing es llamado por el heartbeat.
 
-### F6.0: Crear branch (si no existe)
+### F10.0: Crear branch (si no existe)
 
 - [ ] **Crear branch combinado para Fases 6+7+8**
   ```bash
@@ -3680,7 +3643,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 
 ---
 
-### F6.1: System prompt del briefing
+### F10.1: System prompt del briefing
 
 - [ ] **Crear archivo** `lib/briefing/prompts.ts`
   
@@ -3743,7 +3706,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F6.2: Generador de briefings
+### F10.2: Generador de briefings
 
 - [ ] **Crear archivo** `lib/briefing/generator.ts`
   
@@ -3808,7 +3771,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F6.3: Runner de briefings (cron)
+### F10.3: Runner de briefings (cron)
 
 - [ ] **Crear archivo** `lib/briefing/runner.ts`
   
@@ -3907,7 +3870,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F6.4: API del cron
+### F10.4: API del cron
 
 - [ ] **Crear archivo** `app/api/internal/briefings/route.ts`
   
@@ -3938,7 +3901,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F6.5: Contexto de briefing en chat
+### F8.5: Contexto de briefing en chat
 
 - [ ] **Crear archivo** `lib/briefing/chat-context.ts`
   
@@ -3982,7 +3945,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 > ⚠️ **Ya no se necesita cron separado para briefings.**
 > El heartbeat (Fase 5B) es el único cron y llama a `checkBriefings()` internamente.
 
-### F6.6: Commit y push
+### F8.6: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
@@ -4047,7 +4010,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 
 ---
 
-## FASE 7: SETTINGS [~3 horas]
+## F9: SETTINGS
 
 > **Branch:** `refactor/fase-6-8-briefings` (mismo que Fase 6)  
 > **Objetivo:** Página para editar perfil, intereses, alertas y relanzar wizard  
@@ -4081,7 +4044,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 
 ---
 
-### F7.1: Página de settings
+### F9.1: Página de settings
 
 - [ ] **Crear archivo** `app/settings/page.tsx`
   
@@ -4148,7 +4111,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F7.2: Componente SettingsForm
+### F9.2: Componente SettingsForm
 
 - [ ] **Crear archivo** `components/settings/SettingsForm.tsx`
   
@@ -4321,7 +4284,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F7.3: API de settings
+### F9.3: API de settings
 
 - [ ] **Crear archivo** `app/api/settings/route.ts`
   
@@ -4370,7 +4333,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   }
   ```
 
-### F7.4: Link en menú de usuario
+### F9.4: Link en menú de usuario
 
 - [ ] **Modificar** `components/UserMenu.tsx` (o equivalente)
   
@@ -4381,7 +4344,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
   </a>
   ```
 
-### F7.5: Commit y push
+### F9.5: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
@@ -4427,7 +4390,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 
 ---
 
-## FASE 8: ALERTAS PROACTIVAS [~3 horas]
+## F10: ALERTAS PROACTIVAS
 
 > **Branch:** `refactor/fase-6-8-briefings` (mismo que Fases 6 y 7)  
 > **Objetivo:** Lógica de evaluación de alertas (llamada desde heartbeat)  
@@ -4460,7 +4423,7 @@ Ver sección "💓 HEARTBEAT PATTERN" más arriba para entender el diseño.
 
 ---
 
-### F8.1: Alert checker
+### F10.1: Alert checker
 
 - [ ] **Crear archivo** `lib/briefing/alert-checker.ts`
   
@@ -4615,7 +4578,7 @@ Si ninguna condición se cumple: { "triggered": [] }`,
 > ⚠️ **Ya no se necesita cron separado para alertas.**
 > El heartbeat es el único cron y evalúa alertas con prioridad máxima en cada tick.
 
-### F8.2: Commit y push
+### F10.2: Commit y push
 
 - [ ] **Commit de cambios**
   ```bash
@@ -4676,7 +4639,7 @@ Si ninguna condición se cumple: { "triggered": [] }`,
 | Agent evals ≥ baseline | [ ] |
 | UN SOLO cron en vercel.json | [ ] |
 
-### F8.3: Merge a main (MERGE FINAL)
+### F10.3: Merge a main (MERGE FINAL)
 
 - [ ] **Merge a main**
   ```bash
