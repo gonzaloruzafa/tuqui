@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect } from 'vitest';
-import { MLLinkValidator } from '../_validator';
+import { MLLinkValidator } from '@/lib/skills/web-search/mercadolibre/_validator';
 
 describe('MLLinkValidator', () => {
   describe('isProductURL', () => {

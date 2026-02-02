@@ -3,12 +3,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getCashBalance, GetCashBalanceInputSchema } from '../get-cash-balance';
-import type { SkillContext } from '../../types';
-import * as clientModule from '../_client';
+import { getCashBalance, GetCashBalanceInputSchema } from '@/lib/skills/odoo/get-cash-balance';
+import type { SkillContext } from '@/lib/skills/types';
+import * as clientModule from '@/lib/skills/odoo/_client';
 
 // Mock the Odoo client module
-vi.mock('../_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', () => ({
   createOdooClient: vi.fn(),
   dateRange: (field: string, start: string, end: string) => [
     [field, '>=', start],

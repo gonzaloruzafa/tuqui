@@ -3,11 +3,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getOverdueInvoices, GetOverdueInvoicesInputSchema } from '../get-overdue-invoices';
-import type { SkillContext } from '../../types';
-import * as clientModule from '../_client';
+import { getOverdueInvoices, GetOverdueInvoicesInputSchema } from '@/lib/skills/odoo/get-overdue-invoices';
+import type { SkillContext } from '@/lib/skills/types';
+import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('../_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', () => ({
   createOdooClient: vi.fn(),
   dateRange: () => [],
   stateFilter: () => [],

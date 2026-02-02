@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect } from 'vitest';
-import { parsePrice, extractPriceFromText, formatPrice } from '../types';
+import { parsePrice, extractPriceFromText, formatPrice } from '@/lib/skills/web-search/mercadolibre/types';
 
 describe('Price Utilities', () => {
   describe('parsePrice', () => {

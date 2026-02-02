@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { MLCache } from '../_cache';
+import { MLCache } from '@/lib/skills/web-search/mercadolibre/_cache';
 
 describe('MLCache', () => {
   beforeEach(() => {

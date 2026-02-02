@@ -3,11 +3,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getTopProducts, GetTopProductsInputSchema } from '../get-top-products';
-import type { SkillContext } from '../../types';
-import * as clientModule from '../_client';
+import { getTopProducts, GetTopProductsInputSchema } from '@/lib/skills/odoo/get-top-products';
+import type { SkillContext } from '@/lib/skills/types';
+import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('../_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', () => ({
   createOdooClient: vi.fn(),
   dateRange: (field: string, start: string, end: string) => [
     [field, '>=', start],

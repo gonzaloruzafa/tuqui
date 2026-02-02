@@ -7,16 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
+    "test": "vitest run tests/unit",
     "test:watch": "vitest",
-    "test:ci": "vitest run --reporter=verbose",
-    "test:unit": "vitest run lib/skills",
-    "test:evals": "vitest run tests/evals/agent-evals.test.ts --reporter=verbose",
-    "test:conversations": "tsx scripts/e2e-tests/conversation-test-runner.ts --all",
-    "test:conversation": "tsx scripts/e2e-tests/conversation-test-runner.ts",
-    "test:e2e": "tsx scripts/e2e-tests/runner.ts",
-    "test:e2e:local": "tsx scripts/e2e-tests/runner.ts --env local",
-    "test:e2e:critical": "tsx scripts/e2e-tests/runner.ts --subset critical"
+    "test:integration": "vitest run tests/integration",
+    "test:evals": "vitest run tests/evals",
+    "test:all": "vitest run",
+    "test:ci": "vitest run tests/unit tests/integration --reporter=verbose"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.51",
