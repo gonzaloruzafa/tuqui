@@ -25,7 +25,7 @@ export default async function RAGPage() {
             <Header />
 
             <AdminSubHeader
-                title="Base de Conocimiento RAG"
+                title="Base de Conocimiento"
                 backHref="/admin"
                 icon={Database}
                 tenantName={session.tenant?.name}

@@ -24,7 +24,7 @@ export default async function AdminPage() {
         },
         {
             title: 'Base de Conocimiento',
-            description: 'Documentos y fuentes de datos para RAG.',
+            description: 'Documentos y fuentes de datos para los agentes.',
             icon: Database,
             href: '/admin/rag',
             color: 'text-blue-600',
