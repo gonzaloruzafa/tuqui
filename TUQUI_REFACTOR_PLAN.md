@@ -993,7 +993,115 @@ DESPUÉS (tool on-demand):
 - `app/admin/agents/[slug]/page.tsx` - Integración completa
 - `lib/tools/executor.ts` - Soporte para `knowledge_base` tool
 
-### F1.8: Merge a main
+### F1.9: Login con Email/Password (AGREGADO)
+
+> **Contexto:** Para testear preview deploys sin configurar OAuth para cada dominio.
+> Actualmente solo hay Google OAuth, necesitamos agregar email/password.
+
+**Estado actual:**
+- Auth: NextAuth.js v5 con Google OAuth únicamente
+- Usuarios en tabla `users` sin password (delegado a Google)
+- Middleware protege todas las rutas
+
+**Implementación:**
+
+- [ ] **F1.9.1: Agregar Credentials provider a NextAuth**
+  - Modificar `lib/auth/config.ts`
+  - Agregar `next-auth/providers/credentials`
+  - Validar contra Supabase Auth
+
+- [ ] **F1.9.2: Habilitar Email provider en Supabase**
+  - Dashboard > Authentication > Providers > Email
+  - Configurar sin confirmación para desarrollo
+
+- [ ] **F1.9.3: Actualizar UI de login**
+  - Modificar `app/login/page.tsx`
+  - Agregar formulario email/password
+  - Mantener botón Google OAuth
+
+- [ ] **F1.9.4: Crear usuario de test**
+  - Usuario: test@adhoc.ar / password seguro
+  - Asociar a tenant de desarrollo
+
+**Archivos a modificar:**
+- `lib/auth/config.ts` - Agregar Credentials provider
+- `app/login/page.tsx` - Agregar form email/password
+
+### F1.10: Tests de RAG en Evals (AGREGADO)
+
+> **Contexto:** Validar que el tool RAG funciona correctamente con documento de prueba.
+
+**Setup requerido:**
+- Subir "Manual de usuario Sillo Cingol.pdf" al tenant de test
+- Asociar documento al agente de prueba
+
+**Test Cases RAG a agregar:**
+
+```typescript
+// tests/evals/test-cases.ts
+const ragTestCases: EvalTestCase[] = [
+  {
+    id: 'rag-001',
+    question: '¿Cuáles son las características del sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [/sillón|cingol/i],
+    forbiddenPatterns: [/no encontré|no tengo información/i],
+  },
+  {
+    id: 'rag-002', 
+    question: '¿Qué garantía tiene el sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [/garantía|año|meses/i],
+  },
+  {
+    id: 'rag-003',
+    question: '¿Cómo se ajusta la altura del sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [/altura|ajuste|pedal|motor/i],
+  },
+  {
+    id: 'rag-004',
+    question: '¿Cuáles son las posiciones del sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [/posición|trendelenburg|reclinado/i],
+  },
+  {
+    id: 'rag-005',
+    question: '¿Qué mantenimiento necesita el sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [/mantenimiento|limpieza|cuidado/i],
+  },
+];
+```
+
+**Implementación:**
+
+- [ ] **F1.10.1: Agregar tipo 'rag' a categorías de evals**
+  - Modificar `tests/evals/test-cases.ts`
+  - Agregar al enum de categorías
+
+- [ ] **F1.10.2: Crear test cases RAG**
+  - 5 preguntas sobre sillón Cingol
+  - Patrones esperados basados en contenido del PDF
+
+- [ ] **F1.10.3: Subir documento al tenant de test**
+  - Usar `/admin/rag` en preview
+  - Asociar al agente tuqui
+
+- [ ] **F1.10.4: Verificar evals pasan**
+  - `npm run test:evals`
+  - Categoría RAG debe pasar ≥80%
+
+**Archivos a modificar:**
+- `tests/evals/test-cases.ts` - Agregar RAG test cases
+
+### F1.11: Merge a main
+
+- [ ] **Verificar todo en preview:**
+  - Login con email/password funciona
+  - RAG tool aparece en config de agente
+  - Preguntas sobre sillón Cingol responden correctamente
+  - Evals RAG pasan
 
 - [ ] **Merge a main**
   ```bash

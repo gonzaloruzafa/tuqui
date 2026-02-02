@@ -1,7 +1,36 @@
 import { signIn } from "@/lib/auth/config"
 import Image from "next/image"
+import { redirect } from "next/navigation"
 
-export default function LoginPage() {
+async function handleCredentialsLogin(formData: FormData) {
+    "use server"
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+    
+    try {
+        await signIn("credentials", { 
+            email, 
+            password, 
+            redirectTo: "/" 
+        })
+    } catch (error: any) {
+        // NextAuth throws NEXT_REDIRECT on success, let it through
+        if (error?.digest?.includes('NEXT_REDIRECT')) {
+            throw error
+        }
+        // For other errors, redirect back to login with error
+        redirect("/login?error=CredentialsSignin")
+    }
+}
+
+async function handleGoogleLogin() {
+    "use server"
+    await signIn("google", { redirectTo: "/" })
+}
+
+export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+    const error = searchParams?.error
+    
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="w-full max-w-md mx-4">
@@ -18,7 +47,7 @@ export default function LoginPage() {
                 </div>
 
                 {/* Título con New Kansas */}
-                <div className="text-center mb-12">
+                <div className="text-center mb-8">
                     <span className="inline-block px-4 py-1.5 rounded-full bg-adhoc-lavender/30 text-adhoc-violet font-bold text-xs uppercase tracking-wider mb-4">
                         Plataforma Alpha
                     </span>
@@ -30,16 +59,58 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                {/* Login button - Apercu font */}
-                <form
-                    action={async () => {
-                        "use server"
-                        await signIn("google", { redirectTo: "/" })
-                    }}
-                >
+                {/* Error message */}
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">
+                        {error === 'CredentialsSignin' 
+                            ? 'Email o contraseña incorrectos' 
+                            : 'Error al iniciar sesión'}
+                    </div>
+                )}
+
+                {/* Email/Password form */}
+                <form action={handleCredentialsLogin} className="space-y-4 mb-6">
+                    <div>
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="Email"
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-adhoc-violet/30 focus:border-adhoc-violet/50 transition-all"
+                        />
+                    </div>
+                    <div>
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Contraseña"
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-adhoc-violet/30 focus:border-adhoc-violet/50 transition-all"
+                        />
+                    </div>
                     <button
                         type="submit"
-                        className="w-full flex justify-center items-center gap-3 px-6 py-4 bg-white border border-gray-200 text-base font-medium rounded-2xl text-gray-700 hover:bg-gray-50 hover:border-adhoc-violet/30 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-adhoc-violet/30 transition-all shadow-sm"
+                        className="w-full px-6 py-3 bg-adhoc-violet text-white font-medium rounded-xl hover:bg-adhoc-violet/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-adhoc-violet/50 transition-all shadow-sm"
+                    >
+                        Iniciar sesión
+                    </button>
+                </form>
+
+                {/* Divider */}
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-4 bg-gray-50 text-gray-400">o continuar con</span>
+                    </div>
+                </div>
+
+                {/* Google button */}
+                <form action={handleGoogleLogin}>
+                    <button
+                        type="submit"
+                        className="w-full flex justify-center items-center gap-3 px-6 py-3 bg-white border border-gray-200 text-base font-medium rounded-xl text-gray-700 hover:bg-gray-50 hover:border-adhoc-violet/30 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-adhoc-violet/30 transition-all shadow-sm"
                     >
                         <svg className="h-5 w-5" viewBox="0 0 24 24">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -47,17 +118,17 @@ export default function LoginPage() {
                             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                         </svg>
-                        Continuar con Google
+                        Google
                     </button>
                 </form>
 
                 {/* Footer discreto */}
-                <p className="mt-12 text-center text-xs text-gray-400">
+                <p className="mt-10 text-center text-xs text-gray-400">
                     Acceso restringido a usuarios autorizados
                 </p>
 
                 {/* Powered by Adhoc */}
-                <div className="mt-6 text-center">
+                <div className="mt-4 text-center">
                     <span className="text-[10px] text-gray-300 uppercase tracking-widest">
                         Powered by Adhoc
                     </span>
