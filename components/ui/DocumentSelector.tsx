@@ -43,10 +43,10 @@ function categorizeDocuments(docs: Document[]) {
 }
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-    'fiscal': { label: 'Documentos Fiscales', icon: '📊', color: 'bg-blue-50 border-blue-200' },
-    'legal': { label: 'Documentos Legales', icon: '⚖️', color: 'bg-purple-50 border-purple-200' },
-    'empresa': { label: 'Documentos de Empresa', icon: '🏢', color: 'bg-green-50 border-green-200' },
-    'otros': { label: 'Otros Documentos', icon: '📄', color: 'bg-gray-50 border-gray-200' },
+    'fiscal': { label: 'Documentos Fiscales', icon: '📊', color: 'bg-blue-50/80 border-blue-100' },
+    'legal': { label: 'Documentos Legales', icon: '⚖️', color: 'bg-purple-50/80 border-purple-100' },
+    'empresa': { label: 'Documentos de Empresa', icon: '🏢', color: 'bg-green-50/80 border-green-100' },
+    'otros': { label: 'Otros Documentos', icon: '📄', color: 'bg-gray-50/80 border-gray-100' },
 }
 
 // Helper to convert selectedIds to Set safely
@@ -60,7 +60,7 @@ function toSet(ids: Set<string> | string[] | undefined): Set<string> {
 export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: DocumentSelectorProps) {
     const [search, setSearch] = useState('')
     const [selected, setSelected] = useState<Set<string>>(() => toSet(selectedIds))
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['fiscal', 'legal']))
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['fiscal', 'legal', 'empresa', 'otros']))
 
     // Sync with props when they change
     useEffect(() => {
@@ -138,13 +138,13 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
 
             {/* Search bar */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                     type="text"
                     placeholder="Buscar documentos..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 focus:outline-none"
+                    className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet focus:outline-none focus:bg-white transition-all"
                 />
                 {search && (
                     <button 
@@ -159,15 +159,16 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
 
             {/* Selected summary */}
             {selectedCount > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 bg-violet-50 rounded-lg border border-violet-100">
-                    <span className="text-xs font-medium text-violet-700 mr-1">
+                <div className="flex flex-wrap gap-2 p-4 bg-adhoc-lavender/10 rounded-xl border border-adhoc-lavender/20">
+                    <span className="text-sm font-medium text-adhoc-violet mr-1">
                         {selectedCount} seleccionado{selectedCount > 1 ? 's' : ''}:
                     </span>
                     {selectedDocs.slice(0, 3).map(doc => (
                         <span 
                             key={doc.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-white rounded text-xs text-gray-700 border border-violet-200"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg text-sm text-gray-700 border border-adhoc-lavender/30 shadow-sm"
                         >
+                            <FileText className="w-3 h-3 text-adhoc-violet" />
                             {getDocName(doc)}
                             <button
                                 type="button"
@@ -175,14 +176,14 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                                     e.preventDefault()
                                     toggleDoc(doc.id)
                                 }}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
                             >
-                                <X className="w-3 h-3" />
+                                <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     ))}
                     {selectedCount > 3 && (
-                        <span className="text-xs text-violet-600">+{selectedCount - 3} más</span>
+                        <span className="text-sm text-adhoc-violet font-medium px-2 py-1">+{selectedCount - 3} más</span>
                     )}
                     <button
                         type="button"
@@ -190,15 +191,15 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                             e.preventDefault()
                             setSelected(new Set())
                         }}
-                        className="ml-auto text-xs text-violet-600 hover:text-violet-800 font-medium"
+                        className="ml-auto text-sm text-adhoc-violet hover:text-adhoc-violet/70 font-medium transition-colors"
                     >
-                        Limpiar
+                        Limpiar todo
                     </button>
                 </div>
             )}
 
             {/* Document categories */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+            <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-[350px] overflow-y-auto bg-white">
                 {Object.entries(filteredCategories).map(([category, docs]) => {
                     if (docs.length === 0) return null
                     
@@ -212,7 +213,7 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                         <div key={category}>
                             {/* Category header */}
                             <div 
-                                className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${catInfo.color} sticky top-0 z-10`}
+                                className={`flex items-center justify-between px-4 py-3.5 cursor-pointer hover:bg-gray-50/80 transition-colors ${catInfo.color} sticky top-0 z-10 border-b border-gray-100`}
                                 onClick={(e) => {
                                     e.preventDefault()
                                     toggleCategory(category)
@@ -226,7 +227,11 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                                     )}
                                     <span className="text-lg">{catInfo.icon}</span>
                                     <span className="font-medium text-gray-800 text-sm">{catInfo.label}</span>
-                                    <span className="text-xs text-gray-500 bg-white/60 px-2 py-0.5 rounded-full">
+                                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                                        selectedInCat > 0 
+                                            ? 'bg-adhoc-violet/10 text-adhoc-violet' 
+                                            : 'bg-white/80 text-gray-500'
+                                    }`}>
                                         {selectedInCat > 0 ? `${selectedInCat}/${docs.length}` : docs.length}
                                     </span>
                                 </div>
@@ -237,12 +242,12 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                                         e.stopPropagation()
                                         selectAllInCategory(category)
                                     }}
-                                    className={`text-xs font-medium px-3 py-1 rounded-md transition-colors ${
+                                    className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
                                         allSelected 
-                                            ? 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                                            ? 'bg-adhoc-violet text-white hover:bg-adhoc-violet/90'
                                             : someSelected
-                                                ? 'bg-violet-50 text-violet-600 hover:bg-violet-100'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-adhoc-violet/10 text-adhoc-violet hover:bg-adhoc-violet/20'
+                                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                                     }`}
                                 >
                                     {allSelected ? 'Quitar todos' : 'Seleccionar todos'}
@@ -262,19 +267,19 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                                                     e.preventDefault()
                                                     toggleDoc(doc.id)
                                                 }}
-                                                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-l-2 ${
-                                                    isSelected ? 'border-l-violet-500 bg-violet-50/50' : 'border-l-transparent'
+                                                className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 transition-all border-l-3 ${
+                                                    isSelected ? 'border-l-adhoc-violet bg-adhoc-lavender/5' : 'border-l-transparent'
                                                 }`}
                                             >
-                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                                                     isSelected 
-                                                        ? 'bg-violet-600 border-violet-600' 
-                                                        : 'border-gray-300 hover:border-violet-400'
+                                                        ? 'bg-adhoc-violet border-adhoc-violet scale-110' 
+                                                        : 'border-gray-300 hover:border-adhoc-violet/50'
                                                 }`}>
                                                     {isSelected && <Check className="w-3 h-3 text-white" />}
                                                 </div>
-                                                <FileText className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-violet-500' : 'text-gray-400'}`} />
-                                                <span className={`text-sm truncate ${isSelected ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                                                <FileText className={`w-4 h-4 flex-shrink-0 transition-colors ${isSelected ? 'text-adhoc-violet' : 'text-gray-400'}`} />
+                                                <span className={`text-sm truncate transition-colors ${isSelected ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
                                                     {docName}
                                                 </span>
                                             </div>
@@ -288,8 +293,8 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
 
                 {/* Empty state */}
                 {Object.values(filteredCategories).every(docs => docs.length === 0) && (
-                    <div className="p-8 text-center">
-                        <FolderOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <div className="p-10 text-center">
+                        <FolderOpen className="w-12 h-12 text-gray-200 mx-auto mb-4" />
                         <p className="text-sm text-gray-500">
                             {documents.length === 0 
                                 ? 'No hay documentos cargados en el sistema'
@@ -300,9 +305,12 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
             </div>
 
             {/* Footer stats */}
-            <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-                <span>{totalDocs} documento{totalDocs !== 1 ? 's' : ''} disponible{totalDocs !== 1 ? 's' : ''}</span>
-                <span>{selectedCount} seleccionado{selectedCount !== 1 ? 's' : ''}</span>
+            <div className="flex items-center justify-between text-sm text-gray-500 px-1 pt-1">
+                <span className="flex items-center gap-2">
+                    <FolderOpen className="w-4 h-4" />
+                    {totalDocs} documento{totalDocs !== 1 ? 's' : ''} disponible{totalDocs !== 1 ? 's' : ''}
+                </span>
+                <span className="font-medium text-adhoc-violet">{selectedCount} seleccionado{selectedCount !== 1 ? 's' : ''}</span>
             </div>
         </div>
     )

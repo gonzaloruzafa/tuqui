@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Switch } from '@/components/ui/Switch'
 import { DocumentSelector } from '@/components/ui/DocumentSelector'
-import { ChevronDown, ChevronRight, Database } from 'lucide-react'
+import { ChevronDown, ChevronRight, Database, Globe, LayoutDashboard, BookOpen } from 'lucide-react'
 
 interface Document {
     id: string
@@ -26,6 +26,12 @@ interface ToolWithDocsProps {
     isReadOnly?: boolean
 }
 
+const TOOL_ICONS: Record<string, React.ReactNode> = {
+    web_search: <Globe className="w-5 h-5" />,
+    odoo_intelligent_query: <LayoutDashboard className="w-5 h-5" />,
+    knowledge_base: <BookOpen className="w-5 h-5" />,
+}
+
 export function ToolWithDocs({ 
     tool, 
     isEnabled: initialEnabled, 
@@ -42,74 +48,88 @@ export function ToolWithDocs({
         }
     }, [isEnabled, tool.hasDocSelector])
 
+    const selectedCount = Array.isArray(selectedDocIds) ? selectedDocIds.length : selectedDocIds?.size || 0
+    const icon = TOOL_ICONS[tool.slug] || <Database className="w-5 h-5" />
+
     if (isReadOnly) {
         // Read-only mode for base agents
         return (
-            <div className={`p-4 rounded-2xl border transition-all duration-300 ${isEnabled ? 'bg-adhoc-lavender/10 border-adhoc-lavender/30' : 'bg-gray-50 border-gray-100 opacity-50'}`}>
-                <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full ${isEnabled ? 'bg-adhoc-violet' : 'bg-gray-300'}`} />
-                    <span className="text-sm font-medium text-gray-700">{tool.label}</span>
-                    {isEnabled && <span className="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-auto">Activa</span>}
-                </div>
-                <p className="text-[10px] text-gray-400 mt-2 pl-7 leading-tight">{tool.description}</p>
-                
-                {/* Show linked docs count for knowledge_base */}
-                {tool.hasDocSelector && isEnabled && (
-                    <div className="mt-3 pl-7 flex items-center gap-2 text-[10px] text-adhoc-violet">
-                        <Database className="w-3 h-3" />
-                        <span>{Array.from(selectedDocIds).length} documentos vinculados</span>
+            <div className={`rounded-2xl border transition-all duration-300 ${isEnabled ? 'bg-white border-adhoc-lavender/40 shadow-sm' : 'bg-gray-50/50 border-gray-100 opacity-60'}`}>
+                <div className="p-5 flex items-start gap-4">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${isEnabled ? 'bg-adhoc-violet/10 text-adhoc-violet' : 'bg-gray-100 text-gray-400'}`}>
+                        {icon}
                     </div>
-                )}
+                    <div className="flex-grow min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">{tool.label}</span>
+                            {isEnabled && (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Activa</span>
+                            )}
+                        </div>
+                        <p className="text-sm text-gray-500 leading-relaxed">{tool.description}</p>
+                        
+                        {/* Show linked docs count for knowledge_base */}
+                        {tool.hasDocSelector && isEnabled && selectedCount > 0 && (
+                            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-adhoc-lavender/10 rounded-lg">
+                                <Database className="w-3.5 h-3.5 text-adhoc-violet" />
+                                <span className="text-sm font-medium text-adhoc-violet">{selectedCount} documento{selectedCount !== 1 ? 's' : ''} vinculado{selectedCount !== 1 ? 's' : ''}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         )
     }
 
     // Editable mode for custom agents
     return (
-        <div className={`rounded-2xl border transition-all duration-300 ${isEnabled ? 'bg-adhoc-lavender/5 border-adhoc-lavender/30' : 'bg-gray-50 border-gray-100'}`}>
-            <div className="p-4">
-                <div className="flex items-center gap-2">
-                    <Switch
-                        name="tools"
-                        value={tool.slug}
-                        defaultChecked={initialEnabled}
-                        label={tool.label}
-                        onChange={(checked) => setIsEnabled(checked)}
-                    />
+        <div className={`rounded-2xl border transition-all duration-300 ${isEnabled ? 'bg-white border-adhoc-lavender/40 shadow-sm' : 'bg-gray-50/50 border-gray-100'}`}>
+            <div className="p-5 flex items-start gap-4">
+                <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isEnabled ? 'bg-adhoc-violet/10 text-adhoc-violet' : 'bg-gray-100 text-gray-400'}`}>
+                    {icon}
+                </div>
+                <div className="flex-grow min-w-0">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className={`font-semibold transition-colors ${isEnabled ? 'text-gray-900' : 'text-gray-500'}`}>{tool.label}</span>
+                        <Switch
+                            name="tools"
+                            value={tool.slug}
+                            defaultChecked={initialEnabled}
+                            onChange={(checked) => setIsEnabled(checked)}
+                        />
+                    </div>
+                    <p className="text-sm text-gray-500 leading-relaxed">{tool.description}</p>
                     
-                    {/* Expand/collapse button for doc selector */}
+                    {/* Document selector toggle for knowledge_base */}
                     {tool.hasDocSelector && isEnabled && (
                         <button
                             type="button"
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="ml-auto p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-adhoc-lavender/10 hover:bg-adhoc-lavender/20 rounded-lg transition-colors"
                         >
                             {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
+                                <ChevronDown className="w-4 h-4 text-adhoc-violet" />
                             ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                                <ChevronRight className="w-4 h-4 text-adhoc-violet" />
                             )}
+                            <Database className="w-3.5 h-3.5 text-adhoc-violet" />
+                            <span className="text-sm font-medium text-adhoc-violet">
+                                {selectedCount > 0 ? `${selectedCount} documento${selectedCount !== 1 ? 's' : ''} seleccionado${selectedCount !== 1 ? 's' : ''}` : 'Seleccionar documentos'}
+                            </span>
                         </button>
                     )}
                 </div>
-                <p className="text-[10px] text-gray-400 mt-2 pl-12 leading-tight">{tool.description}</p>
             </div>
 
             {/* Document Selector (expanded) */}
             {tool.hasDocSelector && isEnabled && isExpanded && (
-                <div className="px-4 pb-4 border-t border-gray-100 mt-2 pt-4">
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <Database className="w-3 h-3" />
-                        Documentos Disponibles
-                    </h4>
-                    <div className="bg-white rounded-xl border border-gray-100 p-3">
-                        <DocumentSelector
-                            documents={documents}
-                            selectedIds={selectedDocIds}
-                            name="doc_ids"
-                        />
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-2 italic">
+                <div className="px-5 pb-5 border-t border-gray-100 mt-2 pt-5">
+                    <DocumentSelector
+                        documents={documents}
+                        selectedIds={selectedDocIds}
+                        name="doc_ids"
+                    />
+                    <p className="text-xs text-gray-400 mt-3 italic">
                         El agente solo podrá buscar en los documentos seleccionados.
                     </p>
                 </div>
