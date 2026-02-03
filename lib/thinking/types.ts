@@ -63,18 +63,18 @@ export function getToolSource(toolName: string): ThinkingSource {
         return 'odoo'
     }
     
-    // MercadoLibre
-    if (toolName.includes('mercadolibre') || toolName.includes('meli') || toolName === 'web_search') {
-        return 'meli'
-    }
-    
-    // RAG
-    if (toolName.includes('rag') || toolName.includes('document')) {
+    // RAG / Knowledge Base (check before web to avoid false positives)
+    if (toolName.includes('rag') || toolName.includes('document') || toolName.includes('knowledge')) {
         return 'rag'
     }
     
+    // MercadoLibre (explicit meli tools only)
+    if (toolName.includes('mercadolibre') || toolName.includes('meli')) {
+        return 'meli'
+    }
+    
     // Web search genérico
-    if (toolName.includes('web') || toolName.includes('search')) {
+    if (toolName.includes('web') || toolName === 'web_search') {
         return 'web'
     }
     
