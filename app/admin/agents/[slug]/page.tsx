@@ -17,8 +17,12 @@ async function getAgentDetails(tenantId: string, slug: string) {
     if (error || !agent) return null
 
     // Get linked docs (use Array, not Set - Sets don't serialize in RSC)
-    const { data: linkedDocs } = await db.from('agent_documents').select('document_id').eq('agent_id', agent.id)
+    const { data: linkedDocs, error: docsError } = await db.from('agent_documents').select('document_id').eq('agent_id', agent.id)
+    if (docsError) {
+        console.error('[AgentEditor] Error fetching agent_documents:', docsError)
+    }
     const linkedDocIds = linkedDocs?.map((d: any) => d.document_id) || []
+    console.log('[AgentEditor] Loaded agent:', { slug, agentId: agent.id, linkedDocIds })
 
     // Determine tools: for base agents use tools column, for custom check agent_tools table too
     let tools = agent.tools || []
@@ -101,14 +105,24 @@ async function updateAgent(formData: FormData) {
     }
 
     // Update Document Links (for both base and custom)
-    await db.from('agent_documents').delete().eq('agent_id', agent.id)
+    const { error: deleteError } = await db.from('agent_documents').delete().eq('agent_id', agent.id)
+    if (deleteError) {
+        console.error('[AgentEditor] Error deleting agent_documents:', deleteError)
+    }
+    
     if (docIds.length > 0) {
-        await db.from('agent_documents').insert(
+        const { data: insertedDocs, error: insertError } = await db.from('agent_documents').insert(
             docIds.map(docId => ({
                 agent_id: agent.id,
                 document_id: docId
             }))
-        )
+        ).select()
+        
+        if (insertError) {
+            console.error('[AgentEditor] Error inserting agent_documents:', insertError)
+        } else {
+            console.log('[AgentEditor] Successfully inserted docs:', insertedDocs)
+        }
     }
 
     revalidatePath(`/admin/agents/${slug}`)
