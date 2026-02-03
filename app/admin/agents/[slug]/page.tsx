@@ -113,6 +113,7 @@ async function updateAgent(formData: FormData) {
     if (docIds.length > 0) {
         const { data: insertedDocs, error: insertError } = await db.from('agent_documents').insert(
             docIds.map(docId => ({
+                tenant_id: session.tenant.id,
                 agent_id: agent.id,
                 document_id: docId
             }))
