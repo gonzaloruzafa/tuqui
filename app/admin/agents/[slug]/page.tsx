@@ -59,6 +59,7 @@ async function updateAgent(formData: FormData) {
 
     // Docs handling
     const docIds = formData.getAll('doc_ids') as string[]
+    console.log('[AgentEditor] Saving:', { slug, docIds, tools, ragEnabled, isBaseAgent })
 
     const session = await auth()
     if (!session?.tenant?.id || !session.isAdmin) return

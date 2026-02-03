@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Search, FileText, ChevronRight, ChevronDown, FolderOpen, X, Check } from 'lucide-react'
 
 interface Document {
@@ -59,10 +59,9 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
     const [selected, setSelected] = useState<Set<string>>(() => toSet(selectedIds))
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['fiscal', 'legal', 'empresa', 'otros']))
 
-    // Sync with props when they change
-    useEffect(() => {
-        setSelected(toSet(selectedIds))
-    }, [selectedIds])
+    // Note: We intentionally don't sync with props after mount
+    // because the user may be editing the selection locally
+    // The initial state from useState is sufficient
 
     const categorizedDocs = useMemo(() => categorizeDocuments(documents), [documents])
     
@@ -202,7 +201,7 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                 const showCategoryHeaders = nonEmptyCategories.length > 1
                 
                 return (
-                    <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-[350px] overflow-y-auto bg-white">
+                    <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-[220px] overflow-y-auto bg-white">
                         {nonEmptyCategories.map(([category, docs]) => {
                             const catInfo = CATEGORY_LABELS[category] || CATEGORY_LABELS['otros']
                             const isExpanded = expandedCategories.has(category)
