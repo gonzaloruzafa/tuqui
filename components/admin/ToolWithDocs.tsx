@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Switch } from '@/components/ui/Switch'
 import { DocumentSelector } from '@/components/ui/DocumentSelector'
-import { ChevronDown, Database, Globe, LayoutDashboard, BookOpen, FileText, Plus } from 'lucide-react'
+import { Database, Globe, LayoutDashboard, BookOpen } from 'lucide-react'
 
 interface Document {
     id: string
@@ -32,11 +32,6 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
     knowledge_base: <BookOpen className="w-5 h-5" />,
 }
 
-// Helper to get document display name
-function getDocName(doc: Document) {
-    return doc.title || doc.metadata?.filename || doc.id.substring(0, 8)
-}
-
 export function ToolWithDocs({ 
     tool, 
     isEnabled: initialEnabled, 
@@ -45,19 +40,9 @@ export function ToolWithDocs({
     isReadOnly = false
 }: ToolWithDocsProps) {
     const [isEnabled, setIsEnabled] = useState(initialEnabled)
-    const [isExpanded, setIsExpanded] = useState(initialEnabled && tool.hasDocSelector)
-
-    useEffect(() => {
-        if (tool.hasDocSelector && isEnabled) {
-            setIsExpanded(true)
-        }
-    }, [isEnabled, tool.hasDocSelector])
 
     const selectedCount = selectedDocIds?.length || 0
     const icon = TOOL_ICONS[tool.slug] || <Database className="w-5 h-5" />
-    
-    // Get selected document objects for display
-    const selectedDocs = documents.filter(d => selectedDocIds?.includes(d.id))
 
     if (isReadOnly) {
         // Read-only mode for base agents
@@ -107,54 +92,11 @@ export function ToolWithDocs({
                         />
                     </div>
                     <p className="text-sm text-gray-500 leading-relaxed">{tool.description}</p>
-                    
-                    {/* Document selector for knowledge_base */}
-                    {tool.hasDocSelector && isEnabled && (
-                        <div className="mt-4 space-y-3">
-                            {/* Selected documents list */}
-                            {selectedCount > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedDocs.map(doc => (
-                                        <span 
-                                            key={doc.id}
-                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-adhoc-lavender/10 rounded-lg text-sm text-adhoc-violet border border-adhoc-lavender/30"
-                                        >
-                                            <FileText className="w-3.5 h-3.5" />
-                                            <span className="max-w-[200px] truncate">{getDocName(doc)}</span>
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                            
-                            {/* Add/Edit documents button */}
-                            <button
-                                type="button"
-                                onClick={() => setIsExpanded(!isExpanded)}
-                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
-                                    selectedCount > 0 
-                                        ? 'text-adhoc-violet hover:bg-adhoc-lavender/10' 
-                                        : 'bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700'
-                                }`}
-                            >
-                                {selectedCount > 0 ? (
-                                    <>
-                                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                                        {isExpanded ? 'Cerrar selector' : 'Agregar o quitar documentos'}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Plus className="w-4 h-4" />
-                                        Seleccionar documentos
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* Document Selector (expanded) */}
-            {tool.hasDocSelector && isEnabled && isExpanded && (
+            {/* Document Selector (always visible when enabled) */}
+            {tool.hasDocSelector && isEnabled && (
                 <div className="px-5 pb-5 border-t border-gray-100 pt-4">
                     <DocumentSelector
                         documents={documents}
