@@ -346,7 +346,9 @@ export default function ChatPage() {
                         if (m.role === 'assistant') {
                             content = wrapTablesInScrollContainer(await marked.parse(m.content))
                         }
-                        loaded.push({ ...m, content, rawContent: m.content })
+                        // Load sources from tool_calls.sources (where we save them)
+                        const sources = m.tool_calls?.sources || m.metadata?.sources || m.sources
+                        loaded.push({ ...m, content, rawContent: m.content, sources })
                     }
                     setMessages(loaded)
                 })
@@ -551,11 +553,17 @@ export default function ChatPage() {
                 }]
             })
 
-            // Save Bot Message (without thinking block)
+            // Save Bot Message (without thinking block) - include sources in tool_calls
             await fetch('/api/chat-sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'save-message', sessionId: sid, role: 'assistant', content: finalText })
+                body: JSON.stringify({ 
+                    action: 'save-message', 
+                    sessionId: sid, 
+                    role: 'assistant', 
+                    content: finalText,
+                    toolCalls: capturedSources.length > 0 ? { sources: capturedSources } : undefined
+                })
             })
 
             // Update URL AFTER streaming completes (avoids race condition with useEffect)

@@ -59,7 +59,7 @@ export function ThinkingIndicator() {
   const { symbol, message } = THINKING_PHRASES[currentIndex]
 
   return (
-    <div className="flex gap-2 items-center text-gray-400 text-sm ml-12">
+    <div className="flex gap-2 items-center text-gray-400 text-sm">
       <span
         className={`
           text-base
