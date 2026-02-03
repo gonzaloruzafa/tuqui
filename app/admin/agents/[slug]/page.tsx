@@ -16,9 +16,9 @@ async function getAgentDetails(tenantId: string, slug: string) {
     const { data: agent, error } = await db.from('agents').select('*').eq('slug', slug).single()
     if (error || !agent) return null
 
-    // Get linked docs
+    // Get linked docs (use Array, not Set - Sets don't serialize in RSC)
     const { data: linkedDocs } = await db.from('agent_documents').select('document_id').eq('agent_id', agent.id)
-    const linkedDocIds = new Set(linkedDocs?.map((d: any) => d.document_id) || [])
+    const linkedDocIds = linkedDocs?.map((d: any) => d.document_id) || []
 
     // Determine tools: for base agents use tools column, for custom check agent_tools table too
     let tools = agent.tools || []

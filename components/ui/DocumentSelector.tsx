@@ -11,7 +11,7 @@ interface Document {
 
 interface DocumentSelectorProps {
     documents: Document[]
-    selectedIds: Set<string> | string[]
+    selectedIds: string[]  // Must be Array (Sets don't serialize in RSC)
     name?: string
 }
 
@@ -49,12 +49,9 @@ const CATEGORY_LABELS: Record<string, { label: string; icon: string; color: stri
     'otros': { label: 'Otros Documentos', icon: '📄', color: 'bg-gray-50/80 border-gray-100' },
 }
 
-// Helper to convert selectedIds to Set safely
-function toSet(ids: Set<string> | string[] | undefined): Set<string> {
-    if (!ids) return new Set()
-    if (ids instanceof Set) return new Set(ids)
-    if (Array.isArray(ids)) return new Set(ids)
-    return new Set()
+// Helper to convert selectedIds array to Set for internal state
+function toSet(ids: string[] | undefined): Set<string> {
+    return new Set(ids || [])
 }
 
 export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: DocumentSelectorProps) {

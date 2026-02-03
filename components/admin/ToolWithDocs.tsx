@@ -22,7 +22,7 @@ interface ToolWithDocsProps {
     tool: ToolConfig
     isEnabled: boolean
     documents: Document[]
-    selectedDocIds: Set<string> | string[]
+    selectedDocIds: string[]  // Must be Array (Sets don't serialize in RSC)
     isReadOnly?: boolean
 }
 
@@ -48,7 +48,7 @@ export function ToolWithDocs({
         }
     }, [isEnabled, tool.hasDocSelector])
 
-    const selectedCount = Array.isArray(selectedDocIds) ? selectedDocIds.length : selectedDocIds?.size || 0
+    const selectedCount = selectedDocIds?.length || 0
     const icon = TOOL_ICONS[tool.slug] || <Database className="w-5 h-5" />
 
     if (isReadOnly) {
