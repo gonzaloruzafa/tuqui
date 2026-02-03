@@ -198,111 +198,119 @@ export function DocumentSelector({ documents, selectedIds, name = 'doc_ids' }: D
                 </div>
             )}
 
-            {/* Document categories */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-[350px] overflow-y-auto bg-white">
-                {Object.entries(filteredCategories).map(([category, docs]) => {
-                    if (docs.length === 0) return null
-                    
-                    const catInfo = CATEGORY_LABELS[category] || CATEGORY_LABELS['otros']
-                    const isExpanded = expandedCategories.has(category)
-                    const allSelected = docs.every(d => selected.has(d.id))
-                    const someSelected = docs.some(d => selected.has(d.id))
-                    const selectedInCat = docs.filter(d => selected.has(d.id)).length
-                    
-                    return (
-                        <div key={category}>
-                            {/* Category header */}
-                            <div 
-                                className={`flex items-center justify-between px-4 py-3.5 cursor-pointer hover:bg-gray-50/80 transition-colors ${catInfo.color} sticky top-0 z-10 border-b border-gray-100`}
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    toggleCategory(category)
-                                }}
-                            >
-                                <div className="flex items-center gap-3">
-                                    {isExpanded ? (
-                                        <ChevronDown className="w-4 h-4 text-gray-500" />
-                                    ) : (
-                                        <ChevronRight className="w-4 h-4 text-gray-500" />
-                                    )}
-                                    <span className="text-lg">{catInfo.icon}</span>
-                                    <span className="font-medium text-gray-800 text-sm">{catInfo.label}</span>
-                                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                                        selectedInCat > 0 
-                                            ? 'bg-adhoc-violet/10 text-adhoc-violet' 
-                                            : 'bg-white/80 text-gray-500'
-                                    }`}>
-                                        {selectedInCat > 0 ? `${selectedInCat}/${docs.length}` : docs.length}
-                                    </span>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        e.stopPropagation()
-                                        selectAllInCategory(category)
-                                    }}
-                                    className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                                        allSelected 
-                                            ? 'bg-adhoc-violet text-white hover:bg-adhoc-violet/90'
-                                            : someSelected
-                                                ? 'bg-adhoc-violet/10 text-adhoc-violet hover:bg-adhoc-violet/20'
-                                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                                    }`}
-                                >
-                                    {allSelected ? 'Quitar todos' : 'Seleccionar todos'}
-                                </button>
-                            </div>
+            {/* Document list */}
+            {(() => {
+                // Count how many categories have documents
+                const nonEmptyCategories = Object.entries(filteredCategories).filter(([, docs]) => docs.length > 0)
+                const showCategoryHeaders = nonEmptyCategories.length > 1
+                
+                return (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-[350px] overflow-y-auto bg-white">
+                        {nonEmptyCategories.map(([category, docs]) => {
+                            const catInfo = CATEGORY_LABELS[category] || CATEGORY_LABELS['otros']
+                            const isExpanded = expandedCategories.has(category)
+                            const allSelected = docs.every(d => selected.has(d.id))
+                            const someSelected = docs.some(d => selected.has(d.id))
+                            const selectedInCat = docs.filter(d => selected.has(d.id)).length
                             
-                            {/* Documents in category */}
-                            {isExpanded && (
-                                <div className="bg-white divide-y divide-gray-50">
-                                    {docs.map(doc => {
-                                        const isSelected = selected.has(doc.id)
-                                        const docName = getDocName(doc)
-                                        return (
-                                            <div
-                                                key={doc.id}
-                                                onClick={(e) => {
-                                                    e.preventDefault()
-                                                    toggleDoc(doc.id)
-                                                }}
-                                                className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 transition-all border-l-3 ${
-                                                    isSelected ? 'border-l-adhoc-violet bg-adhoc-lavender/5' : 'border-l-transparent'
-                                                }`}
-                                            >
-                                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                                                    isSelected 
-                                                        ? 'bg-adhoc-violet border-adhoc-violet scale-110' 
-                                                        : 'border-gray-300 hover:border-adhoc-violet/50'
+                            return (
+                                <div key={category}>
+                                    {/* Category header - only show if multiple categories */}
+                                    {showCategoryHeaders && (
+                                        <div 
+                                            className={`flex items-center justify-between px-4 py-3.5 cursor-pointer hover:bg-gray-50/80 transition-colors ${catInfo.color} sticky top-0 z-10 border-b border-gray-100`}
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                toggleCategory(category)
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {isExpanded ? (
+                                                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                ) : (
+                                                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                )}
+                                                <span className="text-lg">{catInfo.icon}</span>
+                                                <span className="font-medium text-gray-800 text-sm">{catInfo.label}</span>
+                                                <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                                                    selectedInCat > 0 
+                                                        ? 'bg-adhoc-violet/10 text-adhoc-violet' 
+                                                        : 'bg-white/80 text-gray-500'
                                                 }`}>
-                                                    {isSelected && <Check className="w-3 h-3 text-white" />}
-                                                </div>
-                                                <FileText className={`w-4 h-4 flex-shrink-0 transition-colors ${isSelected ? 'text-adhoc-violet' : 'text-gray-400'}`} />
-                                                <span className={`text-sm truncate transition-colors ${isSelected ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
-                                                    {docName}
+                                                    {selectedInCat > 0 ? `${selectedInCat}/${docs.length}` : docs.length}
                                                 </span>
                                             </div>
-                                        )
-                                    })}
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault()
+                                                    e.stopPropagation()
+                                                    selectAllInCategory(category)
+                                                }}
+                                                className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                                                    allSelected 
+                                                        ? 'bg-adhoc-violet text-white hover:bg-adhoc-violet/90'
+                                                        : someSelected
+                                                            ? 'bg-adhoc-violet/10 text-adhoc-violet hover:bg-adhoc-violet/20'
+                                                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                                }`}
+                                            >
+                                                {allSelected ? 'Quitar todos' : 'Seleccionar todos'}
+                                            </button>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Documents in category */}
+                                    {(isExpanded || !showCategoryHeaders) && (
+                                        <div className="bg-white divide-y divide-gray-50">
+                                            {docs.map(doc => {
+                                                const isSelected = selected.has(doc.id)
+                                                const docName = getDocName(doc)
+                                                return (
+                                                    <div
+                                                        key={doc.id}
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            toggleDoc(doc.id)
+                                                        }}
+                                                        className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 transition-all border-l-3 ${
+                                                            isSelected ? 'border-l-adhoc-violet bg-adhoc-lavender/5' : 'border-l-transparent'
+                                                        }`}
+                                                    >
+                                                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                                                            isSelected 
+                                                                ? 'bg-adhoc-violet border-adhoc-violet scale-110' 
+                                                                : 'border-gray-300 hover:border-adhoc-violet/50'
+                                                        }`}>
+                                                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                                                        </div>
+                                                        <FileText className={`w-4 h-4 flex-shrink-0 transition-colors ${isSelected ? 'text-adhoc-violet' : 'text-gray-400'}`} />
+                                                        <span className={`text-sm truncate transition-colors ${isSelected ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                                                            {docName}
+                                                        </span>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    )
-                })}
+                            )
+                        })}
 
-                {/* Empty state */}
-                {Object.values(filteredCategories).every(docs => docs.length === 0) && (
-                    <div className="p-10 text-center">
-                        <FolderOpen className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                        <p className="text-sm text-gray-500">
-                            {documents.length === 0 
-                                ? 'No hay documentos cargados en el sistema'
-                                : 'No se encontraron documentos que coincidan con la búsqueda'}
-                        </p>
+                        {/* Empty state */}
+                        {nonEmptyCategories.length === 0 && (
+                            <div className="p-10 text-center">
+                                <FolderOpen className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                                <p className="text-sm text-gray-500">
+                                    {documents.length === 0 
+                                        ? 'No hay documentos cargados en el sistema'
+                                        : 'No se encontraron documentos que coincidan con la búsqueda'}
+                                </p>
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+                )
+            })()}
 
             {/* Footer stats */}
             <div className="flex items-center justify-between text-sm text-gray-500 px-1 pt-1">

@@ -105,16 +105,22 @@ export function ToolWithDocs({
                         <button
                             type="button"
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-adhoc-lavender/10 hover:bg-adhoc-lavender/20 rounded-lg transition-colors"
+                            className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
+                                selectedCount > 0 
+                                    ? 'bg-adhoc-lavender/10 hover:bg-adhoc-lavender/20' 
+                                    : 'bg-amber-50 hover:bg-amber-100 border border-amber-200'
+                            }`}
                         >
                             {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-adhoc-violet" />
+                                <ChevronDown className={`w-4 h-4 ${selectedCount > 0 ? 'text-adhoc-violet' : 'text-amber-600'}`} />
                             ) : (
-                                <ChevronRight className="w-4 h-4 text-adhoc-violet" />
+                                <ChevronRight className={`w-4 h-4 ${selectedCount > 0 ? 'text-adhoc-violet' : 'text-amber-600'}`} />
                             )}
-                            <Database className="w-3.5 h-3.5 text-adhoc-violet" />
-                            <span className="text-sm font-medium text-adhoc-violet">
-                                {selectedCount > 0 ? `${selectedCount} documento${selectedCount !== 1 ? 's' : ''} seleccionado${selectedCount !== 1 ? 's' : ''}` : 'Seleccionar documentos'}
+                            <Database className={`w-3.5 h-3.5 ${selectedCount > 0 ? 'text-adhoc-violet' : 'text-amber-600'}`} />
+                            <span className={`text-sm font-medium ${selectedCount > 0 ? 'text-adhoc-violet' : 'text-amber-700'}`}>
+                                {selectedCount > 0 
+                                    ? `${selectedCount} documento${selectedCount !== 1 ? 's' : ''} seleccionado${selectedCount !== 1 ? 's' : ''}`
+                                    : '⚠️ Sin documentos — seleccionar'}
                             </span>
                         </button>
                     )}
