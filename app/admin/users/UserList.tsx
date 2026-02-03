@@ -1,8 +1,9 @@
 'use client'
 
-import { Shield, ShieldCheck, Trash2, Phone, Check, X } from 'lucide-react'
+import { Shield, ShieldCheck, Trash2, Phone, Check, X, ChevronRight } from 'lucide-react'
 import { updateUserRole, deleteUser, updateUserPhone } from './actions'
 import { useState } from 'react'
+import Link from 'next/link'
 
 interface User {
     id: string
@@ -59,7 +60,11 @@ export function UserList({ initialUsers, currentUserEmail }: { initialUsers: Use
     return (
         <div className="space-y-3">
             {initialUsers.map((u) => (
-                <div key={u.id} className={`bg-white p-4 rounded-2xl border border-adhoc-lavender/20 shadow-sm flex items-center justify-between group hover:border-adhoc-violet/30 transition-all ${isLoading === u.id ? 'opacity-50' : ''}`}>
+                <Link 
+                    key={u.id} 
+                    href={`/admin/users/${u.id}`}
+                    className={`bg-white p-4 rounded-2xl border border-adhoc-lavender/20 shadow-sm flex items-center justify-between group hover:border-adhoc-violet/30 hover:shadow-md transition-all block ${isLoading === u.id ? 'opacity-50 pointer-events-none' : ''}`}
+                >
                     <div className="flex items-center gap-4 flex-grow">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${u.is_admin ? 'bg-adhoc-lavender text-adhoc-violet' : 'bg-gray-100 text-gray-400'}`}>
                             {u.email[0].toUpperCase()}
@@ -119,7 +124,7 @@ export function UserList({ initialUsers, currentUserEmail }: { initialUsers: Use
 
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
                         <button
-                            onClick={() => handleToggleAdmin(u)}
+                            onClick={(e) => { e.preventDefault(); handleToggleAdmin(u) }}
                             disabled={u.email === currentUserEmail || isLoading !== null}
                             className={`p-2 rounded-lg transition-colors ${u.is_admin ? 'text-adhoc-violet hover:bg-adhoc-lavender/30' : 'text-gray-300 hover:bg-gray-100 hover:text-adhoc-violet'}`}
                             title={u.is_admin ? "Quitar Admin" : "Hacer Admin"}
@@ -128,15 +133,17 @@ export function UserList({ initialUsers, currentUserEmail }: { initialUsers: Use
                         </button>
 
                         <button
-                            onClick={() => handleDelete(u)}
+                            onClick={(e) => { e.preventDefault(); handleDelete(u) }}
                             disabled={u.email === currentUserEmail || isLoading !== null}
                             className="p-2 text-gray-300 hover:text-adhoc-coral hover:bg-adhoc-coral/5 rounded-lg transition-colors"
                             title="Eliminar Usuario"
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
+                        
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-adhoc-violet transition-colors ml-2" />
                     </div>
-                </div>
+                </Link>
             ))}
         </div>
     )
