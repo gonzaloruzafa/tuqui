@@ -161,8 +161,8 @@ async function testToolsLoad(): Promise<any> {
     const webTools = await getToolsForAgent(TEST_TENANT_ID, ['web_search'])
     const webToolNames = Object.keys(webTools)
     
-    // Test loading odoo tools
-    const odooTools = await getToolsForAgent(TEST_TENANT_ID, ['odoo_intelligent_query'])
+    // Test loading odoo tools (skills architecture)
+    const odooTools = await getToolsForAgent(TEST_TENANT_ID, ['odoo'])
     const odooToolNames = Object.keys(odooTools)
     
     return {

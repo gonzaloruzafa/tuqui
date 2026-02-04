@@ -1,0 +1,1285 @@
+nohup: ignoring input
+
+> tuqui-agents-alpha@0.1.0 test:evals
+> vitest run tests/evals
+
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90m/home/gonza/adhoc x/tuqui[39m
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts
+[22m[39m[dotenv@17.2.3] injecting env (37) from .env.local -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+✅ Environment loaded for tests
+   NEXT_PUBLIC_SUPABASE_URL: ✓ set
+   SUPABASE_SERVICE_ROLE_KEY: ✓ set
+   TEST_TENANT_ID: ✗ not set (live tests skipped)
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)
+[22m[39m
+======================================================================
+🚀 Starting Agent Evaluations
+======================================================================
+   Base URL: http://localhost:3000
+   Tenant: de7ef34a-12bd-4fe9-9d02-3d876a9393c2
+   Agent: tuqui
+   Test Cases: 67
+   Pass Threshold: 80%
+======================================================================
+
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-001: "¿Cuánto vendimos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vendimos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-001: "¿Cuánto vendimos en enero?"
+[22m[39m   📝 Response: 💰 En enero de 2026 vendimos $ 1.549.454.784 (incluyendo impuestos). ¡Un promedio de $ 1.178.293 por orden!
+   ⏱️  Latency: 8421ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-002: "¿Quién es mi mejor cliente?"
+[22m[39m
+🗣️  Testing: "¿Quién es mi mejor cliente?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-002: "¿Quién es mi mejor cliente?"
+[22m[39m   📝 Response: No hay ventas registradas para este mes. Por lo tanto, no puedo determinar el mejor cliente en este momento. ¿Querés que revise otro período?
+   ⏱️  Latency: 7393ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-003: "¿Qué productos vendemos más?"
+[22m[39m
+🗣️  Testing: "¿Qué productos vendemos más?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-003: "¿Qué productos vendemos más?"
+[22m[39m   📝 Response: $ 0 en ventas este mes. ¿Querés que te muestre el top de productos de otro período?
+   ⏱️  Latency: 8017ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-004: "¿Cuántas órdenes de venta tenemos pendientes?"
+[22m[39m
+🗣️  Testing: "¿Cuántas órdenes de venta tenemos pendientes?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-004: "¿Cuántas órdenes de venta tenemos pendientes?"
+[22m[39m   📝 Response: ¡Claro! Acá tenés las primeras 10 órdenes de venta pendientes, tanto de entrega como de facturación:
+
+*Órdenes de Venta Pendientes*
+• Guillermo Daniel Leone - OV 0001-00175412 por $ 23.008
+• Karla Val...
+   ⏱️  Latency: 10105ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-005: "¿Cómo vienen las ventas comparado con el mes pasado?"
+[22m[39m
+🗣️  Testing: "¿Cómo vienen las ventas comparado con el mes pasado?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-005: "¿Cómo vienen las ventas comparado con el mes pasado?"
+[22m[39m   📝 Response: 📉 Las ventas de este mes ($ 0) están un 100% por debajo del mes pasado ($ 1.549.454.784,18). El valor promedio de la orden también disminuyó en $ 1178293.
+
+🤔 ¿Querés que comparemos las ventas de otr...
+   ⏱️  Latency: 8979ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-006: "¿Cuánto vendió cada vendedor en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vendió cada vendedor en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-006: "¿Cuánto vendió cada vendedor en enero?"
+[22m[39m   📝 Response: Estos son los resultados de ventas por vendedor en enero:
+
+*Maico Moyano*: $ 390.530.874
+*Martín Travella C.*: $ 224.493.375
+*Maria Inés Salomon*: $ 197.328.538
+*Denise Grivarello*: $ 158.406.490
+*Ber...
+   ⏱️  Latency: 8638ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-007: "¿Cuánto le vendimos a Acme Corp?"
+[22m[39m
+🗣️  Testing: "¿Cuánto le vendimos a Acme Corp?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-007: "¿Cuánto le vendimos a Acme Corp?"
+[22m[39m   📝 Response: $ 0 en ventas a clientes este mes.
+   ⏱️  Latency: 6433ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-008: "Dame el total de ventas de los últimos 3 meses desglosado por mes"
+[22m[39m
+🗣️  Testing: "Dame el total de ventas de los últimos 3 meses desglosado por mes"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-008: "Dame el total de ventas de los últimos 3 meses desglosado por mes"
+[22m[39m   📝 Response: 💰 Ventas de los últimos 3 meses (con impuestos):
+
+• Noviembre 2025: $ 1.827.708.921
+• Diciembre 2025: $ 1.444.987.528
+• Enero 2026: $ 1.549.454.784
+   ⏱️  Latency: 10357ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-009: "¿Cuál es el ticket promedio de venta?"
+[22m[39m
+🗣️  Testing: "¿Cuál es el ticket promedio de venta?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-009: "¿Cuál es el ticket promedio de venta?"
+[22m[39m   📝 Response: Para calcular el ticket promedio de venta, necesito saber el período que te interesa. ¿Te referís a este mes, el mes pasado o algún otro período en particular?
+   ⏱️  Latency: 6023ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: \$\s?[\d.,]+
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-010: "¿Cuántos clientes nuevos tuvimos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuántos clientes nuevos tuvimos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-010: "¿Cuántos clientes nuevos tuvimos en enero?"
+[22m[39m   📝 Response: En enero de 2026, tuvimos 196 clientes nuevos. 🚀
+
+   ⏱️  Latency: 7209ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-001: "¿Cuánto compramos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto compramos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-001: "¿Cuánto compramos en enero?"
+[22m[39m   📝 Response: En enero compramos $ 139.523.439,79 en 0 órdenes de compra.
+   ⏱️  Latency: 6267ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-002: "¿A quién le compramos más?"
+[22m[39m
+🗣️  Testing: "¿A quién le compramos más?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-002: "¿A quién le compramos más?"
+[22m[39m   📝 Response: No se pudo obtener la información de a quién le compramos más. 😔
+¿Querés que intente buscar las órdenes de compra de este mes?
+   ⏱️  Latency: 8007ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: proveedor|vendor|supplier|\$\s?[\d.,]+
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: proveedor|vendor|supplier|\$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-003: "¿Tenemos órdenes de compra pendientes?"
+[22m[39m
+🗣️  Testing: "¿Tenemos órdenes de compra pendientes?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-003: "¿Tenemos órdenes de compra pendientes?"
+[22m[39m   📝 Response: ¿De qué tipo de órdenes de compra querés saber? Puedo mostrarte las órdenes de compra confirmadas, las que están en borrador, las enviadas, las hechas o las canceladas.
+
+   ⏱️  Latency: 4914ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: \d+|no hay
+   ❌ ERROR: Failures: Missing expected pattern: \d+|no hay: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-004: "¿Cuántas facturas de proveedor recibimos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuántas facturas de proveedor recibimos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-004: "¿Cuántas facturas de proveedor recibimos en enero?"
+[22m[39m   📝 Response: En enero recibimos 10 facturas de proveedor por un total de $ 453.970.
+   ⏱️  Latency: 7039ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-005: "¿Cuánto le compramos a cada proveedor?"
+[22m[39m
+🗣️  Testing: "¿Cuánto le compramos a cada proveedor?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-005: "¿Cuánto le compramos a cada proveedor?"
+[22m[39m   📝 Response: ¿De qué período querés ver las compras por proveedor? Si no me decís, te muestro las de este mes 😉
+
+   ⏱️  Latency: 5491ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Expected numeric data but none found
+      - Expected list format but none found
+   ❌ ERROR: Failures: Expected numeric data but none found, Expected list format but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-001: "¿Qué productos tienen poco stock?"
+[22m[39m
+🗣️  Testing: "¿Qué productos tienen poco stock?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-001: "¿Qué productos tienen poco stock?"
+[22m[39m   📝 Response: ¿Cuántos productos querés que te muestre? El límite máximo es 200.
+   ⏱️  Latency: 5813ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-002: "¿Cuánto vale nuestro inventario?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vale nuestro inventario?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-002: "¿Cuánto vale nuestro inventario?"
+[22m[39m   📝 Response: El valor total de tu inventario es de $ 1.244.789. ¿Querés que lo desglose por alguna categoría en particular?
+   ⏱️  Latency: 5420ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-003: "¿Cuántos pedidos tenemos sin entregar?"
+[22m[39m
+🗣️  Testing: "¿Cuántos pedidos tenemos sin entregar?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-003: "¿Cuántos pedidos tenemos sin entregar?"
+[22m[39m   📝 Response: Hay 48 órdenes de venta pendientes de entrega, que suman un total de $ 479.474.517.
+
+¿Te gustaría que veamos el detalle de alguna de estas órdenes? 🚚
+
+   ⏱️  Latency: 8220ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+[22m[39m
+🗣️  Testing: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+[22m[39m   📝 Response: No encontré ningún producto que coincida con "Tornillo M8". ¿Querés que busque otro producto?
+   ⏱️  Latency: 7044ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ❌ FAILED:
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-005: "¿Cuáles son los 5 productos con más stock?"
+[22m[39m
+🗣️  Testing: "¿Cuáles son los 5 productos con más stock?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-005: "¿Cuáles son los 5 productos con más stock?"
+[22m[39m   📝 Response: Los 5 productos con más stock son:
+
+• [OPYE0012] Yeso Piedra Verde, 1kg. PESCIO: 2.909.702 unidades
+• [C002763] Dowel pin JT-206, 22mm. JINTAI: 635.761 unidades
+• [OREL0005] Bastones de ligadura, bast...
+   ⏱️  Latency: 9028ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-001: "¿Cuánto nos deben los clientes?"
+[22m[39m
+🗣️  Testing: "¿Cuánto nos deben los clientes?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-001: "¿Cuánto nos deben los clientes?"
+[22m[39m   📝 Response: 💰 Nos deben $ 404.897.571,16 en total.
+
+Estos son los principales deudores:
+• *Ministerio de Salud de Santa Fe*: $ 312.254.826,94 (factura más antigua del 17/12/2025)
+• *TUCCI JUAN BAUTISTA*: $ 19.79...
+   ⏱️  Latency: 11578ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-002: "¿Hay facturas vencidas?"
+[22m[39m
+🗣️  Testing: "¿Hay facturas vencidas?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-002: "¿Hay facturas vencidas?"
+[22m[39m   📝 Response: ¿Querés que te muestre el total de facturas vencidas o el detalle por cliente?
+   ⏱️  Latency: 5622ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-003: "¿Quién nos debe más?"
+[22m[39m
+🗣️  Testing: "¿Quién nos debe más?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-003: "¿Quién nos debe más?"
+[22m[39m   📝 Response: *Top 10 Deudores* 💰
+
+• *Ministerio de Salud de Santa Fe* - $ 312.254.827
+• *TUCCI JUAN BAUTISTA* - $ 19.798.889
+• *Austral Dental* - $ 11.621.565
+• *Truedent S.A.* - $ 10.758.630
+• *Jose Ignacio Carb...
+   ⏱️  Latency: 7724ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-004: "¿Cuánto cobramos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto cobramos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-004: "¿Cuánto cobramos en enero?"
+[22m[39m   📝 Response: 💰 En enero cobramos $ 569.190.176,95 en 892 pagos.
+   ⏱️  Latency: 7384ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-005: "¿Cuántos pagos recibimos esta semana?"
+[22m[39m
+🗣️  Testing: "¿Cuántos pagos recibimos esta semana?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-005: "¿Cuántos pagos recibimos esta semana?"
+[22m[39m   📝 Response: $ 0 en pagos recibidos esta semana.
+   ⏱️  Latency: 7055ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-006: "¿Cuántas facturas tienen más de 30 días vencidas?"
+[22m[39m
+🗣️  Testing: "¿Cuántas facturas tienen más de 30 días vencidas?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-006: "¿Cuántas facturas tienen más de 30 días vencidas?"
+[22m[39m   📝 Response: Hay 10 facturas con más de 30 días vencidas, sumando un total de $ 6.614,31.
+   ⏱️  Latency: 7629ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-007: "Dame el detalle de deuda por cliente ordenado de mayor a menor"
+[22m[39m
+🗣️  Testing: "Dame el detalle de deuda por cliente ordenado de mayor a menor"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-007: "Dame el detalle de deuda por cliente ordenado de mayor a menor"
+[22m[39m   📝 Response: 💰 Acá tenés el detalle de la deuda por cliente, ordenado de mayor a menor:
+
+*Deuda por Cliente*
+
+• *Ministerio de Salud de Santa Fe:* $ 312.254.827
+• *TUCCI JUAN BAUTISTA:* $ 19.798.889
+• *Austral De...
+   ⏱️  Latency: 9068ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-008: "¿Cuál es la antigüedad promedio de nuestras cuentas por cobrar?"
+[22m[39m
+🗣️  Testing: "¿Cuál es la antigüedad promedio de nuestras cuentas por cobrar?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-008: "¿Cuál es la antigüedad promedio de nuestras cuentas por cobrar?"
+[22m[39m   📝 Response: La antigüedad promedio de las cuentas por cobrar es de 68 días.
+
+💡 Desglose:
+*   31-60 días: $ 288.696.669
+*   61-90 días: $ 31.838.155
+*   Más de 90 días: $ 40.722.969
+
+Podés preguntarme por el deta...
+   ⏱️  Latency: 8258ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-001: "¿Cuánta plata tenemos en caja?"
+[22m[39m
+🗣️  Testing: "¿Cuánta plata tenemos en caja?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-001: "¿Cuánta plata tenemos en caja?"
+[22m[39m   📝 Response: Tenes $ 0 en caja y bancos.
+
+   ⏱️  Latency: 5911ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-002: "¿Cuánto tenemos en bancos?"
+[22m[39m
+🗣️  Testing: "¿Cuánto tenemos en bancos?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-002: "¿Cuánto tenemos en bancos?"
+[22m[39m   📝 Response: Tengo los siguientes saldos en bancos:print(default_api.get_cash_balance(includeBanks=True))
+
+   ⏱️  Latency: 5701ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: \$\s?[\d.,]+
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-003: "¿Cuánto le debemos a proveedores?"
+[22m[39m
+🗣️  Testing: "¿Cuánto le debemos a proveedores?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-003: "¿Cuánto le debemos a proveedores?"
+[22m[39m   📝 Response: ¿Querés saber el total que le debemos a todos los proveedores o a uno en particular? Si es a uno en particular, necesito que me digas el nombre del proveedor. Si querés el total, te muestro el monto t...
+   ⏱️  Latency: 5742ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: \$\s?[\d.,]+
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-004: "¿Cuál es nuestro saldo total disponible?"
+[22m[39m
+🗣️  Testing: "¿Cuál es nuestro saldo total disponible?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-004: "¿Cuál es nuestro saldo total disponible?"
+[22m[39m   📝 Response: ¿Te referís al saldo en caja y bancos?
+
+   ⏱️  Latency: 5687ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: \$\s?[\d.,]+
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-005: "¿Cuántas facturas de proveedor tenemos pendientes de pago?"
+[22m[39m
+🗣️  Testing: "¿Cuántas facturas de proveedor tenemos pendientes de pago?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-005: "¿Cuántas facturas de proveedor tenemos pendientes de pago?"
+[22m[39m   📝 Response: Para saber cuántas facturas de proveedor tenemos pendientes de pago, necesito saber el estado de las facturas. ¿Querés que te muestre todas las facturas (en borrador, publicadas y pagadas), solo las p...
+   ⏱️  Latency: 5738ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-006: "Resumen de flujo de caja del mes"
+[22m[39m
+🗣️  Testing: "Resumen de flujo de caja del mes"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 TESORERIA[2m > [22m[2mtesoreria-006: "Resumen de flujo de caja del mes"
+[22m[39m   📝 Response: Para darte un resumen del flujo de caja, necesito saber si querés que incluya los saldos de los bancos además de la caja. ¿Te parece bien que los incluya?
+   ⏱️  Latency: 5667ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-001: "¿Cómo venimos esta semana vs la pasada?"
+[22m[39m
+🗣️  Testing: "¿Cómo venimos esta semana vs la pasada?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-001: "¿Cómo venimos esta semana vs la pasada?"
+[22m[39m   📝 Response: Esta semana vendimos $ 297.801, mientras que la semana pasada vendimos $ 517.913.686. Esto representa una baja del 99.9%. 📉
+   ⏱️  Latency: 7378ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-002: "¿Subieron o bajaron las ventas?"
+[22m[39m
+🗣️  Testing: "¿Subieron o bajaron las ventas?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-002: "¿Subieron o bajaron las ventas?"
+[22m[39m   📝 Response: 📊 Comparativo de Ventas
+
+Para darte una respuesta precisa, necesito comparar las ventas de este mes con las del mes pasado.
+
+¿Te parece bien que compare este mes (febrero 2026) con enero 2026?
+
+   ⏱️  Latency: 5878ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: subieron|bajaron|aumentaron|disminuyeron|igual|estable|%|variación|cambio
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: subieron|bajaron|aumentaron|disminuyeron|igual|estable|%|variación|cambio, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-003: "¿Hoy vendimos más que ayer?"
+[22m[39m
+🗣️  Testing: "¿Hoy vendimos más que ayer?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-003: "¿Hoy vendimos más que ayer?"
+[22m[39m   📝 Response: Las ventas de hoy y de ayer fueron de $ 0. No hubo variación.
+   ⏱️  Latency: 8101ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-004: "¿Vendimos más en enero que el anterior?"
+[22m[39m
+🗣️  Testing: "¿Vendimos más en enero que el anterior?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-004: "¿Vendimos más en enero que el anterior?"
+[22m[39m   📝 Response: 💰 En enero vendimos $ 1.549.454.784,18, un 7,2% más que en diciembre ($ 1.444.987.528,46). ¡📈 Las ventas vienen subiendo!
+   ⏱️  Latency: 8191ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-005: "Comparar ventas de enero vs diciembre"
+[22m[39m
+🗣️  Testing: "Comparar ventas de enero vs diciembre"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-005: "Comparar ventas de enero vs diciembre"
+[22m[39m   📝 Response: 📊 *Comparativo de Ventas*
+
+*Enero*: $ 1.549.454.784
+*Diciembre*: $ 1.444.987.528
+*Diferencia*: +$ 104.467.256 (+7,2%)
+
+📈 ¡Las ventas aumentaron en enero!
+   ⏱️  Latency: 8617ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-006: "¿Cuánto creció la facturación respecto al mes pasado?"
+[22m[39m
+🗣️  Testing: "¿Cuánto creció la facturación respecto al mes pasado?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPARATIVAS[2m > [22m[2mcomp-006: "¿Cuánto creció la facturación respecto al mes pasado?"
+[22m[39m   📝 Response: 📉 La facturación de este mes es de $ 0, lo que representa una disminución del 100% en comparación con el mes pasado, donde se facturaron $ 1.549.454.784,18.
+
+¿Te gustaría que revise algún otro períod...
+   ⏱️  Latency: 8656ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-001: "¿Cuántos productos activos tenemos?"
+[22m[39m
+🗣️  Testing: "¿Cuántos productos activos tenemos?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-001: "¿Cuántos productos activos tenemos?"
+[22m[39m   📝 Response: Para saber cuántos productos activos tenemos, necesito usar la herramienta de búsqueda de productos. ¿Qué querés decir con "activos"? ¿Productos que están a la venta?
+
+   ⏱️  Latency: 5540ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-002: "Buscá productos que contengan "cable""
+[22m[39m
+🗣️  Testing: "Buscá productos que contengan "cable""
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-002: "Buscá productos que contengan "cable""
+[22m[39m   📝 Response: Tenemos estos productos que contienen "cable":
+
+• *Pieza de mano con cable Cavitador UDS-B. WOODPECKER* - Precio: $ 92.248 - Stock: 0
+• *Cable siliconado para Cavitador UDS-P y UDS-E. WOODPECKER* - Pr...
+   ⏱️  Latency: 8307ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-003: "¿Cuál es el producto más vendido en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuál es el producto más vendido en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-003: "¿Cuál es el producto más vendido en enero?"
+[22m[39m   📝 Response: El producto más vendido en enero fue *[C080288] Equipo sillón odontológico X3 Colibrí (Mod. 2026), con pantalla táctil, banqueta y foco Cialítico 8 LEDs. CINGOL (609 Petroleo)*, con un ingreso de $ 25...
+   ⏱️  Latency: 7790ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-004: "Dame el top 5 de productos por ingreso"
+[22m[39m
+🗣️  Testing: "Dame el top 5 de productos por ingreso"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-004: "Dame el top 5 de productos por ingreso"
+[22m[39m   📝 Response: Este mes no tenemos ventas registradas, por eso no puedo mostrarte el top 5 de productos por ingresos. ¿Querés que te muestre el del mes pasado?
+   ⏱️  Latency: 8454ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Expected numeric data but none found
+      - Expected list format but none found
+   ❌ ERROR: Failures: Expected numeric data but none found, Expected list format but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-005: "¿Cuántos productos vendimos hoy?"
+[22m[39m
+🗣️  Testing: "¿Cuántos productos vendimos hoy?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-005: "¿Cuántos productos vendimos hoy?"
+[22m[39m   📝 Response: $ 0 en ventas hoy.
+   ⏱️  Latency: 7468ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-006: "Buscar productos que empiecen con "sill""
+[22m[39m
+🗣️  Testing: "Buscar productos que empiecen con "sill""
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 PRODUCTOS[2m > [22m[2mproductos-006: "Buscar productos que empiecen con "sill""
+[22m[39m   📝 Response: *Productos que empiezan con "sill"* 🦷
+
+• *Banqueta de sillón, cuerina. SUNTEM* - Precio: $ 302.744 - Stock: 0
+• *Equipo sillón odontológico, platina colgante, ST-D307 NEW. SUNTEM* - Precio: $ 11.227....
+   ⏱️  Latency: 9504ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-001: "¿Cuánto vale el dólar?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vale el dólar?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-001: "¿Cuánto vale el dólar?"
+[22m[39m   📝 Response: El precio del dólar en Argentina varía según el tipo de cambio (oficial, blue, etc.). Te recomiendo comparar las diferentes cotizaciones disponibles.
+
+Encontré estos productos relacionados en MercadoL...
+   ⏱️  Latency: 15609ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-002: "¿Cómo estamos?"
+[22m[39m
+🗣️  Testing: "¿Cómo estamos?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-002: "¿Cómo estamos?"
+[22m[39m   📝 Response: 📊 Comparativo de Ventas
+
+Este mes: $ 0
+Mes pasado: $ 0
+Diferencia: $ 0 (0%)
+
+📉 Sin ventas este mes, revisá qué pasó.
+   ⏱️  Latency: 6147ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-003: "Hola"
+[22m[39m
+🗣️  Testing: "Hola"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-003: "Hola"
+[22m[39m   📝 Response: ¡Hola! ¿En qué puedo ayudarte hoy? 😊
+
+   ⏱️  Latency: 5577ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-004: "¿Vendimos algo el año pasado?"
+[22m[39m
+🗣️  Testing: "¿Vendimos algo el año pasado?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-004: "¿Vendimos algo el año pasado?"
+[22m[39m   📝 Response: ¡Sí! El año pasado vendimos un total de $ 17.810.169.723,59 sin impuestos y $ 20.429.921.722,55 con impuestos. ¡Un promedio de $ 934.879,50 por orden!
+   ⏱️  Latency: 8816ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-005: "¿Cuánto vendimos ayer?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vendimos ayer?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-005: "¿Cuánto vendimos ayer?"
+[22m[39m   📝 Response: Ayer vendimos $ 0.
+   ⏱️  Latency: 7027ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-006: "Dame las ventas de enero"
+[22m[39m
+🗣️  Testing: "Dame las ventas de enero"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 EDGE-CASES[2m > [22m[2medge-006: "Dame las ventas de enero"
+[22m[39m   📝 Response: En enero vendimos $ 1.549.454.784,18 (incluyendo impuestos). Esto representa 1315 órdenes de 761 clientes, con un valor promedio por orden de $ 1.178.292,61.
+   ⏱️  Latency: 8181ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-001: "¿Cuánto cuesta una turbina LED dental en MercadoLibre?"
+[22m[39m
+🗣️  Testing: "¿Cuánto cuesta una turbina LED dental en MercadoLibre?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-001: "¿Cuánto cuesta una turbina LED dental en MercadoLibre?"
+[22m[39m   📝 Response: Encontré varias opciones de turbinas LED dentales en MercadoLibre. Los precios son "A consultar" en todos los casos:
+
+*Turbina De Alta Velocidad A2 Led Apple Dental*
+*Turbina Con Luz Led Push Button T...
+   ⏱️  Latency: 15976ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ❌ FAILED:
+      - Missing expected pattern: \$\s?[\d.,]+|rango|desde|hasta|entre
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: \$\s?[\d.,]+|rango|desde|hasta|entre, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-002: "Busca precios de sillón odontológico en Mercado Libre"
+[22m[39m
+🗣️  Testing: "Busca precios de sillón odontológico en Mercado Libre"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-002: "Busca precios de sillón odontológico en Mercado Libre"
+[22m[39m   📝 Response: ¡Dale! 🦷 Encontré algunas opciones de sillones odontológicos en MercadoLibre:
+
+*Sillón Odontológico*
+
+Encontré 5 opciones en MercadoLibre:
+
+1. *Sillón Odontológico X5 Colgante, Con Banqueta Y Foco*
+-...
+   ⏱️  Latency: 15520ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-003: "¿Cuánto sale un compresor dental silencioso?"
+[22m[39m
+🗣️  Testing: "¿Cuánto sale un compresor dental silencioso?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-003: "¿Cuánto sale un compresor dental silencioso?"
+[22m[39m   📝 Response: **🛒 Compresor dental silencioso**
+
+Encontré varias opciones en MercadoLibre:
+
+**1. Compresor De Aire Silencioso Para 2 Sillones Odontologicos 550w**
+- 💰 **$ 389.999**
+- 📦 Vendedor: Ferretería Tacua...
+   ⏱️  Latency: 7962ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-004: "Precio de autoclave clase B 18 litros"
+[22m[39m
+🗣️  Testing: "Precio de autoclave clase B 18 litros"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-004: "Precio de autoclave clase B 18 litros"
+[22m[39m   📝 Response: Encontré estos precios de autoclaves clase B de 18 litros en MercadoLibre:
+
+*   Autoclave Tanzo Classic B-18 L: $ 3.988.324 ([https://articulo.mercadolibre.com.ar/MLA-1376186987-autoclave-clase-b-tanz...
+   ⏱️  Latency: 15125ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-005: "¿Estoy caro si vendo una turbina LED a $350.000?"
+[22m[39m
+🗣️  Testing: "¿Estoy caro si vendo una turbina LED a $350.000?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-005: "¿Estoy caro si vendo una turbina LED a $350.000?"
+[22m[39m   📝 Response: Encontré varias turbinas LED en MercadoLibre. Los precios varían entre $ 73.056 y $ 622.999, con un promedio de $ 348.028. Venderla a $ 350.000 estaría dentro del promedio. Acá te dejo algunos ejemplo...
+   ⏱️  Latency: 16400ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-006: "Comparar precios de lámpara de fotocurado dental"
+[22m[39m
+🗣️  Testing: "Comparar precios de lámpara de fotocurado dental"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-006: "Comparar precios de lámpara de fotocurado dental"
+[22m[39m   📝 Response: ¡Claro! Mirá, encontré varias opciones de lámparas de fotocurado dental en MercadoLibre: 🦷
+
+*Lámparas de Fotocurado Dental en MercadoLibre*
+
+Encontré varias opciones en MercadoLibre:
+
+1. *Lámpara De ...
+   ⏱️  Latency: 16074ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-007: "¿Cuánto cuesta un termo Stanley 1 litro?"
+[22m[39m
+🗣️  Testing: "¿Cuánto cuesta un termo Stanley 1 litro?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-007: "¿Cuánto cuesta un termo Stanley 1 litro?"
+[22m[39m   📝 Response: ¡Buenas! 🧉 Encontré varias opciones de termo Stanley de 1 litro en MercadoLibre. Acá te dejo algunas:
+
+**🛒 Termo Stanley 1 Litro**
+
+Encontré estas opciones:
+
+**1. Termo Stanley 1l Clásico Pico Cebad...
+   ⏱️  Latency: 14846ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-008: "Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre Argentina"
+[22m[39m
+🗣️  Testing: "Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre Argentina"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-008: "Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre Argentina"
+[22m[39m   📝 Response: Encontré varias opciones de iPhone 15 Pro Max 256GB nuevo en MercadoLibre. Acá te dejo algunas:
+
+*🛒 iPhone 15 Pro Max 256GB*
+
+Encontré varias opciones en MercadoLibre:
+
+1. *Iphone 15 Pro Max 256gb Nu...
+   ⏱️  Latency: 17367ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-009: "¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios"
+[22m[39m
+🗣️  Testing: "¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-009: "¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios"
+[22m[39m   📝 Response: Encontré algunas opciones de Lenovo ThinkPad en MercadoLibre. Tené en cuenta que los precios varían y es mejor consultarlos directamente en los links.
+
+*Lenovo Thinkpad en MercadoLibre*
+
+Encontré vari...
+   ⏱️  Latency: 17428ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ❌ FAILED:
+      - Missing expected pattern: \$\s?[\d.,]+
+      - Expected numeric data but none found
+   ❌ ERROR: Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-010: "¿Cuál es el rango de precios de la PS5 en MercadoLibre Argentina?"
+[22m[39m
+🗣️  Testing: "¿Cuál es el rango de precios de la PS5 en MercadoLibre Argentina?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 MERCADOLIBRE[2m > [22m[2mmeli-010: "¿Cuál es el rango de precios de la PS5 en MercadoLibre Argentina?"
+[22m[39m   📝 Response: ¡Che, mirá! 🎮 Encontré varias PS5 en MercadoLibre Argentina. Los precios arrancan en $ 959.000. Acá te dejo algunas opciones:
+
+*Consola Playstation 5 Ps5 Slim Core Con Lectora Cfi-2015 ...*
+- 💰 *$95...
+   ⏱️  Latency: 16783ms
+   🛠️  Tools: odoo_intelligent_query, web_search, web_investigator
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-001: "¿Cuáles son las características principales del sillón Cingol?"
+[22m[39m
+🗣️  Testing: "¿Cuáles son las características principales del sillón Cingol?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-001: "¿Cuáles son las características principales del sillón Cingol?"
+[22m[39m   📝 Response: No encontré información sobre las características principales del sillón Cingol en la base de conocimiento. ¿Hay algo más en lo que te pueda ayudar?
+   ⏱️  Latency: 6629ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ❌ FAILED:
+      - Found forbidden pattern: no encontré|no tengo información|no sé sobre
+   ❌ ERROR: Failures: Found forbidden pattern: no encontré|no tengo información|no sé sobre: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-002: "¿Qué garantía tiene el sillón odontológico Cingol?"
+[22m[39m
+🗣️  Testing: "¿Qué garantía tiene el sillón odontológico Cingol?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-002: "¿Qué garantía tiene el sillón odontológico Cingol?"
+[22m[39m   📝 Response: No tengo una herramienta para buscar información específica sobre la garantía del sillón odontológico Cingol. Sin embargo, puedo buscar información general sobre sillones odontológicos en la web. ¿Te ...
+   ⏱️  Latency: 5660ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-003: "¿Cómo se ajusta la altura del sillón Cingol?"
+[22m[39m
+🗣️  Testing: "¿Cómo se ajusta la altura del sillón Cingol?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-003: "¿Cómo se ajusta la altura del sillón Cingol?"
+[22m[39m   📝 Response: No tengo esa información en mis documentos ni puedo buscarla en la web. Lo que sí puedo hacer es ayudarte con datos internos de la empresa. ¿Te puedo ayudar con algo más?
+   ⏱️  Latency: 5768ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: altura|ajust|pedal|motor|control
+   ❌ ERROR: Failures: Missing expected pattern: altura|ajust|pedal|motor|control: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-004: "¿Cuáles son las posiciones disponibles del sillón Cingol?"
+[22m[39m
+🗣️  Testing: "¿Cuáles son las posiciones disponibles del sillón Cingol?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-004: "¿Cuáles son las posiciones disponibles del sillón Cingol?"
+[22m[39m   📝 Response: Sólo encontré el "Micromotor eléctrico interno para sillón CINGOL". ¿Te referías a ese producto? No tengo información sobre las posiciones disponibles del sillón Cingol. Si te referías a otro producto...
+   ⏱️  Latency: 6702ms
+   🛠️  Tools: odoo_intelligent_query, odoo, knowledge_base
+   ✅ PASSED
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-005: "¿Qué mantenimiento necesita el sillón Cingol?"
+[22m[39m
+🗣️  Testing: "¿Qué mantenimiento necesita el sillón Cingol?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 RAG[2m > [22m[2mrag-005: "¿Qué mantenimiento necesita el sillón Cingol?"
+[22m[39m   📝 Response: No tengo esa info en mis documentos. Puedo buscarla en internet si querés. ¿Te parece?
+   ⏱️  Latency: 5425ms
+   🛠️  Tools: odoo_intelligent_query, odoo, web_search, knowledge_base
+   ❌ FAILED:
+      - Missing expected pattern: mantenimiento|limpi|cuidado|lubri
+   ❌ ERROR: Failures: Missing expected pattern: mantenimiento|limpi|cuidado|lubri: expected false to be true // Object.is equality
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📊 Overall pass rate meets threshold
+[22m[39m
+🎯 Final Pass Rate: 55.8% (threshold: 80%)
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)
+[22m[39m
+======================================================================
+📊 EVALUATION SUMMARY
+======================================================================
+
+   ✅ Passed: 48
+   ❌ Failed: 38
+   ⏭️  Skipped: 0
+   📈 Pass Rate: 55.8%
+   🎯 Threshold: 80%
+   ❌ FAILED
+
+   By Category:
+      ⚠️ ventas: 8/12 (67%)
+      ⚠️ compras: 2/8 (25%)
+      ⚠️ stock: 4/6 (67%)
+      ⚠️ cobranzas: 7/9 (78%)
+      ⚠️ tesoreria: 1/11 (9%)
+      ⚠️ comparativas: 5/7 (71%)
+      ⚠️ productos: 5/7 (71%)
+      ✅ edge-cases: 6/6 (100%)
+      ⚠️ mercadolibre: 8/12 (67%)
+      ⚠️ rag: 2/8 (25%)
+
+   Failed Tests:
+      ❌ ventas-002: "¿Quién es mi mejor cliente?"
+         - Expected numeric data but none found
+      ❌ ventas-002: "¿Quién es mi mejor cliente?"
+         - Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ ventas-009: "¿Cuál es el ticket promedio de venta?"
+         - Missing expected pattern: \$\s?[\d.,]+
+         - Expected numeric data but none found
+      ❌ ventas-009: "¿Cuál es el ticket promedio de venta?"
+         - Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ compras-002: "¿A quién le compramos más?"
+         - Missing expected pattern: proveedor|vendor|supplier|\$\s?[\d.,]+
+         - Expected numeric data but none found
+      ❌ compras-002: "¿A quién le compramos más?"
+         - Failures: Missing expected pattern: proveedor|vendor|supplier|\$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ compras-003: "¿Tenemos órdenes de compra pendientes?"
+         - Missing expected pattern: \d+|no hay
+      ❌ compras-003: "¿Tenemos órdenes de compra pendientes?"
+         - Failures: Missing expected pattern: \d+|no hay: expected false to be true // Object.is equality
+      ❌ compras-005: "¿Cuánto le compramos a cada proveedor?"
+         - Expected numeric data but none found
+         - Expected list format but none found
+      ❌ compras-005: "¿Cuánto le compramos a cada proveedor?"
+         - Failures: Expected numeric data but none found, Expected list format but none found: expected false to be true // Object.is equality
+      ❌ stock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+         - Expected numeric data but none found
+      ❌ stock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+         - Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ cobranzas-002: "¿Hay facturas vencidas?"
+         - Expected numeric data but none found
+      ❌ cobranzas-002: "¿Hay facturas vencidas?"
+         - Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ tesoreria-002: "¿Cuánto tenemos en bancos?"
+         - Missing expected pattern: \$\s?[\d.,]+
+         - Expected numeric data but none found
+      ❌ tesoreria-002: "¿Cuánto tenemos en bancos?"
+         - Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ tesoreria-003: "¿Cuánto le debemos a proveedores?"
+         - Missing expected pattern: \$\s?[\d.,]+
+         - Expected numeric data but none found
+      ❌ tesoreria-003: "¿Cuánto le debemos a proveedores?"
+         - Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ tesoreria-004: "¿Cuál es nuestro saldo total disponible?"
+         - Missing expected pattern: \$\s?[\d.,]+
+         - Expected numeric data but none found
+      ❌ tesoreria-004: "¿Cuál es nuestro saldo total disponible?"
+         - Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ tesoreria-005: "¿Cuántas facturas de proveedor tenemos pendientes de pago?"
+         - Expected numeric data but none found
+      ❌ tesoreria-005: "¿Cuántas facturas de proveedor tenemos pendientes de pago?"
+         - Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ tesoreria-006: "Resumen de flujo de caja del mes"
+         - Expected numeric data but none found
+      ❌ tesoreria-006: "Resumen de flujo de caja del mes"
+         - Failures: Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ comp-002: "¿Subieron o bajaron las ventas?"
+         - Missing expected pattern: subieron|bajaron|aumentaron|disminuyeron|igual|estable|%|variación|cambio
+         - Expected numeric data but none found
+      ❌ comp-002: "¿Subieron o bajaron las ventas?"
+         - Failures: Missing expected pattern: subieron|bajaron|aumentaron|disminuyeron|igual|estable|%|variación|cambio, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ productos-004: "Dame el top 5 de productos por ingreso"
+         - Expected numeric data but none found
+         - Expected list format but none found
+      ❌ productos-004: "Dame el top 5 de productos por ingreso"
+         - Failures: Expected numeric data but none found, Expected list format but none found: expected false to be true // Object.is equality
+      ❌ meli-001: "¿Cuánto cuesta una turbina LED dental en MercadoLibre?"
+         - Missing expected pattern: \$\s?[\d.,]+|rango|desde|hasta|entre
+         - Expected numeric data but none found
+      ❌ meli-001: "¿Cuánto cuesta una turbina LED dental en MercadoLibre?"
+         - Failures: Missing expected pattern: \$\s?[\d.,]+|rango|desde|hasta|entre, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ meli-009: "¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios"
+         - Missing expected pattern: \$\s?[\d.,]+
+         - Expected numeric data but none found
+      ❌ meli-009: "¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios"
+         - Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality
+      ❌ rag-001: "¿Cuáles son las características principales del sillón Cingol?"
+         - Found forbidden pattern: no encontré|no tengo información|no sé sobre
+      ❌ rag-001: "¿Cuáles son las características principales del sillón Cingol?"
+         - Failures: Found forbidden pattern: no encontré|no tengo información|no sé sobre: expected false to be true // Object.is equality
+      ❌ rag-003: "¿Cómo se ajusta la altura del sillón Cingol?"
+         - Missing expected pattern: altura|ajust|pedal|motor|control
+      ❌ rag-003: "¿Cómo se ajusta la altura del sillón Cingol?"
+         - Failures: Missing expected pattern: altura|ajust|pedal|motor|control: expected false to be true // Object.is equality
+      ❌ rag-005: "¿Qué mantenimiento necesita el sillón Cingol?"
+         - Missing expected pattern: mantenimiento|limpi|cuidado|lubri
+      ❌ rag-005: "¿Qué mantenimiento necesita el sillón Cingol?"
+         - Failures: Missing expected pattern: mantenimiento|limpi|cuidado|lubri: expected false to be true // Object.is equality
+
+   Performance:
+      Avg Latency: 8604ms
+      Min Latency: 4914ms
+      Max Latency: 17428ms
+
+======================================================================
+
+
+ [31m❯[39m tests/evals/agent-evals.test.ts [2m([22m[2m68 tests[22m[2m | [22m[31m20 failed[39m[2m)[22m[33m 912681[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-001: "¿Cuánto vendimos en enero?" [33m 13834[2mms[22m[39m
+[31m       [31m×[31m ventas-002: "¿Quién es mi mejor cliente?"[39m[33m 12414[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-003: "¿Qué productos vendemos más?" [33m 13030[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-004: "¿Cuántas órdenes de venta tenemos pendientes?" [33m 15121[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-005: "¿Cómo vienen las ventas comparado con el mes pasado?" [33m 13995[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-006: "¿Cuánto vendió cada vendedor en enero?" [33m 13650[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-007: "¿Cuánto le vendimos a Acme Corp?" [33m 11443[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-008: "Dame el total de ventas de los últimos 3 meses desglosado por mes" [33m 15370[2mms[22m[39m
+[31m       [31m×[31m ventas-009: "¿Cuál es el ticket promedio de venta?"[39m[33m 11037[2mms[22m[39m
+       [33m[2m✓[22m[39m ventas-010: "¿Cuántos clientes nuevos tuvimos en enero?" [33m 12223[2mms[22m[39m
+       [33m[2m✓[22m[39m compras-001: "¿Cuánto compramos en enero?" [33m 11280[2mms[22m[39m
+[31m       [31m×[31m compras-002: "¿A quién le compramos más?"[39m[33m 13020[2mms[22m[39m
+[31m       [31m×[31m compras-003: "¿Tenemos órdenes de compra pendientes?"[39m[33m 9927[2mms[22m[39m
+       [33m[2m✓[22m[39m compras-004: "¿Cuántas facturas de proveedor recibimos en enero?" [33m 12048[2mms[22m[39m
+[31m       [31m×[31m compras-005: "¿Cuánto le compramos a cada proveedor?"[39m[33m 10506[2mms[22m[39m
+       [33m[2m✓[22m[39m stock-001: "¿Qué productos tienen poco stock?" [33m 10825[2mms[22m[39m
+       [33m[2m✓[22m[39m stock-002: "¿Cuánto vale nuestro inventario?" [33m 10431[2mms[22m[39m
+       [33m[2m✓[22m[39m stock-003: "¿Cuántos pedidos tenemos sin entregar?" [33m 13232[2mms[22m[39m
+[31m       [31m×[31m stock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"[39m[33m 12055[2mms[22m[39m
+       [33m[2m✓[22m[39m stock-005: "¿Cuáles son los 5 productos con más stock?" [33m 14038[2mms[22m[39m
+       [33m[2m✓[22m[39m cobranzas-001: "¿Cuánto nos deben los clientes?" [33m 16587[2mms[22m[39m
+[31m       [31m×[31m cobranzas-002: "¿Hay facturas vencidas?"[39m[33m 10633[2mms[22m[39m
+       [33m[2m✓[22m[39m cobranzas-003: "¿Quién nos debe más?" [33m 12736[2mms[22m[39m
+       [33m[2m✓[22m[39m cobranzas-004: "¿Cuánto cobramos en enero?" [33m 12397[2mms[22m[39m
+       [33m[2m✓[22m[39m cobranzas-005: "¿Cuántos pagos recibimos esta semana?" [33m 12068[2mms[22m[39m
+       [33m[2m✓[22m[39m cobranzas-006: "¿Cuántas facturas tienen más de 30 días vencidas?" [33m 12643[2mms[22m[39m
+       [33m[2m✓[22m[39m cobranzas-007: "Dame el detalle de deuda por cliente ordenado de mayor a menor" [33m 14078[2mms[22m[39m
+       [33m[2m✓[22m[39m cobranzas-008: "¿Cuál es la antigüedad promedio de nuestras cuentas por cobrar?" [33m 13269[2mms[22m[39m
+       [33m[2m✓[22m[39m tesoreria-001: "¿Cuánta plata tenemos en caja?" [33m 10919[2mms[22m[39m
+[31m       [31m×[31m tesoreria-002: "¿Cuánto tenemos en bancos?"[39m[33m 10711[2mms[22m[39m
+[31m       [31m×[31m tesoreria-003: "¿Cuánto le debemos a proveedores?"[39m[33m 10754[2mms[22m[39m
+[31m       [31m×[31m tesoreria-004: "¿Cuál es nuestro saldo total disponible?"[39m[33m 10698[2mms[22m[39m
+[31m       [31m×[31m tesoreria-005: "¿Cuántas facturas de proveedor tenemos pendientes de pago?"[39m[33m 10749[2mms[22m[39m
+[31m       [31m×[31m tesoreria-006: "Resumen de flujo de caja del mes"[39m[33m 10678[2mms[22m[39m
+       [33m[2m✓[22m[39m comp-001: "¿Cómo venimos esta semana vs la pasada?" [33m 12426[2mms[22m[39m
+[31m       [31m×[31m comp-002: "¿Subieron o bajaron las ventas?"[39m[33m 10888[2mms[22m[39m
+       [33m[2m✓[22m[39m comp-003: "¿Hoy vendimos más que ayer?" [33m 13109[2mms[22m[39m
+       [33m[2m✓[22m[39m comp-004: "¿Vendimos más en enero que el anterior?" [33m 13201[2mms[22m[39m
+       [33m[2m✓[22m[39m comp-005: "Comparar ventas de enero vs diciembre" [33m 13628[2mms[22m[39m
+       [33m[2m✓[22m[39m comp-006: "¿Cuánto creció la facturación respecto al mes pasado?" [33m 13667[2mms[22m[39m
+       [33m[2m✓[22m[39m productos-001: "¿Cuántos productos activos tenemos?" [33m 10548[2mms[22m[39m
+       [33m[2m✓[22m[39m productos-002: "Buscá productos que contengan "cable"" [33m 13316[2mms[22m[39m
+       [33m[2m✓[22m[39m productos-003: "¿Cuál es el producto más vendido en enero?" [33m 12803[2mms[22m[39m
+[31m       [31m×[31m productos-004: "Dame el top 5 de productos por ingreso"[39m[33m 13465[2mms[22m[39m
+       [33m[2m✓[22m[39m productos-005: "¿Cuántos productos vendimos hoy?" [33m 12479[2mms[22m[39m
+       [33m[2m✓[22m[39m productos-006: "Buscar productos que empiecen con "sill"" [33m 14514[2mms[22m[39m
+       [33m[2m✓[22m[39m edge-001: "¿Cuánto vale el dólar?" [33m 20619[2mms[22m[39m
+       [33m[2m✓[22m[39m edge-002: "¿Cómo estamos?" [33m 11157[2mms[22m[39m
+       [33m[2m✓[22m[39m edge-003: "Hola" [33m 10585[2mms[22m[39m
+       [33m[2m✓[22m[39m edge-004: "¿Vendimos algo el año pasado?" [33m 13825[2mms[22m[39m
+       [33m[2m✓[22m[39m edge-005: "¿Cuánto vendimos ayer?" [33m 12038[2mms[22m[39m
+       [33m[2m✓[22m[39m edge-006: "Dame las ventas de enero" [33m 13191[2mms[22m[39m
+[31m       [31m×[31m meli-001: "¿Cuánto cuesta una turbina LED dental en MercadoLibre?"[39m[33m 20988[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-002: "Busca precios de sillón odontológico en Mercado Libre" [33m 20529[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-003: "¿Cuánto sale un compresor dental silencioso?" [33m 12972[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-004: "Precio de autoclave clase B 18 litros" [33m 20134[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-005: "¿Estoy caro si vendo una turbina LED a $350.000?" [33m 21409[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-006: "Comparar precios de lámpara de fotocurado dental" [33m 21084[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-007: "¿Cuánto cuesta un termo Stanley 1 litro?" [33m 19856[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-008: "Busca el precio de iPhone 15 Pro Max 256GB nuevo en MercadoLibre Argentina" [33m 22377[2mms[22m[39m
+[31m       [31m×[31m meli-009: "¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios"[39m[33m 22439[2mms[22m[39m
+       [33m[2m✓[22m[39m meli-010: "¿Cuál es el rango de precios de la PS5 en MercadoLibre Argentina?" [33m 21794[2mms[22m[39m
+[31m       [31m×[31m rag-001: "¿Cuáles son las características principales del sillón Cingol?"[39m[33m 11640[2mms[22m[39m
+       [33m[2m✓[22m[39m rag-002: "¿Qué garantía tiene el sillón odontológico Cingol?" [33m 10668[2mms[22m[39m
+[31m       [31m×[31m rag-003: "¿Cómo se ajusta la altura del sillón Cingol?"[39m[33m 10777[2mms[22m[39m
+       [33m[2m✓[22m[39m rag-004: "¿Cuáles son las posiciones disponibles del sillón Cingol?" [33m 11712[2mms[22m[39m
+[31m       [31m×[31m rag-005: "¿Qué mantenimiento necesita el sillón Cingol?"[39m[33m 10434[2mms[22m[39m
+[31m     [31m×[31m 📊 Overall pass rate meets threshold[39m[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 20 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 VENTAS[2m > [22mventas-002: "¿Quién es mi mejor cliente?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 STOCK[2m > [22mstock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 COBRANZAS[2m > [22mcobranzas-002: "¿Hay facturas vencidas?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 TESORERIA[2m > [22mtesoreria-005: "¿Cuántas facturas de proveedor tenemos pendientes de pago?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 TESORERIA[2m > [22mtesoreria-006: "Resumen de flujo de caja del mes"
+[31m[1mAssertionError[22m: Failures: Expected numeric data but none found: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 VENTAS[2m > [22mventas-009: "¿Cuál es el ticket promedio de venta?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 TESORERIA[2m > [22mtesoreria-002: "¿Cuánto tenemos en bancos?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 TESORERIA[2m > [22mtesoreria-003: "¿Cuánto le debemos a proveedores?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 TESORERIA[2m > [22mtesoreria-004: "¿Cuál es nuestro saldo total disponible?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 MERCADOLIBRE[2m > [22mmeli-009: "¿Qué opciones de notebook Lenovo ThinkPad hay en MercadoLibre? Dame al menos 3 con precios"
+[31m[1mAssertionError[22m: Failures: Missing expected pattern: \$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 COMPRAS[2m > [22mcompras-002: "¿A quién le compramos más?"
+[31m[1mAssertionError[22m: Failures: Missing expected pattern: proveedor|vendor|supplier|\$\s?[\d.,]+, Expected numeric data but none found: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 COMPRAS[2m > [22mcompras-003: "¿Tenemos órdenes de compra pendientes?"
+[31m[1mAssertionError[22m: Failures: Missing expected pattern: \d+|no hay: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 COMPRAS[2m > [22mcompras-005: "¿Cuánto le compramos a cada proveedor?"
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 PRODUCTOS[2m > [22mproductos-004: "Dame el top 5 de productos por ingreso"
+[31m[1mAssertionError[22m: Failures: Expected numeric data but none found, Expected list format but none found: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 COMPARATIVAS[2m > [22mcomp-002: "¿Subieron o bajaron las ventas?"
+[31m[1mAssertionError[22m: Failures: Missing expected pattern: subieron|bajaron|aumentaron|disminuyeron|igual|estable|%|variación|cambio, Expected numeric data but none found: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 MERCADOLIBRE[2m > [22mmeli-001: "¿Cuánto cuesta una turbina LED dental en MercadoLibre?"
+[31m[1mAssertionError[22m: Failures: Missing expected pattern: \$\s?[\d.,]+|rango|desde|hasta|entre, Expected numeric data but none found: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 RAG[2m > [22mrag-001: "¿Cuáles son las características principales del sillón Cingol?"
+[31m[1mAssertionError[22m: Failures: Found forbidden pattern: no encontré|no tengo información|no sé sobre: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 RAG[2m > [22mrag-003: "¿Cómo se ajusta la altura del sillón Cingol?"
+[31m[1mAssertionError[22m: Failures: Missing expected pattern: altura|ajust|pedal|motor|control: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 RAG[2m > [22mrag-005: "¿Qué mantenimiento necesita el sillón Cingol?"
+[31m[1mAssertionError[22m: Failures: Missing expected pattern: mantenimiento|limpi|cuidado|lubri: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m275:80[22m[39m
+    [90m273| [39m              }
+    [90m274| [39m
+    [90m275| [39m              expect(result.passed, `Failures: ${result.failures.join(…
+    [90m   | [39m                                                                               [31m^[39m
+    [90m276| [39m            } [35mcatch[39m (error[33m:[39m any) {
+    [90m277| [39m              console[33m.[39m[34mlog[39m([32m`   ❌ ERROR: [39m[36m${[39merror[33m.[39mmessage[36m}[39m[32m`[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/20]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📊 Overall pass rate meets threshold
+[31m[1mAssertionError[22m: expected 0.5581395348837209 to be greater than or equal to 0.8[39m
+[36m [2m❯[22m tests/evals/agent-evals.test.ts:[2m299:22[22m[39m
+    [90m297| [39m    [35mconst[39m passRate [33m=[39m totalPassed [33m/[39m (totalPassed [33m+[39m totalFailed)[33m;[39m
+    [90m298| [39m    console.log(`\n🎯 Final Pass Rate: ${(passRate * 100).toFixed(1)}%…
+    [90m299| [39m    [34mexpect[39m(passRate)[33m.[39m[34mtoBeGreaterThanOrEqual[39m([33mPASSING_THRESHOLD[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m300| [39m  })[33m;[39m
+    [90m301| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/20]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m20 failed[39m[22m[2m | [22m[1m[32m48 passed[39m[22m[90m (68)[39m
+[2m   Start at [22m 16:12:11
+[2m   Duration [22m 913.21s[2m (transform 93ms, setup 164ms, import 73ms, tests 912.68s, environment 0ms)[22m
+

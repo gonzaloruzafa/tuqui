@@ -247,8 +247,8 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
           async () => {
             console.log(`\n🗣️  Testing: "${testCase.question}"`);
 
-            // Add delay between tests to avoid Gemini rate limits
-            await new Promise(resolve => setTimeout(resolve, 2500));
+            // Add delay between tests to avoid Gemini rate limits (429 errors)
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             try {
               const response = await callAgent(testCase.question);

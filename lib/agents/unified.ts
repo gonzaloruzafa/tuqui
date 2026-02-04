@@ -25,8 +25,8 @@ export const TUQUI_UNIFIED = {
     
     // Todas las tools disponibles (nombres estandarizados)
     tools: [
-        'odoo_intelligent_query',  // Odoo BI Agent
-        'web_search',              // Búsqueda Web Unificada (Tavily + Google Grounding)
+        'odoo',        // Odoo Skills (get_sales_total, get_top_customers, etc.)
+        'web_search',  // Búsqueda Web Unificada (Tavily + Google Grounding)
     ],
     
     // RAG siempre habilitado
