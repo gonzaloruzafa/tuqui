@@ -109,11 +109,11 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ORQUESTADOR LLM (~50 líneas)                 │
 │                                                                 │
-│  Lee de DB: agents.description                                 │
+│  Lee de DB: agents.description (DINÁMICO, no hardcodeado)      │
 │  Prompt: "Clasificá → respondé solo el slug"                   │
 │  Output: "odoo"                                                │
 │                                                                 │
-│  ~100 tokens, sin keywords hardcodeados                        │
+│  ~100 tokens, sin keywords ni slugs en código                  │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -128,6 +128,16 @@
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
+```
+
+### 🔄 Escalabilidad sin código
+
+| Acción | Cómo hacerlo | ¿Tocar código? |
+|--------|--------------|----------------|
+| Agregar agente nuevo | INSERT en `master_agents` o desde `/admin/agents` | ❌ No |
+| Cambiar descripción | UPDATE en DB o desde UI | ❌ No |
+| Agregar tool a agente | Editar `tools[]` del agente en DB/UI | ❌ No |
+| Crear skill nuevo | Archivo en `lib/skills/` + registrar | ✅ Sí (mínimo) |
 ┌─────────────────────────────────────────────────────────────────┐
 │                         GEMINI                                  │
 │                                                                 │
@@ -291,30 +301,27 @@ const { agentSlug } = await classifyIntent(inputContent, agents, conversationHis
 const selectedAgent = agents.find(a => a.slug === agentSlug)
 ```
 
-### 1.3: Mejorar descripciones de agentes en DB
+### 1.3: Mejorar descripciones de agentes (desde UI o DB)
 
-```sql
--- Actualizar descripciones para que el LLM clasifique bien
-UPDATE master_agents SET description = 
-  'Consultas sobre datos internos: ventas, facturación, stock, clientes, proveedores, cobranzas, caja, pedidos. Todo lo que sea "cuánto vendimos", "quién nos debe", "tenemos stock".'
-WHERE slug = 'odoo';
+> ⚠️ **IMPORTANTE:** Las descripciones se editan desde `/admin/agents` o directamente en la DB.
+> El orquestador las lee dinámicamente - NO hay nada hardcodeado en código.
 
-UPDATE master_agents SET description = 
-  'Buscar precios en MercadoLibre, comparar con competencia, precios de mercado externos. Todo lo que sea "cuánto cuesta X en el mercado", "estoy caro o barato".'
-WHERE slug = 'meli';
+**Cómo funciona:**
+1. El orquestador llama a `getActiveAgents(tenantId)` → lee de DB
+2. Arma el prompt con las descripciones que encuentre
+3. Si agregás un nuevo agente en DB, automáticamente lo considera
 
-UPDATE master_agents SET description = 
-  'Consultas sobre impuestos argentinos: IVA, Ganancias, Monotributo, IIBB, cargas sociales. Todo lo que sea "cómo calculo", "cuánto pago de impuesto".'
-WHERE slug = 'contador';
+**Ejemplos de buenas descripciones (para copiar en la UI):**
 
-UPDATE master_agents SET description = 
-  'Consultas sobre leyes argentinas, contratos, sociedades, laboral. Todo lo que sea "es legal", "qué dice la ley", "puedo hacer X".'
-WHERE slug = 'abogado';
+| Agente | Descripción sugerida |
+|--------|---------------------|
+| odoo | Consultas sobre datos internos: ventas, facturación, stock, clientes, proveedores, cobranzas. |
+| meli | Buscar precios en MercadoLibre, comparar con competencia, precios de mercado. |
+| contador | Consultas sobre impuestos argentinos: IVA, Ganancias, Monotributo, IIBB. |
+| abogado | Consultas sobre leyes argentinas, contratos, sociedades, laboral. |
+| tuqui | Conversación general, saludos, fallback cuando no encaja en otro agente. |
 
-UPDATE master_agents SET description = 
-  'Conversación general, saludos, preguntas sobre qué puede hacer Tuqui. Fallback cuando no encaja en otro agente.'
-WHERE slug = 'tuqui';
-```
+**Tip:** Incluir ejemplos de frases que el usuario diría ayuda al LLM a clasificar mejor.
 
 ### 1.4: Deprecar router.ts viejo
 
