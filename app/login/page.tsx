@@ -28,8 +28,12 @@ async function handleGoogleLogin() {
     await signIn("google", { redirectTo: "/" })
 }
 
-export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
-    const error = searchParams?.error
+export default async function LoginPage({ 
+    searchParams 
+}: { 
+    searchParams: Promise<{ error?: string }> 
+}) {
+    const { error } = await searchParams
     
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
