@@ -1,5 +1,5 @@
 import { getClient } from '@/lib/supabase/client'
-import { searchDocuments } from '@/lib/rag/search'
+// RAG search moved to tool - see lib/tools/definitions/rag-tool.ts
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 // God Tool removed - now using atomic Skills architecture
@@ -148,19 +148,22 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             '- "Analizando la información..."\n' +
             'NUNCA menciones nombres técnicos de modelos, tablas o funciones. Mantené la conversación natural y profesional.'
 
-        // 4. RAG Context (using effective agent config)
-        if (effectiveAgent.rag_enabled) {
-            try {
-                // Search in main agent docs + sub-agent docs if different
-                const agentId = routingResult.selectedAgent?.id || agent.id
-                const docs = await searchDocuments(tenantId, agentId, inputContent)
-                if (docs.length > 0) {
-                    systemPrompt += `\n\nCONTEXTO RELEVANTE:\n${docs.map(d => `- ${d.content}`).join('\n')}`
-                }
-            } catch (ragError) {
-                console.error('[ChatEngine] RAG search failed:', ragError)
-            }
-        }
+        // 4. RAG Context - NOW HANDLED BY TOOL
+        // The LLM calls search_knowledge_base when needed (saves tokens)
+        // See lib/tools/definitions/rag-tool.ts
+        // 
+        // OLD CODE (automatic injection):
+        // if (effectiveAgent.rag_enabled) {
+        //     try {
+        //         const agentId = routingResult.selectedAgent?.id || agent.id
+        //         const docs = await searchDocuments(tenantId, agentId, inputContent)
+        //         if (docs.length > 0) {
+        //             systemPrompt += `\n\nCONTEXTO RELEVANTE:\n${docs.map(d => `- ${d.content}`).join('\n')}`
+        //         }
+        //     } catch (ragError) {
+        //         console.error('[ChatEngine] RAG search failed:', ragError)
+        //     }
+        // }
 
         // 5. Execution Path (unified with Skills architecture)
         let responseText = ''
@@ -168,7 +171,12 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         let responseToolCalls: ToolCallRecord[] = []
 
         console.log('[ChatEngine] Loading tools (including Skills if Odoo enabled)')
-        const tools = await getToolsForAgent(tenantId, effectiveAgent.tools || [], userEmail)
+        const agentToolConfig = {
+            id: routingResult.selectedAgent?.id || agent.id,
+            tools: effectiveAgent.tools || [],
+            rag_enabled: effectiveAgent.rag_enabled
+        }
+        const tools = await getToolsForAgent(tenantId, agentToolConfig, userEmail)
         const hasTools = Object.keys(tools).length > 0
 
         if (hasTools) {

@@ -14,7 +14,7 @@
 export interface EvalTestCase {
   id: string;
   question: string;
-  category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'rrhh' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre';
+  category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'rrhh' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre' | 'rag';
   expectedPatterns: RegExp[];
   forbiddenPatterns?: RegExp[];
   requiresNumericData?: boolean;
@@ -30,7 +30,7 @@ export interface EvalTestCase {
 const ventasTestCases: EvalTestCase[] = [
   {
     id: 'ventas-001',
-    question: '¿Cuánto vendimos este mes?',
+    question: '¿Cuánto vendimos en enero?',
     category: 'ventas',
     expectedPatterns: [
       /\$\s?[\d.,]+/i,  // Debe tener un monto
@@ -84,7 +84,7 @@ const ventasTestCases: EvalTestCase[] = [
   },
   {
     id: 'ventas-006',
-    question: '¿Cuánto vendió cada vendedor este mes?',
+    question: '¿Cuánto vendió cada vendedor en enero?',
     category: 'ventas',
     expectedPatterns: [
       /vendedor|comercial|usuario/i,
@@ -130,7 +130,7 @@ const ventasTestCases: EvalTestCase[] = [
   },
   {
     id: 'ventas-010',
-    question: '¿Cuántos clientes nuevos tuvimos este mes?',
+    question: '¿Cuántos clientes nuevos tuvimos en enero?',
     category: 'ventas',
     expectedPatterns: [
       /\d+|cliente|nuevo/i,
@@ -145,7 +145,7 @@ const ventasTestCases: EvalTestCase[] = [
 const comprasTestCases: EvalTestCase[] = [
   {
     id: 'compras-001',
-    question: '¿Cuánto compramos este mes?',
+    question: '¿Cuánto compramos en enero?',
     category: 'compras',
     expectedPatterns: [
       /\$\s?[\d.,]+/i,
@@ -177,7 +177,7 @@ const comprasTestCases: EvalTestCase[] = [
   },
   {
     id: 'compras-004',
-    question: '¿Cuántas facturas de proveedor recibimos este mes?',
+    question: '¿Cuántas facturas de proveedor recibimos en enero?',
     category: 'compras',
     expectedPatterns: [
       /\d+|factura|proveedor/i,
@@ -290,7 +290,7 @@ const cobranzasTestCases: EvalTestCase[] = [
   },
   {
     id: 'cobranzas-004',
-    question: '¿Cuánto cobramos este mes?',
+    question: '¿Cuánto cobramos en enero?',
     category: 'cobranzas',
     expectedPatterns: [
       /\$\s?[\d.,]+/i,
@@ -438,7 +438,7 @@ const comparativasTestCases: EvalTestCase[] = [
   // NEW: Additional comparativa tests
   {
     id: 'comp-004',
-    question: '¿Vendimos más este mes que el anterior?',
+    question: '¿Vendimos más en enero que el anterior?',
     category: 'comparativas',
     expectedPatterns: [
       /\$\s?[\d.,]+|más|menos|igual|%|variación|subió|bajó/i,
@@ -490,7 +490,7 @@ const productosTestCases: EvalTestCase[] = [
   // NEW: Additional productos tests
   {
     id: 'productos-003',
-    question: '¿Cuál es el producto más vendido este mes?',
+    question: '¿Cuál es el producto más vendido en enero?',
     category: 'productos',
     expectedPatterns: [
       /producto|\$\s?[\d.,]+|más vendido|top/i,
@@ -725,6 +725,63 @@ const mercadolibreTestCases: EvalTestCase[] = [
 ];
 
 // ============================================
+// TEST CASES: RAG (Base de Conocimiento)
+// ============================================
+// Requiere documento "Manual de usuario Sillon Cingol" subido al tenant de test
+const ragTestCases: EvalTestCase[] = [
+  {
+    id: 'rag-001',
+    question: '¿Cuáles son las características principales del sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [
+      /sillón|cingol/i,
+    ],
+    forbiddenPatterns: [
+      /no encontré|no tengo información|no sé sobre/i,
+    ],
+    expectedSkillHints: ['rag', 'documento', 'knowledge'],
+  },
+  {
+    id: 'rag-002',
+    question: '¿Qué garantía tiene el sillón odontológico Cingol?',
+    category: 'rag',
+    expectedPatterns: [
+      /garantía|año|meses|warranty/i,
+    ],
+    forbiddenPatterns: [
+      /no encontré|no tengo información/i,
+    ],
+  },
+  {
+    id: 'rag-003',
+    question: '¿Cómo se ajusta la altura del sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [
+      /altura|ajust|pedal|motor|control/i,
+    ],
+    forbiddenPatterns: [
+      /no encontré|no tengo información/i,
+    ],
+  },
+  {
+    id: 'rag-004',
+    question: '¿Cuáles son las posiciones disponibles del sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [
+      /posición|posiciones|trendelenburg|reclin|memoria/i,
+    ],
+  },
+  {
+    id: 'rag-005',
+    question: '¿Qué mantenimiento necesita el sillón Cingol?',
+    category: 'rag',
+    expectedPatterns: [
+      /mantenimiento|limpi|cuidado|lubri/i,
+    ],
+  },
+];
+
+// ============================================
 // EXPORT ALL TEST CASES
 // ============================================
 
@@ -738,6 +795,7 @@ export const ALL_TEST_CASES: EvalTestCase[] = [
   ...productosTestCases,
   ...edgeCasesTestCases,
   ...mercadolibreTestCases,
+  ...ragTestCases,
 ];
 
 // Group by category for reporting
@@ -751,6 +809,7 @@ export const TEST_CASES_BY_CATEGORY = {
   productos: productosTestCases,
   'edge-cases': edgeCasesTestCases,
   mercadolibre: mercadolibreTestCases,
+  rag: ragTestCases,
 };
 
 export const PASSING_THRESHOLD = 0.80; // 80%

@@ -7,9 +7,10 @@ import { useEffect, useState, useRef } from 'react'
 interface SaveButtonProps {
     className?: string
     label?: string
+    fullWidth?: boolean
 }
 
-export function SaveButton({ className = '', label = 'Guardar Cambios' }: SaveButtonProps) {
+export function SaveButton({ className = '', label = 'Guardar Cambios', fullWidth = false }: SaveButtonProps) {
     const { pending } = useFormStatus()
     const [showSuccess, setShowSuccess] = useState(false)
     const wasSubmitting = useRef(false)
@@ -28,11 +29,11 @@ export function SaveButton({ className = '', label = 'Guardar Cambios' }: SaveBu
         <button 
             type="submit" 
             disabled={pending}
-            className={`flex items-center gap-2 font-medium px-8 py-3 rounded-lg transition-all shadow-lg disabled:opacity-70 ${
+            className={`flex items-center justify-center gap-3 font-semibold px-10 py-4 rounded-2xl transition-all shadow-lg disabled:opacity-70 text-base ${
                 showSuccess 
-                    ? 'bg-green-600 hover:bg-green-700 shadow-green-600/20' 
-                    : 'bg-adhoc-violet hover:bg-adhoc-violet/90 shadow-adhoc-violet/20'
-            } text-white ${className}`}
+                    ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/25' 
+                    : 'bg-adhoc-violet hover:bg-adhoc-violet/90 shadow-adhoc-violet/25'
+            } text-white ${fullWidth ? 'w-full' : ''} ${className}`}
         >
             {pending ? (
                 <>
@@ -42,7 +43,7 @@ export function SaveButton({ className = '', label = 'Guardar Cambios' }: SaveBu
             ) : showSuccess ? (
                 <>
                     <Check className="w-5 h-5" />
-                    ¡Guardado!
+                    ¡Guardado correctamente!
                 </>
             ) : (
                 <>

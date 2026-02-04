@@ -377,9 +377,43 @@ export async function generateTextWithThinking({
                 thinkingTokens += response.usageMetadata.thoughtsTokenCount || 0
             }
 
-            // Note: Don't extract text here - let the next iteration of the loop handle it
-            // This prevents duplicating text if there are more function calls
-            // The loop will check for function calls and only add text when there are none
+            // CRITICAL FIX: If this is the last iteration, we MUST extract text now
+            // because the loop will end and there won't be another iteration to process it.
+            // Without this fix, responses after many tool calls would be empty.
+            if (step === maxSteps - 1) {
+                console.log(`[NativeGeminiV2] Reached maxSteps (${maxSteps}), processing final response`)
+                const finalParts = response.candidates?.[0]?.content?.parts || []
+                let hasMoreFunctionCalls = false
+                
+                for (const part of finalParts) {
+                    // Extract thinking from final response
+                    if (part.thought && part.text) {
+                        thinkingSummary += part.text
+                        if (onThinkingSummary) {
+                            onThinkingSummary(part.text)
+                        }
+                    }
+                    // Track if model wanted more tools (we can't execute them)
+                    if (part.functionCall) {
+                        hasMoreFunctionCalls = true
+                    }
+                    // Extract text from final response
+                    if (!part.thought && part.text) {
+                        finalText += part.text
+                    }
+                }
+                
+                if (hasMoreFunctionCalls) {
+                    console.warn(`[NativeGeminiV2] Model requested more tools at maxSteps limit - some tool calls were skipped`)
+                }
+                
+                // If still no text, add a fallback message
+                if (!finalText.trim()) {
+                    console.warn(`[NativeGeminiV2] No text in final response after ${maxSteps} steps`)
+                    finalText = 'Procesé la información pero no pude generar una respuesta. Por favor, intentá reformular tu pregunta.'
+                }
+            }
+            // Otherwise, the next loop iteration will handle the response
         }
 
         return {

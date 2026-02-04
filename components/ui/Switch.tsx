@@ -8,15 +8,23 @@ interface SwitchProps {
     label?: string
     value?: string
     disabled?: boolean
+    onChange?: (checked: boolean) => void
 }
 
-export function Switch({ name, defaultChecked = false, label, value, disabled = false }: SwitchProps) {
+export function Switch({ name, defaultChecked = false, label, value, disabled = false, onChange }: SwitchProps) {
     const [checked, setChecked] = useState(defaultChecked)
     
     // Sync state with prop when it changes (fixes bug with Server Components)
     useEffect(() => {
         setChecked(defaultChecked)
     }, [defaultChecked])
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (disabled) return
+        const newChecked = e.target.checked
+        setChecked(newChecked)
+        onChange?.(newChecked)
+    }
 
     return (
         <label className={`relative inline-flex items-center select-none gap-3 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
@@ -32,7 +40,7 @@ export function Switch({ name, defaultChecked = false, label, value, disabled = 
                 type="checkbox"
                 className="sr-only peer"
                 checked={checked}
-                onChange={(e) => !disabled && setChecked(e.target.checked)}
+                onChange={handleChange}
                 disabled={disabled}
             />
             <div className={`

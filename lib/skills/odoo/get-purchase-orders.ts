@@ -59,7 +59,9 @@ export const getPurchaseOrders: Skill<
   PurchaseOrdersOutput
 > = {
   name: 'get_purchase_orders',
-  description: 'Get purchase orders for a period. Use when user asks about "purchases", "buying", "purchase orders", "what we bought".',
+  description: `Órdenes de compra. EJECUTAR SIN PREGUNTAR PERÍODO (usa mes actual por defecto).
+Para: "cuánto compramos", "órdenes de compra", "purchases", "buying".
+Para pendientes usar state='confirmed' sin período.`,
   tool: 'odoo',
   tags: ['purchases', 'vendors', 'reporting'],
   inputSchema: GetPurchaseOrdersInputSchema,

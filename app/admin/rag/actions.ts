@@ -1,7 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth/config'
-import { getTenantClient } from '@/lib/supabase/client'
+import { getTenantClient, getClient } from '@/lib/supabase/client'
 import { revalidatePath } from 'next/cache'
 import { chunkDocument } from '@/lib/rag/chunker'
 import { generateEmbeddings } from '@/lib/rag/embeddings'
@@ -79,6 +79,151 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     throw new Error('Could not extract text from PDF. Try converting to .txt first.')
 }
 
+// Interface for storage-based upload
+interface StorageUploadParams {
+    storagePath: string
+    fileName: string
+    fileType: string
+    fileSize: number
+}
+
+/**
+ * Process a document from Supabase Storage
+ * This is used for large files that can't be sent via Server Actions
+ */
+export async function processDocumentFromStorage(params: StorageUploadParams) {
+    const session = await auth()
+    if (!session?.tenant?.id || !session.isAdmin) return { error: 'Unauthorized' }
+
+    const { storagePath, fileName, fileType, fileSize } = params
+
+    console.log(`[RAG] Processing from storage: ${storagePath} (${fileName})`)
+
+    // 1. Download file from Storage
+    const masterDb = getClient()
+    const { data: fileData, error: downloadError } = await masterDb.storage
+        .from('rag-documents')
+        .download(storagePath)
+
+    if (downloadError || !fileData) {
+        console.error('[RAG] Error downloading from storage:', downloadError)
+        return { error: `Error downloading file: ${downloadError?.message}` }
+    }
+
+    // 2. Extract content
+    let content = ''
+    try {
+        if (fileType === 'application/pdf') {
+            const arrayBuffer = await fileData.arrayBuffer()
+            const buffer = Buffer.from(arrayBuffer)
+            content = await extractPdfText(buffer)
+        } else {
+            content = await fileData.text()
+            content = cleanText(content)
+        }
+    } catch (e: any) {
+        console.error('[RAG] Error reading file:', e.message)
+        // Clean up storage
+        await masterDb.storage.from('rag-documents').remove([storagePath])
+        return { error: `Error reading file: ${e.message}` }
+    }
+
+    if (!content || content.trim().length < 50) {
+        // Clean up storage
+        await masterDb.storage.from('rag-documents').remove([storagePath])
+        return { error: 'File content too short or empty' }
+    }
+
+    console.log(`[RAG] Content extracted: ${content.length} chars`)
+
+    const db = await getTenantClient(session.tenant.id)
+    const tenantId = session.tenant.id
+
+    // 3. Insert document
+    const { data: doc, error: docError } = await db.from('documents').insert({
+        tenant_id: tenantId,
+        title: fileName,
+        content: content,
+        source_type: 'upload',
+        metadata: { 
+            filename: fileName, 
+            type: fileType, 
+            size: fileSize,
+            storagePath: storagePath,
+            uploadedBy: session.user?.email,
+            uploadedAt: new Date().toISOString()
+        }
+    }).select().single()
+
+    if (docError || !doc) {
+        console.error('[RAG] Error inserting document:', docError)
+        await masterDb.storage.from('rag-documents').remove([storagePath])
+        return { error: 'Error saving document' }
+    }
+
+    console.log(`[RAG] Document saved: ${doc.id}`)
+
+    // 4. Chunk the document
+    const chunks = chunkDocument(content, doc.id, {
+        chunkSize: 1000,
+        chunkOverlap: 200
+    })
+
+    console.log(`[RAG] Created ${chunks.length} chunks`)
+
+    if (chunks.length === 0) {
+        await masterDb.storage.from('rag-documents').remove([storagePath])
+        return { error: 'No chunks created' }
+    }
+
+    // 5. Generate embeddings for all chunks
+    try {
+        const chunkTexts = chunks.map(c => c.content)
+        const embeddings = await generateEmbeddings(chunkTexts)
+
+        console.log(`[RAG] Generated ${embeddings.length} embeddings`)
+
+        // 6. Insert chunks with embeddings
+        const chunksToInsert = chunks.map((chunk, i) => ({
+            tenant_id: tenantId,
+            document_id: doc.id,
+            content: chunk.content,
+            embedding: embeddings[i],
+            metadata: chunk.metadata
+        }))
+
+        console.log(`[RAG] Inserting ${chunksToInsert.length} chunks...`)
+        const { error: chunkError } = await db.from('document_chunks').insert(chunksToInsert)
+
+        if (chunkError) {
+            console.error('[RAG] Error inserting chunks:', chunkError)
+            await db.from('documents').delete().eq('id', doc.id)
+            await masterDb.storage.from('rag-documents').remove([storagePath])
+            
+            if (chunkError.message?.includes('agent_id')) {
+                return { error: 'Database schema issue: Run the migration SQL' }
+            }
+            return { error: `Error saving document chunks: ${chunkError.message}` }
+        }
+
+        console.log(`[RAG] Successfully indexed ${chunks.length} chunks for document ${doc.id}`)
+
+    } catch (e) {
+        console.error('[RAG] Error generating embeddings:', e)
+        await db.from('documents').delete().eq('id', doc.id)
+        await masterDb.storage.from('rag-documents').remove([storagePath])
+        return { error: 'Error generating embeddings' }
+    }
+
+    // 7. Clean up storage file (we have the content in DB now)
+    await masterDb.storage.from('rag-documents').remove([storagePath])
+    console.log(`[RAG] Cleaned up storage file: ${storagePath}`)
+
+    revalidatePath('/admin/rag')
+    return { success: true, documentId: doc.id, chunks: chunks.length }
+}
+
+// Legacy function for backwards compatibility with small files
 export async function uploadDocument(formData: FormData) {
     const session = await auth()
     if (!session?.tenant?.id || !session.isAdmin) return { error: 'Unauthorized' }
@@ -214,4 +359,39 @@ export async function deleteDocument(formData: FormData): Promise<void> {
     console.log(`[RAG] Document ${id} deleted with all chunks`)
 
     revalidatePath('/admin/rag')
+}
+
+/**
+ * Generate a signed URL for uploading a file to Storage
+ * This allows browser to upload directly to Supabase Storage
+ */
+export async function getUploadSignedUrl(fileName: string) {
+    const session = await auth()
+    if (!session?.tenant?.id || !session.isAdmin) {
+        return { error: 'Unauthorized' }
+    }
+
+    const masterDb = getClient()
+    
+    // Generate unique path
+    const timestamp = Date.now()
+    const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const path = `uploads/${session.tenant.id}/${timestamp}_${safeName}`
+
+    // Create signed upload URL (valid for 1 hour)
+    const { data, error } = await masterDb.storage
+        .from('rag-documents')
+        .createSignedUploadUrl(path)
+
+    if (error) {
+        console.error('[RAG] Error creating signed URL:', error)
+        return { error: error.message }
+    }
+
+    console.log(`[RAG] Created signed upload URL for: ${path}`)
+    return { 
+        signedUrl: data.signedUrl, 
+        path: path,
+        token: data.token 
+    }
 }

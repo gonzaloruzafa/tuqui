@@ -1,12 +1,12 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Bot, FileText, Wrench, Brain, Lock, Pencil, Info } from 'lucide-react'
+import { ArrowLeft, Bot, FileText, Wrench, Brain, Lock, Pencil, Info, Database } from 'lucide-react'
 import { getTenantClient } from '@/lib/supabase/client'
 import { revalidatePath } from 'next/cache'
 import { Switch } from '@/components/ui/Switch'
 import { SaveButton } from '@/components/ui/SaveButton'
-import { DocumentSelector } from '@/components/ui/DocumentSelector'
+import { ToolWithDocs } from '@/components/admin/ToolWithDocs'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
@@ -16,9 +16,13 @@ async function getAgentDetails(tenantId: string, slug: string) {
     const { data: agent, error } = await db.from('agents').select('*').eq('slug', slug).single()
     if (error || !agent) return null
 
-    // Get linked docs
-    const { data: linkedDocs } = await db.from('agent_documents').select('document_id').eq('agent_id', agent.id)
-    const linkedDocIds = new Set(linkedDocs?.map((d: any) => d.document_id) || [])
+    // Get linked docs (use Array, not Set - Sets don't serialize in RSC)
+    const { data: linkedDocs, error: docsError } = await db.from('agent_documents').select('document_id').eq('agent_id', agent.id)
+    if (docsError) {
+        console.error('[AgentEditor] Error fetching agent_documents:', docsError)
+    }
+    const linkedDocIds = linkedDocs?.map((d: any) => d.document_id) || []
+    console.log('[AgentEditor] Loaded agent:', { slug, agentId: agent.id, linkedDocIds })
 
     // Determine tools: for base agents use tools column, for custom check agent_tools table too
     let tools = agent.tools || []
@@ -49,14 +53,17 @@ async function updateAgent(formData: FormData) {
     // For custom agents: update everything
     const customInstructions = formData.get('custom_instructions') as string
     const systemPrompt = formData.get('system_prompt') as string
-    const ragEnabled = formData.get('rag_enabled') === 'on'
     const isActive = formData.get('is_active') === 'on'
 
     // Tools handling (multi-value) - only for custom agents
     const tools = formData.getAll('tools') as string[]
+    
+    // rag_enabled is now derived from tools - if knowledge_base is in tools, RAG is enabled
+    const ragEnabled = tools.includes('knowledge_base')
 
     // Docs handling
     const docIds = formData.getAll('doc_ids') as string[]
+    console.log('[AgentEditor] Saving:', { slug, docIds, tools, ragEnabled, isBaseAgent })
 
     const session = await auth()
     if (!session?.tenant?.id || !session.isAdmin) return
@@ -98,14 +105,25 @@ async function updateAgent(formData: FormData) {
     }
 
     // Update Document Links (for both base and custom)
-    await db.from('agent_documents').delete().eq('agent_id', agent.id)
+    const { error: deleteError } = await db.from('agent_documents').delete().eq('agent_id', agent.id)
+    if (deleteError) {
+        console.error('[AgentEditor] Error deleting agent_documents:', deleteError)
+    }
+    
     if (docIds.length > 0) {
-        await db.from('agent_documents').insert(
+        const { data: insertedDocs, error: insertError } = await db.from('agent_documents').insert(
             docIds.map(docId => ({
+                tenant_id: session.tenant!.id,
                 agent_id: agent.id,
                 document_id: docId
             }))
-        )
+        ).select()
+        
+        if (insertError) {
+            console.error('[AgentEditor] Error inserting agent_documents:', insertError)
+        } else {
+            console.log('[AgentEditor] Successfully inserted docs:', insertedDocs)
+        }
     }
 
     revalidatePath(`/admin/agents/${slug}`)
@@ -127,8 +145,14 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
 
     const AVAILABLE_TOOLS = [
         { slug: 'web_search', label: 'Búsqueda Web', description: 'TODO-EN-UNO: Tavily + Google Grounding (precios, noticias, info general)' },
-        { slug: 'odoo_intelligent_query', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' }
+        { slug: 'odoo_intelligent_query', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' },
+        { slug: 'knowledge_base', label: 'Base de Conocimiento', description: 'Buscar en documentos cargados (manuales, catálogos, políticas)', hasDocSelector: true }
     ]
+    
+    // For display purposes: if rag_enabled but knowledge_base not in tools, add it
+    const displayTools = agent.rag_enabled && !agent.tools?.includes('knowledge_base')
+        ? [...(agent.tools || []), 'knowledge_base']
+        : agent.tools || []
 
     return (
         <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">
@@ -159,133 +183,108 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                     )}
                 </div>
 
-                <form action={updateAgent} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <form action={updateAgent} className="max-w-3xl mx-auto space-y-8">
                     <input type="hidden" name="slug" value={agent.slug} />
                     <input type="hidden" name="is_base_agent" value={agent.isBaseAgent ? 'true' : 'false'} />
 
-                    <div className="lg:col-span-2 space-y-10">
-                        {/* Brain Config */}
-                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
-                            <div className="p-8 border-b border-gray-50 bg-gray-50/20 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Brain className="w-5 h-5 text-adhoc-violet" />
-                                    <h2 className="text-xl font-bold text-gray-900 font-display">Configuración del Cerebro</h2>
-                                </div>
-                                <Switch name="is_active" defaultChecked={agent.is_active} label="Agente Activo" />
+                    {/* Brain Config */}
+                    <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
+                        <div className="p-6 sm:p-8 border-b border-gray-50 bg-gray-50/20 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Brain className="w-5 h-5 text-adhoc-violet" />
+                                <h2 className="text-xl font-bold text-gray-900 font-display">Configuración del Cerebro</h2>
                             </div>
-                            <div className="p-8 space-y-6">
-                                {!agent.isBaseAgent && (
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Agente</label>
-                                        <input
-                                            name="name"
-                                            defaultValue={agent.name || ''}
-                                            type="text"
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
-                                        />
-                                    </div>
-                                )}
-
-                                {agent.isBaseAgent ? (
-                                    <>
-                                        {/* Base Agent: Show readonly system prompt */}
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Prompt del Sistema</label>
-                                                <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">No editable</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 border border-gray-200 rounded-xl p-4 font-mono text-sm text-gray-500 max-h-48 overflow-y-auto">
-                                                {agent.system_prompt || 'Sin prompt configurado'}
-                                            </div>
-                                            <p className="text-[11px] text-gray-400 mt-2 italic flex items-center gap-1">
-                                                <Lock className="w-3 h-3" />
-                                                Este prompt se actualiza automáticamente desde la configuración central de Tuqui.
-                                            </p>
-                                        </div>
-
-                                        {/* Custom Instructions for Base Agent */}
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                                                Instrucciones Adicionales para tu Empresa
-                                            </label>
-                                            <textarea
-                                                name="custom_instructions"
-                                                defaultValue={agent.custom_instructions || ''}
-                                                rows={6}
-                                                placeholder="Ej: Somos Cedent, una empresa de equipamiento odontológico. Nuestros clientes son dentistas y clínicas. Siempre mencionar que tenemos envío gratis en CABA..."
-                                                className="w-full bg-white border border-adhoc-lavender/30 rounded-xl p-4 font-mono text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all resize-none"
-                                            />
-                                            <p className="text-[11px] text-emerald-600 mt-2 italic flex items-center gap-1">
-                                                <Pencil className="w-3 h-3" />
-                                                Estas instrucciones se agregan al prompt base y personalizan el agente para tu negocio.
-                                            </p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    /* Custom Agent: Full editable prompt */
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Prompt del Sistema</label>
-                                        <textarea
-                                            name="system_prompt"
-                                            defaultValue={agent.system_prompt || ''}
-                                            rows={10}
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-mono text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all resize-none"
-                                        />
-                                        <p className="text-[11px] text-gray-400 mt-2 italic">Instrucciones base que definen la personalidad y límites del agente.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-
-                        {/* RAG Config */}
-                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
-                            <div className="p-8 border-b border-gray-100 bg-gray-50/20 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-adhoc-violet" />
-                                    <h2 className="text-xl font-bold text-gray-900 font-display">Base de Conocimiento (RAG)</h2>
-                                </div>
-                                <Switch name="rag_enabled" defaultChecked={agent.rag_enabled} label="Habilitar RAG" />
-                            </div>
-                            <div className="p-8">
-                                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Documentos Vinculados</h3>
-                                <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-4">
-                                    <DocumentSelector
-                                        documents={allDocs}
-                                        selectedIds={agent.linkedDocIds}
+                            <Switch name="is_active" defaultChecked={agent.is_active} label="Agente Activo" />
+                        </div>
+                        <div className="p-6 sm:p-8 space-y-6">
+                            {!agent.isBaseAgent && (
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Agente</label>
+                                    <input
+                                        name="name"
+                                        defaultValue={agent.name || ''}
+                                        type="text"
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
                                     />
                                 </div>
-                                <p className="text-[11px] text-gray-400 mt-4 italic">El agente consultará estos documentos antes de responder.</p>
-                            </div>
-                        </section>
-                    </div>
+                            )}
 
-                    {/* Sidebar / Tools */}
-                    <div className="space-y-6">
-                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden p-8">
-                            <h2 className="text-lg font-bold text-gray-900 font-display flex items-center gap-2 mb-6">
-                                <Wrench className="w-4 h-4 text-adhoc-violet" />
-                                Herramientas Habilitadas
-                                {agent.isBaseAgent && (
-                                    <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium ml-auto">Fijas</span>
-                                )}
-                            </h2>
-                            
+                            {agent.isBaseAgent ? (
+                                <>
+                                    {/* Base Agent: Show readonly system prompt */}
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Prompt del Sistema</label>
+                                            <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">No editable</span>
+                                        </div>
+                                        <div className="w-full bg-gray-100 border border-gray-200 rounded-xl p-4 font-mono text-sm text-gray-500 max-h-48 overflow-y-auto">
+                                            {agent.system_prompt || 'Sin prompt configurado'}
+                                        </div>
+                                        <p className="text-[11px] text-gray-400 mt-2 italic flex items-center gap-1">
+                                            <Lock className="w-3 h-3" />
+                                            Este prompt se actualiza automáticamente desde la configuración central de Tuqui.
+                                        </p>
+                                    </div>
+
+                                    {/* Custom Instructions for Base Agent */}
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                                            Instrucciones Adicionales para tu Empresa
+                                        </label>
+                                        <textarea
+                                            name="custom_instructions"
+                                            defaultValue={agent.custom_instructions || ''}
+                                            rows={6}
+                                            placeholder="Ej: Somos Cedent, una empresa de equipamiento odontológico. Nuestros clientes son dentistas y clínicas. Siempre mencionar que tenemos envío gratis en CABA..."
+                                            className="w-full bg-white border border-adhoc-lavender/30 rounded-xl p-4 font-mono text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all resize-none"
+                                        />
+                                        <p className="text-[11px] text-emerald-600 mt-2 italic flex items-center gap-1">
+                                            <Pencil className="w-3 h-3" />
+                                            Estas instrucciones se agregan al prompt base y personalizan el agente para tu negocio.
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                /* Custom Agent: Full editable prompt */
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Prompt del Sistema</label>
+                                    <textarea
+                                        name="system_prompt"
+                                        defaultValue={agent.system_prompt || ''}
+                                        rows={10}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-mono text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all resize-none"
+                                    />
+                                    <p className="text-[11px] text-gray-400 mt-2 italic">Instrucciones base que definen la personalidad y límites del agente.</p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Tools Section */}
+                    <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
+                        <div className="p-6 sm:p-8 border-b border-gray-50 bg-gray-50/20 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Wrench className="w-5 h-5 text-adhoc-violet" />
+                                <h2 className="text-xl font-bold text-gray-900 font-display">Herramientas Habilitadas</h2>
+                            </div>
+                            {agent.isBaseAgent && (
+                                <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Fijas</span>
+                            )}
+                        </div>
+                        <div className="p-6 sm:p-8">
                             {agent.isBaseAgent ? (
                                 /* Base Agent: Show tools as readonly */
-                                <div className="space-y-3">
-                                    {AVAILABLE_TOOLS.map(tool => {
-                                        const isEnabled = agent.tools?.includes(tool.slug)
-                                        return (
-                                            <div key={tool.slug} className={`p-4 rounded-2xl border transition-all duration-300 ${isEnabled ? 'bg-adhoc-lavender/10 border-adhoc-lavender/30' : 'bg-gray-50 border-gray-100 opacity-50'}`}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-4 h-4 rounded-full ${isEnabled ? 'bg-adhoc-violet' : 'bg-gray-300'}`} />
-                                                    <span className="text-sm font-medium text-gray-700">{tool.label}</span>
-                                                    {isEnabled && <span className="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-auto">Activa</span>}
-                                                </div>
-                                                <p className="text-[10px] text-gray-400 mt-2 pl-7 leading-tight">{tool.description}</p>
-                                            </div>
-                                        )
-                                    })}
+                                <div className="space-y-4">
+                                    {AVAILABLE_TOOLS.map(tool => (
+                                        <ToolWithDocs
+                                            key={tool.slug}
+                                            tool={tool}
+                                            isEnabled={displayTools.includes(tool.slug)}
+                                            documents={allDocs}
+                                            selectedDocIds={agent.linkedDocIds}
+                                            isReadOnly={true}
+                                        />
+                                    ))}
                                     <p className="text-[10px] text-amber-600 mt-4 flex items-center gap-1">
                                         <Info className="w-3 h-3" />
                                         Las herramientas de agentes base se configuran centralmente.
@@ -293,27 +292,26 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                                 </div>
                             ) : (
                                 /* Custom Agent: Editable tools */
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {AVAILABLE_TOOLS.map(tool => (
-                                        <div key={tool.slug} className="group p-4 bg-gray-50 hover:bg-adhoc-lavender/10 border border-gray-100 rounded-2xl transition-all duration-300">
-                                            <Switch
-                                                name="tools"
-                                                value={tool.slug}
-                                                defaultChecked={agent.tools?.includes(tool.slug)}
-                                                label={tool.label}
-                                            />
-                                            <p className="text-[10px] text-gray-400 mt-2 pl-12 leading-tight">{tool.description}</p>
-                                        </div>
+                                        <ToolWithDocs
+                                            key={tool.slug}
+                                            tool={tool}
+                                            isEnabled={displayTools.includes(tool.slug)}
+                                            documents={allDocs}
+                                            selectedDocIds={agent.linkedDocIds}
+                                            isReadOnly={false}
+                                        />
                                     ))}
                                 </div>
                             )}
-                        </section>
-
-                        <div className="sticky top-24">
-                            <SaveButton />
                         </div>
-                    </div>
+                    </section>
 
+                    {/* Save Button - Fixed at bottom */}
+                    <div className="sticky bottom-6 z-10 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg">
+                        <SaveButton fullWidth />
+                    </div>
                 </form>
             </div>
 
