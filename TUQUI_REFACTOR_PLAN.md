@@ -1392,7 +1392,568 @@ Agente:`
   - Renombrar `router.ts` a `router.legacy.ts`
   - Agregar comentario: `// DEPRECATED: Usar orchestrator.ts`
 
-### F10.4: Tests del orquestador
+### F10.4: Sistema de Credenciales por Usuario para Tools
+
+> **Objetivo:** Que cada usuario configure sus propias credenciales para Odoo, Gmail, Calendar, etc.
+> **Impacto:** Seguridad y aislamiento de datos — un usuario solo accede a su información
+
+#### Contexto
+
+**Problema actual:**
+- Todos los usuarios comparten las mismas API keys
+- No hay validación de permisos por usuario
+- Un usuario podría acceder a información de Odoo que no le corresponde
+
+**Solución:**
+Sistema de credenciales por usuario que se valida antes de ejecutar cualquier tool.
+
+#### F10.4.1: Modelo de datos
+
+- [ ] **Crear migration** `supabase/migrations/20260203_user_credentials.sql`
+  ```sql
+  -- Credenciales por usuario para tools
+  CREATE TABLE IF NOT EXISTS user_tool_credentials (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    tool_name TEXT NOT NULL, -- 'odoo', 'gmail', 'calendar', etc.
+    
+    -- Credenciales (JSON encriptado en producción)
+    credentials JSONB NOT NULL,
+    
+    -- Metadata
+    enabled BOOLEAN DEFAULT true,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Índices
+    UNIQUE(user_id, tenant_id, tool_name)
+  );
+  
+  CREATE INDEX idx_user_tool_credentials_user ON user_tool_credentials(user_id);
+  CREATE INDEX idx_user_tool_credentials_tenant ON user_tool_credentials(tenant_id);
+  
+  -- Función para actualizar updated_at
+  CREATE OR REPLACE FUNCTION update_user_tool_credentials_updated_at()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  CREATE TRIGGER user_tool_credentials_updated_at
+    BEFORE UPDATE ON user_tool_credentials
+    FOR EACH ROW
+    EXECUTE FUNCTION update_user_tool_credentials_updated_at();
+  
+  -- Comentarios
+  COMMENT ON TABLE user_tool_credentials IS 'Credenciales por usuario para herramientas (Odoo, Gmail, etc)';
+  COMMENT ON COLUMN user_tool_credentials.credentials IS 'JSON con credenciales específicas del tool (ej: {url, database, apiKey} para Odoo)';
+  ```
+
+- [ ] **Aplicar migration**
+  ```bash
+  # Desde Supabase dashboard o CLI
+  supabase db push
+  ```
+
+#### F10.4.2: Tipos y validadores
+
+- [ ] **Crear tipos** `lib/tools/credentials/types.ts`
+  ```typescript
+  export interface OdooCredentials {
+    url: string
+    database: string
+    username: string
+    apiKey: string
+    accessLevel?: 'read' | 'write' | 'admin'
+  }
+  
+  export interface GmailCredentials {
+    accessToken: string
+    refreshToken: string
+    expiresAt: number
+  }
+  
+  export interface CalendarCredentials {
+    accessToken: string
+    refreshToken: string
+    expiresAt: number
+  }
+  
+  export type ToolCredentials = 
+    | { tool: 'odoo'; data: OdooCredentials }
+    | { tool: 'gmail'; data: GmailCredentials }
+    | { tool: 'calendar'; data: CalendarCredentials }
+  
+  export interface UserToolCredential {
+    id: string
+    userId: string
+    tenantId: string
+    toolName: string
+    credentials: Record<string, any>
+    enabled: boolean
+    lastUsedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+  }
+  ```
+
+#### F10.4.3: Servicio de credenciales
+
+- [ ] **Crear servicio** `lib/tools/credentials/service.ts`
+  ```typescript
+  import { createClient } from '@/lib/supabase/server'
+  import type { UserToolCredential, OdooCredentials } from './types'
+  
+  export class CredentialsService {
+    /**
+     * Obtiene las credenciales de un usuario para un tool específico
+     */
+    static async getUserCredentials(
+      userId: string,
+      tenantId: string,
+      toolName: string
+    ): Promise<UserToolCredential | null> {
+      const supabase = await createClient()
+      
+      const { data, error } = await supabase
+        .from('user_tool_credentials')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('tenant_id', tenantId)
+        .eq('tool_name', toolName)
+        .eq('enabled', true)
+        .single()
+      
+      if (error || !data) {
+        console.log(`[Credentials] No se encontraron credenciales para ${toolName}`)
+        return null
+      }
+      
+      // Actualizar last_used_at
+      await supabase
+        .from('user_tool_credentials')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', data.id)
+      
+      return data as UserToolCredential
+    }
+    
+    /**
+     * Guarda o actualiza credenciales de un usuario
+     */
+    static async saveUserCredentials(
+      userId: string,
+      tenantId: string,
+      toolName: string,
+      credentials: Record<string, any>
+    ): Promise<void> {
+      const supabase = await createClient()
+      
+      const { error } = await supabase
+        .from('user_tool_credentials')
+        .upsert({
+          user_id: userId,
+          tenant_id: tenantId,
+          tool_name: toolName,
+          credentials,
+          enabled: true,
+        })
+      
+      if (error) {
+        throw new Error(`Error al guardar credenciales: ${error.message}`)
+      }
+    }
+    
+    /**
+     * Valida que el usuario tenga credenciales para un tool
+     */
+    static async validateToolAccess(
+      userId: string,
+      tenantId: string,
+      toolName: string
+    ): Promise<boolean> {
+      const credentials = await this.getUserCredentials(userId, tenantId, toolName)
+      return credentials !== null
+    }
+  }
+  ```
+
+#### F10.4.4: Integrar en executor de tools
+
+- [ ] **Modificar** `lib/tools/executor.ts`
+  ```typescript
+  import { CredentialsService } from './credentials/service'
+  
+  // En executeToolCall():
+  async function executeToolCall(
+    toolCall: any,
+    tenantId: string,
+    userId: string,  // ← NUEVO parámetro
+    userEmail: string
+  ) {
+    const { name: toolName, args } = toolCall
+    
+    // Si el tool requiere credenciales (Odoo, Gmail, etc), validar
+    if (requiresCredentials(toolName)) {
+      const hasAccess = await CredentialsService.validateToolAccess(
+        userId,
+        tenantId,
+        getToolCredentialType(toolName)  // 'odoo', 'gmail', etc.
+      )
+      
+      if (!hasAccess) {
+        return {
+          error: `No tenés configuradas las credenciales para usar ${toolName}. Configurálas en Settings.`,
+          toolName,
+        }
+      }
+      
+      // Obtener credenciales del usuario
+      const userCredentials = await CredentialsService.getUserCredentials(
+        userId,
+        tenantId,
+        getToolCredentialType(toolName)
+      )
+      
+      // Pasar credenciales al skill
+      return executeToolWithCredentials(toolName, args, userCredentials)
+    }
+    
+    // Tools que no requieren credenciales (web_search, etc)
+    return executeToolWithoutCredentials(toolName, args)
+  }
+  
+  function requiresCredentials(toolName: string): boolean {
+    return toolName.startsWith('odoo_') || 
+           toolName.startsWith('gmail_') || 
+           toolName.startsWith('calendar_')
+  }
+  
+  function getToolCredentialType(toolName: string): string {
+    if (toolName.startsWith('odoo_')) return 'odoo'
+    if (toolName.startsWith('gmail_')) return 'gmail'
+    if (toolName.startsWith('calendar_')) return 'calendar'
+    return 'unknown'
+  }
+  ```
+
+#### F10.4.5: Actualizar skills de Odoo para usar credenciales
+
+- [ ] **Modificar skills en** `lib/skills/odoo/*.ts`
+  
+  Cambiar de:
+  ```typescript
+  // Antes: usaba variables de entorno globales
+  const client = new OdooClient(
+    process.env.ODOO_URL!,
+    process.env.ODOO_DATABASE!
+  )
+  ```
+  
+  A:
+  ```typescript
+  // Ahora: recibe credenciales por parámetro
+  export async function queryOdoo(
+    query: string,
+    credentials: OdooCredentials  // ← NUEVO
+  ): Promise<any> {
+    const client = new OdooClient(
+      credentials.url,
+      credentials.database,
+      credentials.username,
+      credentials.apiKey
+    )
+    // ...resto del código
+  }
+  ```
+
+#### F10.4.6: UI de configuración de credenciales
+
+- [ ] **Crear página** `app/settings/credentials/page.tsx`
+  ```typescript
+  'use client'
+  
+  import { useState } from 'react'
+  import { Button } from '@/components/ui/button'
+  import { Input } from '@/components/ui/input'
+  
+  export default function CredentialsPage() {
+    const [odooConfig, setOdooConfig] = useState({
+      url: '',
+      database: '',
+      username: '',
+      apiKey: ''
+    })
+    
+    const saveOdooCredentials = async () => {
+      await fetch('/api/user/credentials/odoo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(odooConfig)
+      })
+      alert('Credenciales guardadas')
+    }
+    
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">Mis Herramientas</h1>
+        
+        <section className="mb-8 p-6 border rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">🏢 Odoo ERP</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Configurá tus credenciales para acceder a tu cuenta de Odoo
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">URL de Odoo</label>
+              <Input
+                placeholder="https://miempresa.odoo.com"
+                value={odooConfig.url}
+                onChange={(e) => setOdooConfig({ ...odooConfig, url: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Base de Datos</label>
+              <Input
+                placeholder="mi_empresa"
+                value={odooConfig.database}
+                onChange={(e) => setOdooConfig({ ...odooConfig, database: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Usuario</label>
+              <Input
+                placeholder="admin"
+                value={odooConfig.username}
+                onChange={(e) => setOdooConfig({ ...odooConfig, username: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">API Key</label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={odooConfig.apiKey}
+                onChange={(e) => setOdooConfig({ ...odooConfig, apiKey: e.target.value })}
+              />
+            </div>
+            
+            <Button onClick={saveOdooCredentials}>
+              Guardar Credenciales de Odoo
+            </Button>
+          </div>
+        </section>
+        
+        <section className="p-6 border rounded-lg opacity-50">
+          <h2 className="text-xl font-semibold mb-4">📧 Gmail</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Próximamente: conectá tu cuenta de Gmail
+          </p>
+          <Button disabled>Conectar Gmail (Próximamente)</Button>
+        </section>
+      </div>
+    )
+  }
+  ```
+
+- [ ] **Crear API endpoint** `app/api/user/credentials/odoo/route.ts`
+  ```typescript
+  import { NextResponse } from 'next/server'
+  import { getCurrentUser } from '@/lib/auth/session'
+  import { CredentialsService } from '@/lib/tools/credentials/service'
+  
+  export async function POST(req: Request) {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    const credentials = await req.json()
+    
+    // Validar que tenga los campos requeridos
+    if (!credentials.url || !credentials.database || !credentials.username || !credentials.apiKey) {
+      return NextResponse.json(
+        { error: 'Faltan campos requeridos' },
+        { status: 400 }
+      )
+    }
+    
+    await CredentialsService.saveUserCredentials(
+      user.id,
+      user.tenantId,
+      'odoo',
+      credentials
+    )
+    
+    return NextResponse.json({ success: true })
+  }
+  
+  export async function GET(req: Request) {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    const credentials = await CredentialsService.getUserCredentials(
+      user.id,
+      user.tenantId,
+      'odoo'
+    )
+    
+    if (!credentials) {
+      return NextResponse.json({ configured: false })
+    }
+    
+    // No devolver el API key completo por seguridad
+    return NextResponse.json({
+      configured: true,
+      url: credentials.credentials.url,
+      database: credentials.credentials.database,
+      username: credentials.credentials.username,
+    })
+  }
+  ```
+
+- [ ] **Agregar link en navbar**
+  ```typescript
+  // En components/layout/navbar.tsx
+  <Link href="/settings/credentials">
+    Mis Herramientas
+  </Link>
+  ```
+
+#### F10.4.7: Tests de credenciales
+
+- [ ] **Crear tests** `tests/unit/credentials.test.ts`
+  ```typescript
+  import { describe, it, expect, beforeEach } from 'vitest'
+  import { CredentialsService } from '@/lib/tools/credentials/service'
+  
+  describe('CredentialsService', () => {
+    const mockUserId = 'user-123'
+    const mockTenantId = 'tenant-456'
+    
+    it('debe guardar y recuperar credenciales de Odoo', async () => {
+      const credentials = {
+        url: 'https://test.odoo.com',
+        database: 'test_db',
+        username: 'admin',
+        apiKey: 'test_key'
+      }
+      
+      await CredentialsService.saveUserCredentials(
+        mockUserId,
+        mockTenantId,
+        'odoo',
+        credentials
+      )
+      
+      const retrieved = await CredentialsService.getUserCredentials(
+        mockUserId,
+        mockTenantId,
+        'odoo'
+      )
+      
+      expect(retrieved).toBeTruthy()
+      expect(retrieved?.credentials).toEqual(credentials)
+    })
+    
+    it('debe validar acceso correctamente', async () => {
+      const hasAccess = await CredentialsService.validateToolAccess(
+        mockUserId,
+        mockTenantId,
+        'odoo'
+      )
+      
+      expect(hasAccess).toBe(true)
+    })
+    
+    it('debe retornar false si no hay credenciales', async () => {
+      const hasAccess = await CredentialsService.validateToolAccess(
+        'user-inexistente',
+        mockTenantId,
+        'odoo'
+      )
+      
+      expect(hasAccess).toBe(false)
+    })
+  })
+  ```
+
+#### F10.4.8: Migración de credenciales existentes
+
+- [ ] **Script de migración** `scripts/migrate-credentials.ts`
+  ```typescript
+  /**
+   * Migra las credenciales de Odoo de variables de entorno
+   * a credenciales por usuario (solo para usuarios admins)
+   */
+  import { createClient } from '@/lib/supabase/server'
+  import { CredentialsService } from '@/lib/tools/credentials/service'
+  
+  async function migrateCredentials() {
+    const supabase = await createClient()
+    
+    // Obtener todos los tenants con Odoo configurado
+    const { data: tenants } = await supabase
+      .from('tenants')
+      .select('id, odoo_url, odoo_database')
+      .not('odoo_url', 'is', null)
+    
+    if (!tenants) return
+    
+    for (const tenant of tenants) {
+      // Obtener usuarios admin del tenant
+      const { data: admins } = await supabase
+        .from('users')
+        .select('id')
+        .eq('tenant_id', tenant.id)
+        .eq('role', 'admin')
+      
+      if (!admins) continue
+      
+      // Asignar credenciales a cada admin
+      for (const admin of admins) {
+        await CredentialsService.saveUserCredentials(
+          admin.id,
+          tenant.id,
+          'odoo',
+          {
+            url: tenant.odoo_url,
+            database: tenant.odoo_database,
+            username: process.env.ODOO_USERNAME || 'admin',
+            apiKey: process.env.ODOO_API_KEY || ''
+          }
+        )
+        
+        console.log(`✓ Migradas credenciales para admin ${admin.id} en tenant ${tenant.id}`)
+      }
+    }
+    
+    console.log('✅ Migración completada')
+  }
+  
+  migrateCredentials()
+  ```
+
+#### ✅ Checkpoint F10.4: Validaciones
+
+- [ ] Tabla `user_tool_credentials` creada en Supabase
+- [ ] Usuario puede guardar credenciales de Odoo en `/settings/credentials`
+- [ ] Skills de Odoo reciben credenciales por parámetro
+- [ ] Executor valida permisos antes de ejecutar tools
+- [ ] Tests de credenciales pasan
+- [ ] Logs muestran: "No tenés configuradas las credenciales" cuando corresponde
+
+### F10.5: Tests del orquestador
 
 - [ ] **Crear tests unitarios** `tests/unit/orchestrator.test.ts`
   ```typescript

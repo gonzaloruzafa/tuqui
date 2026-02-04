@@ -35,7 +35,9 @@ export const getPurchasesBySupplier: Skill<
   PurchasesBySupplierOutput
 > = {
   name: 'get_purchases_by_supplier',
-  description: 'Get purchases grouped by supplier. Use for "a quién le compramos más", "principal proveedor", "top suppliers", "purchases by vendor", "supplier spending".',
+  description: `Compras agrupadas por proveedor. EJECUTAR SIN PREGUNTAR PERÍODO (usa mes actual).
+Para: "a quién le compramos más", "cuánto le compramos a cada proveedor", "principal proveedor",
+"top suppliers", "compras por proveedor", "supplier spending".`,
   tool: 'odoo',
   tags: ['purchases', 'suppliers', 'reporting'],
   inputSchema: GetPurchasesBySupplierInputSchema,
