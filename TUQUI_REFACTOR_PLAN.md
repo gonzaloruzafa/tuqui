@@ -2,7 +2,7 @@
 
 > **Estrategia:** Branches por grupo de fases → Merge incremental a main  
 > **Fecha inicio:** 2026-02-01  
-> **Última actualización:** 2026-02-02  
+> **Última actualización:** 2026-02-04  
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Fase actual** | `F1` - RAG como Tool |
-| **Branch actual** | `refactor/fase-1-rag-tool` |
-| **Último checkpoint** | F1.9 - Upload grandes archivos implementado |
-| **Merges completados** | 1 / 6 |
+| **Fase actual** | `F2` - Orquestador LLM Lean |
+| **Branch actual** | `refactor/fase-2-orchestrator` |
+| **Último checkpoint** | F1 Completado - RAG Tool mergeado a main |
+| **Merges completados** | 2 / 6 |
 
 ### Progreso General
 
@@ -22,10 +22,11 @@
 │ BRANCH 1: refactor/fase-0-limpieza                          ✅ COMPLETADO  │
 │   └─ F0: Preparación y limpieza            [✓] ██████████ 100%             │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 2: refactor/fase-1-rag-tool                          🔄 EN PROGRESO │
-│   └─ F1: RAG como Tool                     [~] ████████░░ 85%              │
+│ BRANCH 2: refactor/fase-1-rag-tool                          ✅ COMPLETADO  │
+│   └─ F1: RAG como Tool                     [✓] ██████████ 100%             │
+│   └─ Mergeado: 2026-02-04 (PR #2)                                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ BRANCH 3: refactor/fase-2-orchestrator                      ⬜ PENDIENTE   │
+│ BRANCH 3: refactor/fase-2-orchestrator                      🔄 EN PROGRESO │
 │   └─ F2: Orquestador LLM Lean              [ ] ⬜⬜⬜⬜⬜ 0%               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ BRANCH 4: refactor/fase-3-4-pwa-db                          ⬜ PENDIENTE   │
@@ -49,8 +50,8 @@
 | # | Fase | Tiempo | Descripción |
 |---|------|--------|-------------|
 | 0 | Preparación | ✅ 45min | Limpieza, estructura de tests |
-| 1 | RAG como Tool | 🔄 1h | Base de conocimiento integrada |
-| 2 | Orquestador LLM | ⬜ 3h | Clasificador lean, reemplaza keywords |
+| 1 | RAG como Tool | ✅ 2h | Base de conocimiento integrada |
+| 2 | Orquestador LLM | 🔄 3h | Clasificador lean, reemplaza keywords |
 | 3 | PWA Base | ⬜ 2h | Manifest, SW, offline |
 | 4 | Modelo de Datos | ⬜ 2h | user_profiles, briefing_history |
 | 5 | Push Sender | ⬜ 2h | Lib genérica de push |
