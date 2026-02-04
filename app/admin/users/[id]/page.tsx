@@ -1,11 +1,13 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, User, Mail, Phone, Shield, Key, CheckCircle } from 'lucide-react'
-import { getUserById, updateUser, adminSetPassword } from '../actions'
+import { ArrowLeft, User, Mail, Phone, Shield, Key, CheckCircle, Trash2 } from 'lucide-react'
+import { getUserById, updateUser } from '../actions'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
+import { PasswordResetForm } from './PasswordResetForm'
+import { DeleteUserButton } from './DeleteUserButton'
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -16,6 +18,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
     }
 
     const user = await getUserById(id)
+    const isCurrentUser = session.user?.email === user.email
 
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-adhoc-lavender/10">
@@ -44,10 +47,15 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                                 {user.email.charAt(0).toUpperCase()}
                             </span>
                         </div>
-                        <div>
+                        <div className="flex-grow">
                             <h1 className="text-2xl font-bold text-gray-900">{user.name || user.email}</h1>
                             <p className="text-gray-500">{user.email}</p>
                         </div>
+                        {isCurrentUser && (
+                            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold">
+                                Tu cuenta
+                            </span>
+                        )}
                     </div>
 
                     {/* User Info Form */}
@@ -125,7 +133,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                     </section>
 
                     {/* Password Reset Section */}
-                    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
                         <div className="p-6 border-b border-gray-50 bg-amber-50/50">
                             <div className="flex items-center gap-2">
                                 <Key className="w-5 h-5 text-amber-600" />
@@ -139,6 +147,24 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                         </div>
                         <PasswordResetForm userId={id} />
                     </section>
+
+                    {/* Delete Section */}
+                    {!isCurrentUser && (
+                        <section className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-red-50 bg-red-50/50">
+                                <div className="flex items-center gap-2">
+                                    <Trash2 className="w-5 h-5 text-red-600" />
+                                    <h2 className="text-lg font-semibold text-gray-900">Zona de Peligro</h2>
+                                </div>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Eliminar este usuario del equipo. Esta acción no se puede deshacer.
+                                </p>
+                            </div>
+                            <div className="p-6">
+                                <DeleteUserButton userId={id} userEmail={user.email} />
+                            </div>
+                        </section>
+                    )}
 
                     {/* Metadata */}
                     <div className="mt-6 text-center text-xs text-gray-400">
@@ -155,47 +181,5 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
 
             <Footer />
         </div>
-    )
-}
-
-// Client component for password form with validation
-function PasswordResetForm({ userId }: { userId: string }) {
-    return (
-        <form action={adminSetPassword.bind(null, userId)} className="p-6 space-y-4">
-            <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                    Nueva Contraseña
-                </label>
-                <input
-                    type="password"
-                    name="password"
-                    required
-                    minLength={6}
-                    placeholder="Mínimo 6 caracteres"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
-                />
-            </div>
-
-            <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                    Confirmar Contraseña
-                </label>
-                <input
-                    type="password"
-                    name="confirm_password"
-                    required
-                    minLength={6}
-                    placeholder="Repetí la contraseña"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
-                />
-            </div>
-
-            <button
-                type="submit"
-                className="w-full bg-amber-500 text-white font-medium py-3 px-4 rounded-xl hover:bg-amber-600 transition-colors"
-            >
-                Establecer Contraseña
-            </button>
-        </form>
     )
 }

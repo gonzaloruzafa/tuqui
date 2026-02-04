@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth/config'
 import { getClient } from '@/lib/supabase/client'
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 // Get Supabase Admin client for auth operations
 function getSupabaseAdmin() {
@@ -12,6 +13,72 @@ function getSupabaseAdmin() {
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { autoRefreshToken: false, persistSession: false } }
     )
+}
+
+export async function createUser(formData: FormData) {
+    const session = await auth()
+    if (!session?.tenant?.id || !session.isAdmin) {
+        throw new Error('No autorizado')
+    }
+
+    const email = (formData.get('email') as string)?.toLowerCase().trim()
+    const name = formData.get('name') as string
+    const whatsapp_phone = formData.get('whatsapp_phone') as string
+    const is_admin = formData.get('is_admin') === 'on'
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirm_password') as string
+
+    if (!email) throw new Error('Email es requerido')
+
+    // Validate passwords if provided
+    if (password) {
+        if (password.length < 6) {
+            throw new Error('La contraseña debe tener al menos 6 caracteres')
+        }
+        if (password !== confirmPassword) {
+            throw new Error('Las contraseñas no coinciden')
+        }
+    }
+
+    const db = getClient()
+    let authUserId: string | null = null
+
+    // If password provided, create auth account first
+    if (password) {
+        const supabaseAdmin = getSupabaseAdmin()
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+        })
+
+        if (authError) {
+            console.error('Error creating auth user:', authError)
+            throw new Error('Error al crear cuenta: ' + authError.message)
+        }
+
+        authUserId = authUser.user?.id || null
+    }
+
+    // Create user in our table
+    const { error } = await db
+        .from('users')
+        .insert({
+            email,
+            name: name || null,
+            whatsapp_phone: whatsapp_phone || null,
+            is_admin,
+            tenant_id: session.tenant.id,
+            auth_user_id: authUserId
+        })
+
+    if (error) {
+        console.error('Error creating user:', error)
+        throw new Error('Error al crear usuario: ' + error.message)
+    }
+
+    revalidatePath('/admin/users')
+    redirect('/admin/users')
 }
 
 export async function addUser(formData: FormData) {
