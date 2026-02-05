@@ -15,7 +15,7 @@ config({ path: '.env.local' })
 // Environment-based tenant ID
 const TENANT_ID = process.env.TEST_TENANT_ID
 const SKIP_TESTS = !TENANT_ID
-const TUQUI_API_URL = 'https://tuqui-agents-alpha.vercel.app/api/internal/chat-test'
+const TUQUI_API_URL = 'https://tuqui.vercel.app/api/internal/chat-test'
 const INTERNAL_TEST_KEY = process.env.INTERNAL_TEST_KEY || 'test-key-change-in-prod'
 
 if (SKIP_TESTS) {

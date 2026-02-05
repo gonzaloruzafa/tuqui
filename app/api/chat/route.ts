@@ -7,7 +7,8 @@ import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
 import { getClient } from '@/lib/supabase/client'
-import { routeMessage, buildCombinedPrompt } from '@/lib/agents/router'
+// NEW: Using LLM orchestrator instead of keyword-based router
+import { orchestrate } from '@/lib/agents/orchestrator'
 import { ResponseGuard } from '@/lib/validation/response-guard'
 
 const google = createGoogleGenerativeAI({
@@ -67,34 +68,27 @@ export async function POST(req: Request) {
         const estimatedInputTokens = Math.ceil(inputContent.length / 3)
         await checkUsageLimit(tenantId, session.user.email, estimatedInputTokens)
 
-        // 2. Get Agent + Routing in PARALLEL for better latency
+        // 2. Get Agent via LLM Orchestrator (replaces keyword-based router)
         const conversationHistory = messages.slice(0, -1).map((m: any) => m.content)
-        const [routingResult, baseAgent] = await Promise.all([
-            routeMessage(tenantId, inputContent, conversationHistory),
-            getAgentBySlug(tenantId, agentSlug)
-        ])
+        const { agent: routedAgent, decision } = await orchestrate(tenantId, inputContent, conversationHistory)
         
-        console.log(`[Chat] Routing: ${routingResult.selectedAgent?.slug || 'none'} (${routingResult.confidence}) - ${routingResult.reason}`)
+        console.log(`[Chat] Orchestrator: ${routedAgent.slug} (${decision.confidence}) - ${decision.reason}`)
         
+        // Get full agent config from DB (orchestrator returns minimal info)
+        const baseAgent = await getAgentBySlug(tenantId, agentSlug)
         if (!baseAgent) {
             return new Response('Agent not found', { status: 404 })
         }
         
         // Determine effective agent config (tools from routed agent, personality from base)
         let agent = baseAgent
-        let effectiveTools = baseAgent.tools || []
+        let effectiveTools = routedAgent.tools.length > 0 ? routedAgent.tools : (baseAgent.tools || [])
         let systemPromptAddition = ''
         
-        if (routingResult.selectedAgent && routingResult.confidence !== 'low') {
-            // Use tools from the specialized agent
-            if (routingResult.selectedAgent.tools.length > 0) {
-                effectiveTools = routingResult.selectedAgent.tools
-            }
-            // Combine prompts if specialized agent has its own prompt
-            if (routingResult.selectedAgent.system_prompt) {
-                systemPromptAddition = `\n\n## 🎯 MODO ACTIVO: ${routingResult.selectedAgent.name}\n${routingResult.selectedAgent.system_prompt}`
-            }
-            console.log(`[Chat] Using specialized config: ${routingResult.selectedAgent.slug} with tools: ${effectiveTools.join(', ')}`)
+        // Add specialized prompt if routed to different agent with high/medium confidence
+        if (routedAgent.slug !== agentSlug && decision.confidence !== 'low') {
+            systemPromptAddition = `\n\n## 🎯 MODO ACTIVO: ${routedAgent.name}\nEspecialidad detectada por el sistema.`
+            console.log(`[Chat] Using specialized config: ${routedAgent.slug} with tools: ${effectiveTools.join(', ')}`)
         }
 
         // 3. System Prompt (already merged with custom instructions + company context)

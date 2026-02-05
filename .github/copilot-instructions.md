@@ -1,4 +1,4 @@
-# Tuqui Agents Alpha - Copilot Instructions
+# Tuqui - Copilot Instructions
 
 ## ⚠️ REGLAS OBLIGATORIAS DE GIT
 

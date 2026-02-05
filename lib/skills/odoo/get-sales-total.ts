@@ -34,6 +34,8 @@ export const GetSalesTotalInputSchema = z.object({
   state: DocumentStateSchema.default('confirmed'),
   /** Include tax breakdown */
   includeTaxes: z.boolean().default(false),
+  /** Filter by sales team ID (e.g., ecommerce, tienda web) */
+  teamId: z.number().int().positive().optional(),
 });
 
 export type GetSalesTotalInput = z.infer<typeof GetSalesTotalInputSchema>;
@@ -78,10 +80,10 @@ export const getSalesTotal: Skill<
 > = {
   name: 'get_sales_total',
 
-  description: `Get total sales summary for a period.
-Use when user asks: "total sales", "how much did we sell", "revenue",
-"total ventas", "cuánto vendimos", "facturación total".
-Returns total with/without taxes, order count, and average order value.`,
+  description: `Total de ventas por período, con opción de filtrar por equipo de ventas.
+USAR PARA: "total ventas", "cuánto vendimos", "facturación total", "revenue".
+Filtro teamId para: "ventas del ecommerce", "tienda web", "ventas online".
+Retorna: total con/sin impuestos, cantidad de órdenes, valor promedio.`,
 
   tool: 'odoo',
 
@@ -110,6 +112,11 @@ Returns total with/without taxes, order count, and average order value.`,
         dateRange('date_order', period.start, period.end),
         stateFilter(input.state, 'sale.order')
       );
+
+      // Filter by sales team if specified
+      if (input.teamId) {
+        domain.push(['team_id', '=', input.teamId]);
+      }
 
       // Execute aggregation - get totals and distinct partners
       const [totals, partnerCount] = await Promise.all([

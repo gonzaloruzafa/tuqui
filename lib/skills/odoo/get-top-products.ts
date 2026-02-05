@@ -14,6 +14,8 @@ export const GetTopProductsInputSchema = z.object({
   period: PeriodSchema.optional(),
   limit: z.number().int().min(1).max(50).default(10),
   orderBy: z.enum(['revenue', 'quantity']).default('revenue'),
+  /** Filter by sales team ID (e.g., ecommerce, tienda web) */
+  teamId: z.number().int().positive().optional(),
 });
 
 export interface TopProduct {
@@ -57,6 +59,11 @@ Para: "top products", "best sellers", "productos más vendidos", "qué se vende 
         dateRange('order_id.date_order', period.start, period.end),
         [['order_id.state', 'in', ['sale', 'done']]]
       );
+
+      // Filter by sales team if specified (via order)
+      if (input.teamId) {
+        domain.push(['order_id.team_id', '=', input.teamId]);
+      }
 
       const orderByField = input.orderBy === 'revenue' ? 'price_total' : 'product_uom_qty';
 

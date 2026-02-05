@@ -33,7 +33,7 @@ const apercu = localFont({
 })
 
 export const metadata: Metadata = {
-    title: 'Tuqui Agents Alpha',
+    title: 'Tuqui',
     description: 'AI Agents Platform',
     icons: {
         icon: '/favicon.png',

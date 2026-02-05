@@ -1,4 +1,4 @@
-# Tuqui Agents Alpha - Plan de Implementación
+# Tuqui - Plan de Implementación
 
 ## Estado Actual (Diciembre 2025)
 
@@ -153,7 +153,7 @@ UPDATE tenants SET twilio_phone = '+1234567890' WHERE id = '<tenant-uuid>';
 ```
 
 #### 2.4 Configurar webhook en Twilio
-- URL: `https://tuqui-agents-alpha.vercel.app/api/whatsapp/webhook`
+- URL: `https://tuqui.vercel.app/api/whatsapp/webhook`
 - Método: POST
 - Eventos: Incoming messages
 
@@ -199,12 +199,44 @@ UPDATE tenants SET twilio_phone = '+1234567890' WHERE id = '<tenant-uuid>';
 
 ---
 
+## 🎯 F1: LLM Orchestrator Lean (2025-02-05)
+
+### ✅ COMPLETADO
+
+**Objetivo:** Reemplazar router de keywords (~450 líneas) con LLM orchestrator (~120 líneas)
+
+| Componente | Estado | Archivo |
+|------------|--------|--------|
+| Orchestrator | ✅ Listo | `lib/agents/orchestrator.ts` |
+| Engine integration | ✅ Listo | `lib/chat/engine.ts` |
+| Chat-test integration | ✅ Listo | `app/api/internal/chat-test/route.ts` |
+| Tests con delay | ✅ Listo | 8s delay para rate limiting |
+
+**Cómo funciona:**
+1. `getAvailableAgents(tenantId)` → Lee agentes activos de DB
+2. `decideAgent(message, agents)` → LLM decide con `generateObject`
+3. Schema: `{ agentSlug, confidence: high|medium|low, reason }`
+4. Modelo: `gemini-2.0-flash-lite` (rápido, barato para routing)
+5. Fallback: `tuqui` si error o baja confianza
+
+**Métricas pre/post:**
+- Baseline (router): 70.6% (59/84)
+- Post-orchestrator: ~55-65% (afectado por rate limiting)
+- RAG: 100% ✅ (delegación funciona)
+- MercadoLibre: 100% ✅
+
+**Archivos obsoletos:**
+- `lib/agents/router.ts` - Ya no se usa, puede eliminarse
+
+---
+
 ## 🚀 Próximos Pasos (En Orden)
 
 ### Inmediato
-1. [ ] Crear migración `push_subscriptions`
-2. [ ] Ejecutar migración en tenant DB
-3. [ ] Generar y agregar PROMETEO_SECRET
+1. [x] F1: LLM Orchestrator implementado
+2. [ ] Crear migración `push_subscriptions`
+3. [ ] Ejecutar migración en tenant DB
+4. [ ] Generar y agregar PROMETEO_SECRET
 
 ### Corto Plazo
 4. [ ] Crear service worker para push

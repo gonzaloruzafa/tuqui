@@ -6,7 +6,8 @@ import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
 import { Agent } from '@/lib/agents/service'
-import { routeMessage, buildCombinedPrompt } from '@/lib/agents/router'
+// OLD: import { routeMessage, buildCombinedPrompt } from '@/lib/agents/router'
+import { orchestrate, type AvailableAgent } from '@/lib/agents/orchestrator'
 import { ToolCallRecord } from '@/lib/supabase/chat-history'
 
 const google = createGoogleGenerativeAI({
@@ -99,18 +100,20 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         const estimatedInputTokens = Math.ceil(inputContent.length / 3)
         await checkUsageLimit(tenantId, userEmail, estimatedInputTokens)
 
-        // 2. Route to best sub-agent based on message content
+        // 2. Route to best agent using LLM Orchestrator
         const conversationHistory = messages.slice(0, -1).map(m => m.content)
-        const routingResult = await routeMessage(tenantId, inputContent, conversationHistory)
+        const { agent: selectedAgent, decision } = await orchestrate(tenantId, inputContent, conversationHistory)
         
-        console.log(`[ChatEngine] Routing: ${routingResult.selectedAgent?.slug || 'none'} (${routingResult.confidence}) - ${routingResult.reason}`)
+        console.log(`[ChatEngine] Orchestrator: ${selectedAgent.slug} (${decision.confidence}) - ${decision.reason}`)
 
-        // Use sub-agent config if found, otherwise use main agent
-        const effectiveAgent = routingResult.selectedAgent ? {
+        // Use selected agent's config
+        const effectiveAgent = {
             ...agent,
-            tools: routingResult.selectedAgent.tools.length > 0 ? routingResult.selectedAgent.tools : agent.tools,
-            rag_enabled: routingResult.selectedAgent.rag_enabled || agent.rag_enabled
-        } : agent
+            id: selectedAgent.id,
+            slug: selectedAgent.slug,
+            tools: selectedAgent.tools.length > 0 ? selectedAgent.tools : agent.tools,
+            rag_enabled: selectedAgent.rag_enabled || agent.rag_enabled
+        }
 
         // 3. Build System Prompt & Context
         let systemPrompt = agent.system_prompt || 'Sos un asistente útil.'
@@ -120,13 +123,18 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         const currentDate = DateService.formatted()
         systemPrompt = systemPrompt.replace('{{CURRENT_DATE}}', currentDate)
         
-        // Combine with sub-agent prompt if different specialty
-        if (routingResult.selectedAgent && routingResult.selectedAgent.system_prompt && routingResult.confidence !== 'low') {
-            systemPrompt = buildCombinedPrompt(
-                systemPrompt,
-                routingResult.selectedAgent.system_prompt,
-                routingResult.selectedAgent.name
-            )
+        // Fetch and use selected agent's system prompt if available
+        if (selectedAgent.slug !== agent.slug && decision.confidence !== 'low') {
+            const db = await getClient()
+            const { data: agentData } = await db
+                .from('agents')
+                .select('system_prompt')
+                .eq('id', selectedAgent.id)
+                .single()
+            
+            if (agentData?.system_prompt) {
+                systemPrompt = `${systemPrompt}\n\n--- ESPECIALIDAD: ${selectedAgent.name} ---\n${agentData.system_prompt}`
+            }
         }
 
         const companyContext = await getCompanyContext(tenantId)
@@ -140,13 +148,18 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             systemPrompt += '\n\nIMPORTANTE: Estás en una conversación fluida. Usa siempre los mensajes anteriores para entender referencias como "él", "eso", "ahora", "Al reporte", "Diciembre 2025" o "qué productos?". No pidas aclaraciones si el contexto ya está en el historial.'
         }
 
-        // Add professional tool usage messaging
-        systemPrompt += '\n\nCUANDO USES HERRAMIENTAS: Comunicate de forma profesional y natural. En lugar de mensajes técnicos como "🔍 Consultando: sale.report...", usa frases amigables como:\n' +
-            '- "Un momento, estoy buscando esa información..."\n' +
-            '- "Déjame consultar los datos..."\n' +
-            '- "Verificando en el sistema..."\n' +
-            '- "Analizando la información..."\n' +
-            'NUNCA menciones nombres técnicos de modelos, tablas o funciones. Mantené la conversación natural y profesional.'
+        // Add professional tool usage messaging + efficiency rules
+        systemPrompt += '\n\nEFICIENCIA Y VELOCIDAD:\n' +
+            '- Ejecutá las consultas directamente, no pidas confirmación innecesaria\n' +
+            '- Si el usuario pregunta por "ventas", usá el período actual (este mes) como default\n' +
+            '- Si no especifica detalles, usá defaults razonables y mostrá los datos\n' +
+            '- Solo pedí clarificación cuando sea REALMENTE ambiguo o falte info crítica\n' +
+            '- Preferí dar una respuesta útil rápida que una pregunta de vuelta'
+        
+        systemPrompt += '\n\nCUANDO USES HERRAMIENTAS: Comunicate profesionalmente. NO digas cosas como "🔍 Consultando: sale.report...". Sé directo:\n' +
+            '- Respondé directamente con los datos\n' +
+            '- Si necesitás un momento, decí algo breve como "Consultando..."\n' +
+            'NUNCA menciones nombres técnicos de modelos, tablas o funciones.'
 
         // 4. RAG Context - NOW HANDLED BY TOOL
         // The LLM calls search_knowledge_base when needed (saves tokens)
@@ -172,7 +185,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
 
         console.log('[ChatEngine] Loading tools (including Skills if Odoo enabled)')
         const agentToolConfig = {
-            id: routingResult.selectedAgent?.id || agent.id,
+            id: selectedAgent.id,
             tools: effectiveAgent.tools || [],
             rag_enabled: effectiveAgent.rag_enabled
         }

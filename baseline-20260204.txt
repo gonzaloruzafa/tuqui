@@ -1,0 +1,201 @@
+
+> tuqui-agents-alpha@0.1.0 test:evals
+> vitest run tests/evals
+
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90m/home/gonza/adhoc x/tuqui[39m
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts
+[22m[39m[dotenv@17.2.3] injecting env (37) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+✅ Environment loaded for tests
+   NEXT_PUBLIC_SUPABASE_URL: ✓ set
+   SUPABASE_SERVICE_ROLE_KEY: ✓ set
+   TEST_TENANT_ID: ✗ not set (live tests skipped)
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)
+[22m[39m
+======================================================================
+🚀 Starting Agent Evaluations
+======================================================================
+   Base URL: http://localhost:3000
+   Tenant: de7ef34a-12bd-4fe9-9d02-3d876a9393c2
+   Agent: tuqui
+   Test Cases: 67
+   Pass Threshold: 80%
+======================================================================
+
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-001: "¿Cuánto vendimos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vendimos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-002: "¿Quién es mi mejor cliente?"
+[22m[39m
+🗣️  Testing: "¿Quién es mi mejor cliente?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-003: "¿Qué productos vendemos más?"
+[22m[39m
+🗣️  Testing: "¿Qué productos vendemos más?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-004: "¿Cuántas órdenes de venta tenemos pendientes?"
+[22m[39m
+🗣️  Testing: "¿Cuántas órdenes de venta tenemos pendientes?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-005: "¿Cómo vienen las ventas comparado con el mes pasado?"
+[22m[39m
+🗣️  Testing: "¿Cómo vienen las ventas comparado con el mes pasado?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-006: "¿Cuánto vendió cada vendedor en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vendió cada vendedor en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-006: "¿Cuánto vendió cada vendedor en enero?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-007: "¿Cuánto le vendimos a Acme Corp?"
+[22m[39m
+🗣️  Testing: "¿Cuánto le vendimos a Acme Corp?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-007: "¿Cuánto le vendimos a Acme Corp?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-008: "Dame el total de ventas de los últimos 3 meses desglosado por mes"
+[22m[39m
+🗣️  Testing: "Dame el total de ventas de los últimos 3 meses desglosado por mes"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-008: "Dame el total de ventas de los últimos 3 meses desglosado por mes"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-009: "¿Cuál es el ticket promedio de venta?"
+[22m[39m
+🗣️  Testing: "¿Cuál es el ticket promedio de venta?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-009: "¿Cuál es el ticket promedio de venta?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-010: "¿Cuántos clientes nuevos tuvimos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuántos clientes nuevos tuvimos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-010: "¿Cuántos clientes nuevos tuvimos en enero?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-001: "¿Cuánto compramos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto compramos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-001: "¿Cuánto compramos en enero?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-002: "¿A quién le compramos más?"
+[22m[39m
+🗣️  Testing: "¿A quién le compramos más?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-002: "¿A quién le compramos más?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-003: "¿Tenemos órdenes de compra pendientes?"
+[22m[39m
+🗣️  Testing: "¿Tenemos órdenes de compra pendientes?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-003: "¿Tenemos órdenes de compra pendientes?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-004: "¿Cuántas facturas de proveedor recibimos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuántas facturas de proveedor recibimos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-004: "¿Cuántas facturas de proveedor recibimos en enero?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-005: "¿Cuánto le compramos a cada proveedor?"
+[22m[39m
+🗣️  Testing: "¿Cuánto le compramos a cada proveedor?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COMPRAS[2m > [22m[2mcompras-005: "¿Cuánto le compramos a cada proveedor?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-001: "¿Qué productos tienen poco stock?"
+[22m[39m
+🗣️  Testing: "¿Qué productos tienen poco stock?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-001: "¿Qué productos tienen poco stock?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-002: "¿Cuánto vale nuestro inventario?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vale nuestro inventario?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-002: "¿Cuánto vale nuestro inventario?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-003: "¿Cuántos pedidos tenemos sin entregar?"
+[22m[39m
+🗣️  Testing: "¿Cuántos pedidos tenemos sin entregar?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-003: "¿Cuántos pedidos tenemos sin entregar?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+[22m[39m
+🗣️  Testing: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-004: "¿Cuántas unidades tenemos del producto "Tornillo M8"?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-005: "¿Cuáles son los 5 productos con más stock?"
+[22m[39m
+🗣️  Testing: "¿Cuáles son los 5 productos con más stock?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 STOCK[2m > [22m[2mstock-005: "¿Cuáles son los 5 productos con más stock?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-001: "¿Cuánto nos deben los clientes?"
+[22m[39m
+🗣️  Testing: "¿Cuánto nos deben los clientes?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-001: "¿Cuánto nos deben los clientes?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-002: "¿Hay facturas vencidas?"
+[22m[39m
+🗣️  Testing: "¿Hay facturas vencidas?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-002: "¿Hay facturas vencidas?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-003: "¿Quién nos debe más?"
+[22m[39m
+🗣️  Testing: "¿Quién nos debe más?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-003: "¿Quién nos debe más?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-004: "¿Cuánto cobramos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto cobramos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-004: "¿Cuánto cobramos en enero?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-005: "¿Cuántos pagos recibimos esta semana?"
+[22m[39m
+🗣️  Testing: "¿Cuántos pagos recibimos esta semana?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-005: "¿Cuántos pagos recibimos esta semana?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-006: "¿Cuántas facturas tienen más de 30 días vencidas?"
+[22m[39m
+🗣️  Testing: "¿Cuántas facturas tienen más de 30 días vencidas?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-006: "¿Cuántas facturas tienen más de 30 días vencidas?"
+[22m[39m   ❌ ERROR: fetch failed
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-007: "Dame el detalle de deuda por cliente ordenado de mayor a menor"
+[22m[39m
+🗣️  Testing: "Dame el detalle de deuda por cliente ordenado de mayor a menor"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 COBRANZAS[2m > [22m[2mcobranzas-007: "Dame el detalle de deuda por cliente ordenado de mayor a menor"
+[22m[39m   ❌ ERROR: fetch failed
+

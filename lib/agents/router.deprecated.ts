@@ -119,6 +119,24 @@ const SPECIALTY_KEYWORDS: Record<string, string[]> = {
         'buscar en internet', 'buscar en google', 'noticias',
         'cotización', 'dólar', 'dolar', 'actualidad',
         'información actualizada', 'qué pasó con', 'últimas noticias'
+    ],
+    // Equipamiento dental Cedent
+    'cedent': [
+        // Marca y productos
+        'cedent', 'cingol', 'sillón odontológico', 'sillon odontologico',
+        'equipo odontológico', 'equipo dental', 'equipamiento dental',
+        // Productos específicos
+        'sillón', 'sillon', 'turbina', 'autoclave', 'compresor',
+        'lámpara', 'lampara', 'fotocurado', 'micromotor',
+        'rayos x', 'rx dental', 'unidad dental',
+        // Consultas técnicas
+        'características del', 'especificaciones', 'ficha técnica',
+        'manual de', 'garantía', 'mantenimiento',
+        'cómo funciona', 'cómo se usa', 'cómo ajustar',
+        'posiciones', 'altura', 'trendelenburg',
+        // Contexto dental
+        'odontología', 'odontológico', 'dental', 'dentista',
+        'consultorio dental', 'clínica dental'
     ]
 }
 
@@ -270,8 +288,15 @@ export async function getSubAgents(tenantId: string): Promise<SubAgent[]> {
         }
 
         // Inferir keywords del slug/nombre
-        const slug = agent.slug.replace('tuqui-', '')
-        const inferredKeywords = SPECIALTY_KEYWORDS[slug] || []
+        // Normalizar slug: 'agente-experto-cedent' -> busca 'cedent', 'tuqui-erp' -> busca 'erp'
+        const normalizedSlug = agent.slug
+            .replace('tuqui-', '')
+            .replace('agente-experto-', '')
+            .replace('agente-', '')
+        
+        // Buscar keywords por slug exacto o parcial
+        const inferredKeywords = SPECIALTY_KEYWORDS[normalizedSlug] || 
+            Object.entries(SPECIALTY_KEYWORDS).find(([key]) => normalizedSlug.includes(key))?.[1] || []
 
         subAgents.push({
             id: agent.id,

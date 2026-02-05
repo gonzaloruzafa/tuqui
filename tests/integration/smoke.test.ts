@@ -1,5 +1,5 @@
 /**
- * Smoke Tests for Tuqui Agents Alpha
+ * Smoke Tests for Tuqui
  * 
  * These tests run basic health checks on the API endpoints.
  * They are designed to catch obvious breaks without blocking deploys.

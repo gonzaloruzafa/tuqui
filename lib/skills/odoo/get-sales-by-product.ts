@@ -31,6 +31,9 @@ export const GetSalesByProductInputSchema = z.object({
 
   /** Category filter (optional) */
   categoryId: z.number().int().positive().optional(),
+
+  /** Filter by sales team ID (e.g., ecommerce, tienda web) */
+  teamId: z.number().int().positive().optional(),
 });
 
 // ============================================
@@ -96,6 +99,11 @@ export const getSalesByProduct: Skill<
 
       if (input.categoryId) {
         domain.push(['product_id.categ_id', '=', input.categoryId]);
+      }
+
+      // Filter by sales team if specified (via order)
+      if (input.teamId) {
+        domain.push(['order_id.team_id', '=', input.teamId]);
       }
 
       // Get sales grouped by product (from order lines)

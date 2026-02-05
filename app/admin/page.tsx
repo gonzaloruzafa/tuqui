@@ -120,7 +120,7 @@ export default async function AdminPage() {
                 </div>
 
                 <div className="mt-12 text-center">
-                    <p className="text-xs text-gray-400">Tuqui Agents Alpha v0.1.0 • Built by Adhoc</p>
+                    <p className="text-xs text-gray-400">Tuqui v0.1.0 • Built by Adhoc</p>
                 </div>
             </div>
 

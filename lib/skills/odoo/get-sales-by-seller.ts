@@ -28,6 +28,9 @@ export const GetSalesBySellerInputSchema = z.object({
 
   /** Filter by order state */
   state: DocumentStateSchema.default('confirmed'),
+
+  /** Filter by sales team ID (e.g., ecommerce, tienda web) */
+  teamId: z.number().int().positive().optional(),
 });
 
 // ============================================
@@ -78,6 +81,11 @@ export const getSalesBySeller: Skill<
         dateRange('date_order', period.start, period.end),
         stateFilter(input.state, 'sale.order')
       );
+
+      // Filter by sales team if specified
+      if (input.teamId) {
+        domain.push(['team_id', '=', input.teamId]);
+      }
 
       // Group by user (salesperson)
       const grouped = await odoo.readGroup(

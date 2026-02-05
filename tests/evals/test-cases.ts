@@ -812,4 +812,4 @@ export const TEST_CASES_BY_CATEGORY = {
   rag: ragTestCases,
 };
 
-export const PASSING_THRESHOLD = 0.80; // 80%
+export const PASSING_THRESHOLD = 0.80; // Target: 80% pass rate
