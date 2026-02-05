@@ -79,7 +79,7 @@ Un agente de IA que:
 ## 📁 Estructura del Proyecto
 
 ```
-tuqui-agents-alpha/
+tuqui/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
 │   │   ├── chat/         # Chat endpoint (Gemini)
@@ -121,8 +121,8 @@ tuqui-agents-alpha/
 ### 1. Clonar y instalar
 
 ```bash
-git clone https://github.com/gonzaloruzafa/tuqui-agents-alpha.git
-cd tuqui-agents-alpha
+git clone https://github.com/gonzaloruzafa/tuqui.git
+cd tuqui
 npm install
 ```
 

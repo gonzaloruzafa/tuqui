@@ -14,6 +14,8 @@ export const GetTopCustomersInputSchema = z.object({
   period: PeriodSchema.optional(),
   limit: z.number().int().min(1).max(100).default(10),
   minAmount: z.number().min(0).optional(),
+  /** Filter by sales team ID (e.g., ecommerce, tienda web) */
+  teamId: z.number().int().positive().optional(),
 });
 
 export interface TopCustomer {
@@ -55,6 +57,11 @@ SIEMPRE ejecutar sin preguntar período - usa default mes actual automáticament
         dateRange('date_order', period.start, period.end),
         [['state', 'in', ['sale', 'done']]]
       );
+
+      // Filter by sales team if specified
+      if (input.teamId) {
+        domain.push(['team_id', '=', input.teamId]);
+      }
 
       const grouped = await odoo.readGroup(
         'sale.order',

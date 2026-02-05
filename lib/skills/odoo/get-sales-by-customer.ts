@@ -36,6 +36,8 @@ export const GetSalesByCustomerInputSchema = z.object({
   state: DocumentStateSchema.default('confirmed'),
   /** Minimum total amount to include (filters small customers) */
   minAmount: z.number().min(0).optional(),
+  /** Filter by sales team ID (e.g., ecommerce, tienda web) */
+  teamId: z.number().int().positive().optional(),
 });
 
 export type GetSalesByCustomerInput = z.infer<typeof GetSalesByCustomerInputSchema>;
@@ -111,6 +113,11 @@ Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cl
         dateRange('date_order', period.start, period.end),
         stateFilter(input.state, 'sale.order')
       );
+
+      // Filter by sales team if specified
+      if (input.teamId) {
+        domain.push(['team_id', '=', input.teamId]);
+      }
 
       // 3. Execute aggregation query
       const grouped = await odoo.readGroup(

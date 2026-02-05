@@ -21,7 +21,7 @@ on:
     - cron: '0 8 * * *'
 
 env:
-  EVAL_BASE_URL: ${{ secrets.EVAL_BASE_URL || 'https://tuqui-agents-alpha.vercel.app' }}
+  EVAL_BASE_URL: ${{ secrets.EVAL_BASE_URL || 'https://tuqui.vercel.app' }}
 
 jobs:
   agent-evals:

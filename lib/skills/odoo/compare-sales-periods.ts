@@ -33,6 +33,8 @@ export const CompareSalesPeriodsInputSchema = z.object({
   includeCustomers: z.boolean().default(false),
   /** Limit for breakdowns */
   limit: z.number().min(1).max(20).default(5),
+  /** Filter by sales team ID (e.g., ecommerce, tienda web) */
+  teamId: z.number().int().positive().optional(),
 })
 
 export type CompareSalesPeriodsInput = z.infer<typeof CompareSalesPeriodsInputSchema>
@@ -149,6 +151,11 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
         const dateDomain = dateRange('date_order', period.start, period.end)
         const stateDomain = stateFilter(input.state, 'sale.order')
         const domain: OdooDomain = combineDomains(dateDomain, stateDomain)
+
+        // Filter by sales team if specified
+        if (input.teamId) {
+          domain.push(['team_id', '=', input.teamId])
+        }
 
         // Get totals
         const totals = await odoo.readGroup('sale.order', domain, ['amount_total', 'partner_id'], [], {

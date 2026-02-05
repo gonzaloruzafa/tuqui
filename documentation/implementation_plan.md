@@ -1,4 +1,4 @@
-# Tuqui Agents Alpha - Plan de Implementación
+# Tuqui - Plan de Implementación
 
 ## Estado Actual (Diciembre 2025)
 
@@ -153,7 +153,7 @@ UPDATE tenants SET twilio_phone = '+1234567890' WHERE id = '<tenant-uuid>';
 ```
 
 #### 2.4 Configurar webhook en Twilio
-- URL: `https://tuqui-agents-alpha.vercel.app/api/whatsapp/webhook`
+- URL: `https://tuqui.vercel.app/api/whatsapp/webhook`
 - Método: POST
 - Eventos: Incoming messages
 

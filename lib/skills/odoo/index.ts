@@ -54,6 +54,7 @@ export { compareSalesPeriods, type CompareSalesPeriodsInput, type CompareSalesPe
 export { getTopStockProducts } from './get-top-stock-products';
 export { getNewCustomers } from './get-new-customers';
 export { getArAging } from './get-ar-aging';
+export { getSalesTeams } from './get-sales-teams';
 
 // Skill array for registration
 import { getSalesTotal } from './get-sales-total';
@@ -84,9 +85,10 @@ import { getPendingSaleOrders } from './get-pending-sale-orders';
 import { getTopStockProducts } from './get-top-stock-products';
 import { getNewCustomers } from './get-new-customers';
 import { getArAging } from './get-ar-aging';
+import { getSalesTeams } from './get-sales-teams';
 
 export const odooSkills = [
-  // Sales (9)
+  // Sales (10)
   getSalesTotal,
   getSalesByCustomer,
   getSalesByProduct,
@@ -95,7 +97,8 @@ export const odooSkills = [
   getTopCustomers,
   getProductSalesHistory,
   compareSalesPeriods,
-  getPendingSaleOrders, // NEW
+  getPendingSaleOrders,
+  getSalesTeams, // NEW - list sales teams for filtering
   // Invoices/Debt (4)
   getDebtByCustomer,
   getInvoicesByCustomer,
