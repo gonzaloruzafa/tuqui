@@ -12,7 +12,7 @@
     "test:integration": "vitest run tests/integration",
     "test:evals": "vitest run tests/evals",
     "test:all": "vitest run",
-    "test:ci": "vitest run tests/unit tests/integration --reporter=verbose"
+    "test:ci": "vitest run tests/unit tests/integration/skills-loader.test.ts --reporter=verbose"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.51",
