@@ -1,33 +1,27 @@
 name: Agent Evaluations
 
 on:
-  # Run after successful deployment
+  # Run after successful Vercel deployment
   deployment_status:
   
   # Manual trigger
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to test'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - preview
+      base_url:
+        description: 'Base URL to test (leave empty for production)'
+        required: false
+        default: ''
+        type: string
       
   # Scheduled: Daily at 8am UTC (5am Argentina)
   schedule:
     - cron: '0 8 * * *'
 
-env:
-  EVAL_BASE_URL: ${{ secrets.EVAL_BASE_URL || 'https://tuqui.vercel.app' }}
-
 jobs:
   agent-evals:
     name: Run Agent Evaluations
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     
     # Only run on successful deployments or manual/scheduled triggers
     if: |
@@ -48,17 +42,49 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Determine Base URL
+        id: url
+        run: |
+          if [ "${{ github.event_name }}" == "deployment_status" ]; then
+            # Use the deployment URL from Vercel (preview or production)
+            DEPLOY_URL="${{ github.event.deployment_status.target_url }}"
+            echo "Using deployment URL: $DEPLOY_URL"
+            echo "base_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          elif [ -n "${{ inputs.base_url }}" ]; then
+            # Manual trigger with custom URL
+            echo "Using manual URL: ${{ inputs.base_url }}"
+            echo "base_url=${{ inputs.base_url }}" >> $GITHUB_OUTPUT
+          else
+            # Default to production
+            echo "Using production URL"
+            echo "base_url=https://tuqui.vercel.app" >> $GITHUB_OUTPUT
+          fi
+
       - name: Wait for deployment to stabilize
         if: github.event_name == 'deployment_status'
         run: |
-          echo "Waiting 30s for deployment to stabilize..."
+          echo "🕐 Waiting 30s for deployment to stabilize..."
           sleep 30
+          
+          # Verify the deployment is reachable
+          echo "🔍 Checking deployment health..."
+          HEALTH_URL="${{ steps.url.outputs.base_url }}/api/health"
+          for i in {1..5}; do
+            if curl -sf "$HEALTH_URL" > /dev/null 2>&1; then
+              echo "✅ Deployment is healthy"
+              break
+            fi
+            echo "⏳ Attempt $i/5 - waiting 10s..."
+            sleep 10
+          done
 
       - name: Run Agent Evaluations
         id: evals
-        run: npm run test:evals 2>&1 | tee eval-output.txt
+        run: |
+          echo "🚀 Running evals against: ${{ steps.url.outputs.base_url }}"
+          npm run test:evals 2>&1 | tee eval-output.txt
         env:
-          EVAL_BASE_URL: ${{ env.EVAL_BASE_URL }}
+          EVAL_BASE_URL: ${{ steps.url.outputs.base_url }}
           INTERNAL_TEST_KEY: ${{ secrets.INTERNAL_TEST_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TEST_TENANT_ID: ${{ secrets.TEST_TENANT_ID }}
@@ -69,14 +95,47 @@ jobs:
       - name: Extract pass rate
         id: extract
         run: |
-          PASS_RATE=$(grep -oP 'Pass Rate: \K[\d.]+' eval-output.txt || echo "0")
+          # Try to extract pass rate from output
+          PASS_RATE=$(grep -oP 'Pass Rate: \K[\d.]+' eval-output.txt 2>/dev/null || echo "")
+          
+          # If not found, try alternative format
+          if [ -z "$PASS_RATE" ]; then
+            PASS_RATE=$(grep -oP '\d+\.\d+(?=% pass)' eval-output.txt 2>/dev/null || echo "0")
+          fi
+          
+          # Check for 404 errors (deployment not ready)
+          NOT_FOUND_COUNT=$(grep -c "404" eval-output.txt 2>/dev/null || echo "0")
+          
           echo "pass_rate=$PASS_RATE" >> $GITHUB_OUTPUT
+          echo "not_found_count=$NOT_FOUND_COUNT" >> $GITHUB_OUTPUT
           echo "📊 Pass Rate: $PASS_RATE%"
+          echo "🔍 404 Errors: $NOT_FOUND_COUNT"
+
+      - name: Check for deployment issues
+        if: steps.extract.outputs.not_found_count > 10
+        run: |
+          echo "❌ Too many 404 errors (${{ steps.extract.outputs.not_found_count }})"
+          echo "This usually means the deployment URL is incorrect or not ready."
+          echo ""
+          echo "Deployment URL used: ${{ steps.url.outputs.base_url }}"
+          echo ""
+          echo "Please check:"
+          echo "  1. Vercel deployment is complete"
+          echo "  2. The API routes exist at the deployment"
+          echo "  3. Environment variables are set in Vercel"
+          exit 1
 
       - name: Check threshold
         run: |
           PASS_RATE="${{ steps.extract.outputs.pass_rate }}"
           THRESHOLD=80
+          
+          if [ -z "$PASS_RATE" ] || [ "$PASS_RATE" == "0" ]; then
+            echo "❌ Could not determine pass rate from eval output"
+            cat eval-output.txt | tail -50
+            exit 1
+          fi
+          
           if (( $(echo "$PASS_RATE < $THRESHOLD" | bc -l) )); then
             echo "❌ Pass rate ($PASS_RATE%) is below threshold ($THRESHOLD%)"
             exit 1
@@ -93,16 +152,46 @@ jobs:
           retention-days: 30
 
       - name: Comment on PR (if applicable)
-        if: github.event_name == 'pull_request'
+        if: |
+          always() && 
+          github.event_name == 'deployment_status' && 
+          github.event.deployment.environment == 'preview'
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
-            const passRate = '${{ steps.extract.outputs.pass_rate }}';
-            const status = parseFloat(passRate) >= 80 ? '✅' : '❌';
+            const passRate = '${{ steps.extract.outputs.pass_rate }}' || '0';
+            const notFoundCount = '${{ steps.extract.outputs.not_found_count }}' || '0';
+            const deployUrl = '${{ steps.url.outputs.base_url }}';
             
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            let status, message;
+            
+            if (parseInt(notFoundCount) > 10) {
+              status = '⚠️';
+              message = `Deployment issues detected (${notFoundCount} 404 errors)`;
+            } else if (parseFloat(passRate) >= 80) {
+              status = '✅';
+              message = `Pass Rate: ${passRate}%`;
+            } else {
+              status = '❌';
+              message = `Pass Rate: ${passRate}% (below 80% threshold)`;
+            }
+            
+            // Find PR number from deployment
+            const prs = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🤖 Agent Evaluation Results\n\n${status} **Pass Rate: ${passRate}%** (threshold: 80%)\n\nSee workflow run for details.`
+              state: 'open',
+              head: `${context.repo.owner}:${context.payload.deployment.ref}`
             });
+            
+            if (prs.data.length > 0) {
+              const prNumber = prs.data[0].number;
+              
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🤖 Agent Evaluation Results\n\n${status} **${message}**\n\n🔗 Tested: ${deployUrl}\n\nSee [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`
+              });
+            }
