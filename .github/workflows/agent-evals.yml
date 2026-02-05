@@ -1,10 +1,10 @@
-name: Agent Evaluations
+name: Agent Evaluations (Post-Deploy)
 
 on:
-  # Run after successful Vercel deployment
+  # Run after successful Vercel deployment (informational only)
   deployment_status:
   
-  # Manual trigger
+  # Manual trigger for testing
   workflow_dispatch:
     inputs:
       base_url:
@@ -16,6 +16,10 @@ on:
   # Scheduled: Daily at 8am UTC (5am Argentina)
   schedule:
     - cron: '0 8 * * *'
+
+# NOTE: This workflow is informational only.
+# It does NOT block PRs or merges.
+# Use CI Tests workflow (ci-tests.yml) for required checks.
 
 jobs:
   agent-evals:

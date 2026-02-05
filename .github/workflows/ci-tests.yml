@@ -7,9 +7,13 @@ on:
     branches: [main]
 
 jobs:
-  lint-and-typecheck:
+  # ============================================
+  # REQUIRED: Must pass to merge
+  # ============================================
+  
+  lint-typecheck:
+    name: 🔍 Lint & TypeCheck
     runs-on: ubuntu-latest
-    continue-on-error: true  # Warnings only - don't block deploys
     
     steps:
       - uses: actions/checkout@v4
@@ -24,15 +28,14 @@ jobs:
         run: npm ci
       
       - name: Run ESLint
-        run: npm run lint || echo "::warning::ESLint found issues"
+        run: npm run lint
       
       - name: TypeScript Check
-        run: npx tsc --noEmit || echo "::warning::TypeScript found issues"
+        run: npx tsc --noEmit
 
   build:
+    name: 🏗️ Build
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
-    if: always()  # Run even if lint fails
     
     steps:
       - uses: actions/checkout@v4
@@ -49,18 +52,16 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Required env vars for build (use dummy values)
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'test-secret-for-ci' }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID || 'placeholder' }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET || 'placeholder' }}
 
-  smoke-tests:
+  unit-tests:
+    name: 🧪 Unit & Integration Tests
     runs-on: ubuntu-latest
     needs: build
-    if: always() && needs.build.result == 'success'
-    continue-on-error: true  # Warnings only
     
     steps:
       - uses: actions/checkout@v4
@@ -74,33 +75,49 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Run Smoke Tests
-        run: npm run test:ci || echo "::warning::Some tests failed"
+      - name: Run Tests
+        run: npm run test:ci
         env:
-          TEST_BASE_URL: 'http://localhost:3000'
-          
-  # Summary job to provide final status
-  ci-summary:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: coverage/
+          retention-days: 7
+
+  # ============================================
+  # SUMMARY: Final status check
+  # ============================================
+  
+  ci-status:
+    name: ✅ CI Status
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, build, smoke-tests]
+    needs: [lint-typecheck, build, unit-tests]
     if: always()
     
     steps:
-      - name: Check results
+      - name: Check all jobs passed
         run: |
-          echo "## CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🤖 CI Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint & TypeCheck | ${{ needs.lint-and-typecheck.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Smoke Tests | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Lint & TypeCheck | ${{ needs.lint-typecheck.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏗️ Build | ${{ needs.build.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Tests | ${{ needs.unit-tests.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ needs.build.result }}" != "success" ]; then
+          # Fail if any required job failed
+          if [ "${{ needs.lint-typecheck.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ] || \
+             [ "${{ needs.unit-tests.result }}" != "success" ]; then
             echo ""
-            echo "⚠️ Build failed - this should be investigated"
+            echo "❌ **CI Failed** - Please fix the issues above before merging."
             exit 1
           fi
           
           echo ""
-          echo "✅ Build succeeded. Any test failures are warnings only."
+          echo "✅ **All checks passed!** Ready to merge."
