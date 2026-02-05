@@ -80,10 +80,9 @@ export const getPaymentsReceived: Skill<
 > = {
   name: 'get_payments_received',
 
-  description: `Get payments received from customers (collections).
-Use when user asks: "how much did we collect", "payments received",
-"cobros", "cobranzas", "cuánto cobramos", "pagos recibidos".
-Returns total amount, payment count, and optionally grouped by journal or customer.`,
+  description: `Pagos recibidos de clientes (cobranzas).
+USAR PARA: "cuánto cobramos", "pagos recibidos", "cobranzas del mes", "cobros de enero", "recaudación".
+Retorna total cobrado, cantidad de pagos. Acepta período (this_month, last_month, enero, etc).`,
 
   tool: 'odoo',
 

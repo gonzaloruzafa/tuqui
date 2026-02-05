@@ -11,10 +11,10 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Fase actual** | `F0` - Tests Baseline |
+| **Fase actual** | `F2` - Company Context |
 | **Branch actual** | `refactor/fase-2-orchestrator` |
-| **Último checkpoint** | RAG Tool completado y mergeado |
-| **Baseline evals** | 46.2% (a mejorar) |
+| **Último checkpoint** | F1 completado - Orquestador LLM activo |
+| **Baseline evals** | 73.2% (98% sin rate limits) |
 
 ### Progreso General
 
@@ -24,9 +24,11 @@
 │   └─ F0-viejo: Preparación y limpieza                                      │
 │   └─ F1-viejo: RAG como Tool (mergeado 2026-02-04, PR #2)                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 🔄 AHORA: REFACTOR v3 (Enfoque en Inteligencia)                            │
-│   └─ F0: Tests Baseline              [ ] ⬜⬜⬜⬜⬜ 0%                      │
-│   └─ F1: Orquestador LLM Lean        [ ] ⬜⬜⬜⬜⬜ 0%                      │
+│ ✅ COMPLETADO: REFACTOR v3                                                  │
+│   └─ F0: Tests Baseline              [x] ██████████ 100% (73.2% pass rate) │
+│   └─ F1: Orquestador LLM Lean        [x] ██████████ 100% (router.deprecated)│
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 🔄 SIGUIENTE                                                                │
 │   └─ F2: Company Context             [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F3: Skill Descriptions          [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F4: Memory Tool                 [ ] ⬜⬜⬜⬜⬜ 0%                      │

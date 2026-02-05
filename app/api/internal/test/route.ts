@@ -12,7 +12,8 @@
 
 import { NextRequest } from 'next/server'
 import { getClient } from '@/lib/supabase/client'
-import { routeMessage, getSubAgents } from '@/lib/agents/router'
+// NEW: Using LLM orchestrator instead of keyword-based router
+import { orchestrate, getAvailableAgents } from '@/lib/agents/orchestrator'
 import { getToolsForAgent } from '@/lib/tools/executor'
 
 const INTERNAL_TEST_KEY = process.env.INTERNAL_TEST_KEY || 'test-key-change-me'
@@ -88,19 +89,17 @@ async function testAgentsExist(): Promise<any> {
 async function testRoutingMeli(): Promise<any> {
     if (!TEST_TENANT_ID) return { skipped: true, reason: 'No TEST_TENANT_ID configured' }
     
-    const result = await routeMessage(TEST_TENANT_ID, 'cuanto cuestan los botines puma en mercadolibre?', [])
+    const { agent, decision } = await orchestrate(TEST_TENANT_ID, 'cuanto cuestan los botines puma en mercadolibre?', [])
     
-    if (!result.selectedAgent) throw new Error('No agent selected')
+    if (!agent) throw new Error('No agent selected')
     
     // Should route to meli or mercado-related agent
-    const isMeliRelated = result.selectedAgent.slug.includes('meli') || 
-                          result.scores['mercado'] > 0
+    const isMeliRelated = agent.slug.includes('meli') || agent.slug.includes('mercado')
     
     return {
-        selectedAgent: result.selectedAgent.slug,
-        confidence: result.confidence,
-        reason: result.reason,
-        scores: result.scores,
+        selectedAgent: agent.slug,
+        confidence: decision.confidence,
+        reason: decision.reason,
         isMeliRelated
     }
 }
@@ -108,20 +107,17 @@ async function testRoutingMeli(): Promise<any> {
 async function testRoutingOdoo(): Promise<any> {
     if (!TEST_TENANT_ID) return { skipped: true, reason: 'No TEST_TENANT_ID configured' }
     
-    const result = await routeMessage(TEST_TENANT_ID, 'cuanto vendimos en diciembre 2025?', [])
+    const { agent, decision } = await orchestrate(TEST_TENANT_ID, 'cuanto vendimos en diciembre 2025?', [])
     
-    if (!result.selectedAgent) throw new Error('No agent selected')
+    if (!agent) throw new Error('No agent selected')
     
     // Should route to odoo/erp-related agent
-    const isErpRelated = result.selectedAgent.slug.includes('odoo') || 
-                         result.selectedAgent.slug.includes('erp') ||
-                         result.scores['erp'] > 0
+    const isErpRelated = agent.slug.includes('odoo') || agent.slug.includes('erp')
     
     return {
-        selectedAgent: result.selectedAgent.slug,
-        confidence: result.confidence,
-        reason: result.reason,
-        scores: result.scores,
+        selectedAgent: agent.slug,
+        confidence: decision.confidence,
+        reason: decision.reason,
         isErpRelated
     }
 }
@@ -129,24 +125,23 @@ async function testRoutingOdoo(): Promise<any> {
 async function testRoutingGeneral(): Promise<any> {
     if (!TEST_TENANT_ID) return { skipped: true, reason: 'No TEST_TENANT_ID configured' }
     
-    const result = await routeMessage(TEST_TENANT_ID, 'hola como estas?', [])
+    const { agent, decision } = await orchestrate(TEST_TENANT_ID, 'hola como estas?', [])
     
-    if (!result.selectedAgent) throw new Error('No agent selected')
+    if (!agent) throw new Error('No agent selected')
     
     return {
-        selectedAgent: result.selectedAgent.slug,
-        confidence: result.confidence,
-        reason: result.reason,
-        scores: result.scores
+        selectedAgent: agent.slug,
+        confidence: decision.confidence,
+        reason: decision.reason
     }
 }
 
-async function testSubAgentsLoad(): Promise<any> {
+async function testAgentsLoad(): Promise<any> {
     if (!TEST_TENANT_ID) return { skipped: true, reason: 'No TEST_TENANT_ID configured' }
     
-    const agents = await getSubAgents(TEST_TENANT_ID)
+    const agents = await getAvailableAgents(TEST_TENANT_ID)
     
-    if (!agents.length) throw new Error('No sub-agents loaded')
+    if (!agents.length) throw new Error('No agents loaded')
     
     return {
         count: agents.length,
@@ -211,7 +206,7 @@ export async function GET(req: NextRequest) {
     results.push(await runTest('Gemini API Configured', testGeminiConfigured))
     results.push(await runTest('Tavily API Configured', testTavilyConfigured))
     results.push(await runTest('Firecrawl API Configured', testFirecrawlConfigured))
-    results.push(await runTest('Sub-Agents Load', testSubAgentsLoad))
+    results.push(await runTest('Agents Load (Orchestrator)', testAgentsLoad))
     results.push(await runTest('Tools Load', testToolsLoad))
     results.push(await runTest('Routing: MeLi Query', testRoutingMeli))
     results.push(await runTest('Routing: Odoo Query', testRoutingOdoo))

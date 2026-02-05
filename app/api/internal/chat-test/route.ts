@@ -13,7 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgentBySlug } from '@/lib/agents/service'
 import { searchDocuments } from '@/lib/rag/search'
-import { routeMessage } from '@/lib/agents/router'
+// OLD: import { routeMessage } from '@/lib/agents/router'
+import { orchestrate } from '@/lib/agents/orchestrator'
 // God Tool removed - now using atomic Skills architecture
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
@@ -135,30 +136,42 @@ export async function POST(req: NextRequest) {
             }, { status: 404 })
         }
 
-        // 2. Route message to determine specialty
+        // 2. Route message using LLM Orchestrator
         const inputContent = messages[messages.length - 1]?.content || ''
         const conversationHistory = messages.slice(0, -1).map((m: any) => m.content)
-        const routingResult = await routeMessage(tenantId, inputContent, conversationHistory)
+        const { agent: selectedAgent, decision } = await orchestrate(tenantId, inputContent, conversationHistory)
 
-        console.log(`[TestChat] Routing: ${routingResult.selectedAgent?.slug || 'none'} (${routingResult.confidence})`)
+        console.log(`[TestChat] Orchestrator: ${selectedAgent.slug} (${decision.confidence})`)
 
         // 3. Build system prompt - use unified.ts prompt for consistency
         const { TUQUI_UNIFIED } = await import('@/lib/agents/unified')
         const baseSystemPrompt = TUQUI_UNIFIED.systemPrompt.replace('{{CURRENT_DATE}}', new Date().toISOString().split('T')[0])
         let systemPrompt = baseSystemPrompt
         
-        // Add specialized prompt if routed
-        if (routingResult.selectedAgent?.system_prompt && routingResult.confidence !== 'low') {
-            systemPrompt += `\n\n## 🎯 MODO ACTIVO: ${routingResult.selectedAgent.name}\n${routingResult.selectedAgent.system_prompt}`
+        // Add specialized prompt if orchestrator selected a different agent
+        if (selectedAgent.slug !== agentSlug && decision.confidence !== 'low') {
+            // Fetch the selected agent's system prompt from DB
+            const { getClient } = await import('@/lib/supabase/client')
+            const db = await getClient()
+            const { data: agentData } = await db
+                .from('agents')
+                .select('system_prompt')
+                .eq('id', selectedAgent.id)
+                .single()
+            
+            if (agentData?.system_prompt) {
+                systemPrompt += `\n\n## 🎯 MODO ACTIVO: ${selectedAgent.name}\n${agentData.system_prompt}`
+            }
         }
 
         systemPrompt += '\n\nIMPORTANTE: Usa el contexto de mensajes anteriores para entender referencias.'
 
         // 4. Get RAG context if enabled (non-blocking)
         let ragContext = ''
-        if (agent.rag_enabled) {
+        const effectiveRagEnabled = selectedAgent.rag_enabled || agent.rag_enabled
+        if (effectiveRagEnabled) {
             try {
-                const docs = await searchDocuments(tenantId, agent.id, inputContent)
+                const docs = await searchDocuments(tenantId, selectedAgent.id, inputContent)
                 if (docs.length > 0) {
                     ragContext = `\n\nCONTEXTO RELEVANTE:\n${docs.map(d => `- ${d.content}`).join('\n')}`
                 }
@@ -167,10 +180,9 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 5. Determine which tools to use
-        // Use the agent's configured tools (odoo, web_search, knowledge_base, etc.)
-        let effectiveTools = routingResult.selectedAgent?.tools?.length 
-            ? routingResult.selectedAgent.tools 
+        // 5. Determine which tools to use - from selected agent
+        let effectiveTools = selectedAgent.tools?.length 
+            ? selectedAgent.tools 
             : agent.tools || []
         
         // Ensure odoo skills are available for testing if agent has odoo capability
@@ -209,14 +221,14 @@ export async function POST(req: NextRequest) {
             success: true,
             latencyMs,
             routing: {
-                selectedAgent: routingResult.selectedAgent?.slug || null,
-                confidence: routingResult.confidence,
-                reason: routingResult.reason
+                selectedAgent: selectedAgent.slug,
+                confidence: decision.confidence,
+                reason: decision.reason
             },
             agent: {
                 slug: agent.slug,
                 name: agent.name,
-                ragEnabled: agent.rag_enabled
+                ragEnabled: effectiveRagEnabled
             },
             toolsAvailable: effectiveTools,
             toolsUsed,
@@ -241,7 +253,7 @@ export async function POST(req: NextRequest) {
                     'Content-Type': 'text/plain',
                     'X-Test-Id': testId,
                     'X-Latency-Ms': String(latencyMs),
-                    'X-Routing': routingResult.selectedAgent?.slug || 'base'
+                    'X-Routing': selectedAgent.slug
                 }
             })
         }

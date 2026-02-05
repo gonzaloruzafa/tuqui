@@ -66,10 +66,9 @@ export interface GetCashBalanceOutput {
 export const getCashBalance: Skill<typeof GetCashBalanceInputSchema, GetCashBalanceOutput> = {
   name: 'get_cash_balance',
 
-  description: `Get current cash and bank balances from Odoo. 
-Use for: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "cuánto hay en bancos", 
-"saldo bancario", "tesorería", "liquidez", "efectivo disponible", "money in bank", "cash balance".
-Returns balance per journal (cash registers and bank accounts).`,
+  description: `Saldo de caja y bancos (tesorería).
+USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "saldo total disponible", "cuánta plata hay", "efectivo disponible", "liquidez".
+Retorna: saldo por caja/banco y total combinado.`,
 
   tool: 'odoo',
 

@@ -28,7 +28,8 @@ export const getVendorBills: Skill<
   VendorBillsOutput
 > = {
   name: 'get_vendor_bills',
-  description: 'Get vendor bills (supplier invoices). Use for "vendor bills", "supplier invoices", "what we owe suppliers".',
+  description: `Deuda a proveedores / facturas de proveedor pendientes.
+USAR PARA: "cuánto le debemos a proveedores", "facturas pendientes de pago", "deuda con proveedores", "cuentas por pagar", "accounts payable".`,
   tool: 'odoo',
   tags: ['purchases', 'bills', 'accounting'],
   inputSchema: GetVendorBillsInputSchema,
