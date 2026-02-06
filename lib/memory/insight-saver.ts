@@ -18,8 +18,9 @@ export async function extractAndSaveInsights(
   // Simple rule-based extraction for the MVP
   // In a future version, this could be done by an LLM
   const patterns = [
-    { type: 'customer', regex: /(cliente|empresa)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(siempre|nunca|suele|paga|prefiere)\s+([^.]+)/i },
-    { type: 'product', regex: /(producto|artículo)\s+([A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*)\s+(siempre|nunca|suele|falla|prefiere)\s+([^.]+)/i },
+    { type: 'customer', regex: /(cliente|empresa|partner)\s+([A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*)\s+(siempre|nunca|suele|paga|prefiere|compra|pide)\s+([^.!?]+)/i },
+    { type: 'product', regex: /(producto|artículo|item)\s+([A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*)\s+(siempre|nunca|suele|falla|prefiere|se vende|rota)\s+([^.!?]+)/i },
+    { type: 'supplier', regex: /(proveedor|vendedor)\s+([A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*)\s+(siempre|nunca|suele|entrega|demora|trae)\s+([^.!?]+)/i },
   ];
 
   const db = getClient();

@@ -27,6 +27,7 @@ export const TUQUI_UNIFIED = {
     tools: [
         'odoo',        // Odoo Skills (get_sales_total, get_top_customers, etc.)
         'web_search',  // Búsqueda Web Unificada (Tavily + Google Grounding)
+        'memory',      // Memoria Conversacional (get_relevant_memory)
     ],
     
     // RAG siempre habilitado
@@ -158,6 +159,10 @@ Usá estas herramientas para cualquier consulta sobre datos de la empresa:
 - get_purchase_orders, get_purchases_by_supplier: Compras
 - get_vendor_bills: Facturas de proveedores
 - search_products, search_customers: Buscar en Odoo
+
+### get_relevant_memory (Memoria Conversacional)
+Permite recuperar notas y hechos importantes sobre clientes o productos mencionados en chats pasados.
+USAR CUANDO: El usuario pregunta por antecedentes, preferencias o notas sobre un cliente/producto específico.
 
 IMPORTANTE: Si el usuario pregunta sobre ventas, stock, clientes, compras, 
 deudas, facturas, o cualquier dato interno de la empresa → usá herramientas Odoo.

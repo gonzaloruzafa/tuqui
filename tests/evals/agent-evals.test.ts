@@ -221,9 +221,9 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
     console.log(`\n   ✅ Passed: ${totalPassed}`);
     console.log(`   ❌ Failed: ${totalFailed}`);
     console.log(`   ⏭️  Skipped: ${totalSkipped}`);
-    console.log(`   📈 Pass Rate: ${passRatePct}%`);
-    console.log(`   🎯 Threshold: ${PASSING_THRESHOLD * 100}%`);
-    console.log(`   ${passRate >= PASSING_THRESHOLD ? '✅ PASSED' : '❌ FAILED'}`);
+    console.log(`\n   📈 Resulting Pass Rate: ${passRatePct}%`);
+    console.log(`   🎯 Target Threshold: ${PASSING_THRESHOLD * 100}%`);
+    console.log(`   ${passRate >= PASSING_THRESHOLD ? '✅ SUMMARY PASSED' : '❌ SUMMARY FAILED'}`);
 
     // Category breakdown
     console.log('\n   By Category:');
@@ -321,7 +321,8 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
   // Final threshold check
   test.skipIf(SKIP_EVALS)('📊 Overall pass rate meets threshold', () => {
     const passRate = totalPassed / (totalPassed + totalFailed);
-    console.log(`\n🎯 Final Pass Rate: ${(passRate * 100).toFixed(1)}% (threshold: ${PASSING_THRESHOLD * 100}%)`);
+    // Keep this format as it is what the CI script expects
+    console.log(`\n🎯 Pass Rate: ${(passRate * 100).toFixed(1)}% (threshold: ${PASSING_THRESHOLD * 100}%)`);
     expect(passRate).toBeGreaterThanOrEqual(PASSING_THRESHOLD);
   });
 });
