@@ -1,0 +1,49 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90m/home/gonza/adhoc x/tuqui[39m
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts
+[22m[39m[dotenv@17.2.3] injecting env (37) from .env.local -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+✅ Environment loaded for tests
+   NEXT_PUBLIC_SUPABASE_URL: ✓ set
+   SUPABASE_SERVICE_ROLE_KEY: ✓ set
+   TEST_TENANT_ID: ✗ not set (live tests skipped)
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)
+[22m[39m
+======================================================================
+🚀 Starting Agent Evaluations
+======================================================================
+   Base URL: http://localhost:3000
+   Tenant: de7ef34a-12bd-4fe9-9d02-3d876a9393c2
+   Agent: tuqui
+   Test Cases: 67
+   Pass Threshold: 80%
+======================================================================
+
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-001: "¿Cuánto vendimos en enero?"
+[22m[39m
+🗣️  Testing: "¿Cuánto vendimos en enero?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-001: "¿Cuánto vendimos en enero?"
+[22m[39m   📝 Response: En enero vendimos un total de $ 1.549.454.784 (incluyendo impuestos). Hubo 1315 órdenes de 761 clientes, con un valor promedio por orden de $ 1.178.293. 📈
+   ⏱️  Latency: 9538ms
+   🛠️  Tools: odoo, knowledge_base
+   ✅ PASSED
+
+ [32m✓[39m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 VENTAS[2m > [22mventas-001: "¿Cuánto vendimos en enero?"[33m 34600[2mms[22m[39m
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-002: "¿Quién es mi mejor cliente?"
+[22m[39m
+🗣️  Testing: "¿Quién es mi mejor cliente?"
+
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-002: "¿Quién es mi mejor cliente?"
+[22m[39m   📝 Response: No tengo datos de clientes para este mes. 😕
+   ⏱️  Latency: 8610ms
+   🛠️  Tools: odoo, knowledge_base
+   ✅ PASSED
+
+ [32m✓[39m tests/evals/agent-evals.test.ts[2m > [22m🤖 Agent Evaluations (E2E)[2m > [22m📁 VENTAS[2m > [22mventas-002: "¿Quién es mi mejor cliente?"[33m 33643[2mms[22m[39m
+[90mstdout[2m | tests/evals/agent-evals.test.ts[2m > [22m[2m🤖 Agent Evaluations (E2E)[2m > [22m[2m📁 VENTAS[2m > [22m[2mventas-003: "¿Qué productos vendemos más?"
+[22m[39m
+🗣️  Testing: "¿Qué productos vendemos más?"
+

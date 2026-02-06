@@ -42,6 +42,10 @@ export { searchProducts } from './search-products';
 
 // Accounting Skills
 export { getCustomerBalance } from './get-customer-balance';
+export { getAccountBalance, type GetAccountBalanceInput, type GetAccountBalanceOutput } from './get-account-balance';
+export { getJournalEntries, type GetJournalEntriesInput, type GetJournalEntriesOutput } from './get-journal-entries';
+export { getAccountsPayable, type GetAccountsPayableInput, type GetAccountsPayableOutput } from './get-accounts-payable';
+export { getPaymentsMade, type GetPaymentsMadeInput, type GetPaymentsMadeOutput } from './get-payments-made';
 
 // Treasury Skills
 export { getCashBalance, type GetCashBalanceInput, type GetCashBalanceOutput } from './get-cash-balance';
@@ -86,6 +90,10 @@ import { getTopStockProducts } from './get-top-stock-products';
 import { getNewCustomers } from './get-new-customers';
 import { getArAging } from './get-ar-aging';
 import { getSalesTeams } from './get-sales-teams';
+import { getAccountBalance } from './get-account-balance';
+import { getJournalEntries } from './get-journal-entries';
+import { getAccountsPayable } from './get-accounts-payable';
+import { getPaymentsMade } from './get-payments-made';
 
 export const odooSkills = [
   // Sales (10)
@@ -118,10 +126,14 @@ export const odooSkills = [
   // Search (2)
   searchCustomers,
   searchProducts,
-  // Accounting/Treasury (3)
+  // Accounting/Treasury (7)
   getCustomerBalance,
   getCashBalance, // NEW
   getAccountsReceivable, // NEW
+  getAccountBalance, // NEW - chart of accounts balances
+  getJournalEntries, // NEW - journal entries
+  getAccountsPayable, // NEW - supplier debt
+  getPaymentsMade, // NEW - outbound payments
   // CRM/Growth (1)
   getNewCustomers, // NEW
   // Aging/Analysis (1)
