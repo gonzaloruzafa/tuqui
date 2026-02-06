@@ -221,7 +221,7 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
     console.log(`\n   ✅ Passed: ${totalPassed}`);
     console.log(`   ❌ Failed: ${totalFailed}`);
     console.log(`   ⏭️  Skipped: ${totalSkipped}`);
-    console.log(`\n   📈 Resulting Pass Rate: ${passRatePct}%`);
+    console.log(`\n   📈 Overall Accuracy: ${passRatePct}%`);
     console.log(`   🎯 Target Threshold: ${PASSING_THRESHOLD * 100}%`);
     console.log(`   ${passRate >= PASSING_THRESHOLD ? '✅ SUMMARY PASSED' : '❌ SUMMARY FAILED'}`);
 
