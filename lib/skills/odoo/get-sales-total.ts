@@ -80,10 +80,18 @@ export const getSalesTotal: Skill<
 > = {
   name: 'get_sales_total',
 
-  description: `Total de ventas por período, con opción de filtrar por equipo de ventas.
-USAR PARA: "total ventas", "cuánto vendimos", "facturación total", "revenue".
-Filtro teamId para: "ventas del ecommerce", "tienda web", "ventas online".
-Retorna: total con/sin impuestos, cantidad de órdenes, valor promedio.`,
+  description: `Obtiene el resumen de ventas totales para un período determinado.
+
+USAR CUANDO: "cuánto vendimos", "total de ventas", "facturación",
+"cuánta guita hicimos", "revenue", "ingresos", "ventas totales".
+También para ventas por equipo: "ventas del ecommerce", "tienda web", "ventas online".
+
+NO USAR: Para precios de mercado de la competencia (usar web_search).
+Para detalle de ventas por cliente específico (usar get_sales_by_customer).
+
+DEFAULT: Si no se especifica período, usa el mes actual.
+
+RETORNA: Total con/sin impuestos, cantidad de órdenes, cantidad de clientes únicos y valor promedio de orden.`,
 
   tool: 'odoo',
 

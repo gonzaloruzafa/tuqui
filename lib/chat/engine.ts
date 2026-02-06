@@ -9,6 +9,8 @@ import { Agent } from '@/lib/agents/service'
 // OLD: import { routeMessage, buildCombinedPrompt } from '@/lib/agents/router'
 import { orchestrate, type AvailableAgent } from '@/lib/agents/orchestrator'
 import { ToolCallRecord } from '@/lib/supabase/chat-history'
+import { extractAndSaveInsights } from '@/lib/memory/insight-saver'
+import { getStructuredCompanyContext } from '@/lib/company/context-injector'
 
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -137,10 +139,16 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             }
         }
 
-        const companyContext = await getCompanyContext(tenantId)
-
-        if (companyContext) {
-            systemPrompt += `\n\nCONTEXTO DE LA EMPRESA:\n${companyContext}`
+        // Unified Company Context (Structured + Legacy)
+        const structuredContext = await getStructuredCompanyContext(tenantId)
+        if (structuredContext) {
+            systemPrompt += `\n${structuredContext}`
+        } else {
+            // Fallback to legacy paragraph context
+            const companyContext = await getCompanyContext(tenantId)
+            if (companyContext) {
+                systemPrompt += `\n\nCONTEXTO DE LA EMPRESA:\n${companyContext}`
+            }
         }
 
         if (channel === 'whatsapp') {
@@ -213,9 +221,14 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             totalTokens = result.usage.totalTokens || 0
         }
 
-        // 6. Track Usage
+        // 6. Track Usage & Extract Insights (background)
         try {
             await trackUsage(tenantId, userEmail, Math.ceil(totalTokens))
+
+            // Background: extract insights for memory
+            extractAndSaveInsights(tenantId, null, messages as any).catch(e =>
+                console.error('[ChatEngine] Error extracting insights:', e)
+            )
         } catch (e) {
             console.error('[ChatEngine] Failed to track usage:', e)
         }

@@ -70,20 +70,32 @@ export async function searchMeliWithSerper(
 
   console.log('[MeliSkill/Serper] Found', organic.length, 'results')
 
-  // Parse and filter valid product URLs
+  // Parse and filter valid product URLs with improved logic
   const products: MeliProduct[] = organic
-    .filter((r: any) => MLLinkValidator.isProductURL(r.link))
+    .filter((r: any) => {
+      const isProduct = MLLinkValidator.isProductURL(r.link)
+      const hasTitle = !!r.title
+      return isProduct && hasTitle
+    })
     .map((r: any) => {
-      const price = extractPriceFromText(r.snippet || r.title || '')
+      // Try to find price in snippet, then title
+      let price = extractPriceFromText(r.snippet || '')
+      if (!price) price = extractPriceFromText(r.title || '')
+
+      // Basic cleanup for titles (remove site name)
+      const cleanTitle = r.title.replace(/\| Mercado Libre.*/i, '').trim()
+
       return {
         id: MLLinkValidator.extractProductId(r.link),
-        title: r.title,
+        title: cleanTitle,
         url: r.link,
         snippet: r.snippet || '',
         price,
         priceFormatted: formatPrice(price),
       }
     })
+    // Sort products that HAVE price first
+    .sort((a: any, b: any) => (b.price ? 1 : 0) - (a.price ? 1 : 0))
 
   const result: MeliSearchResult = {
     products,

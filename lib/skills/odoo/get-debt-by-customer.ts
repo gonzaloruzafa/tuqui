@@ -79,10 +79,17 @@ export const getDebtByCustomer: Skill<
 > = {
   name: 'get_debt_by_customer',
 
-  description: `Deudas de clientes - quién nos debe más y cuánto. HERRAMIENTA PRINCIPAL para cobranzas.
-Use for: "quién nos debe más", "clientes morosos", "deudores principales", "accounts receivable", 
-"deudas de clientes", "quién nos debe", "cuentas por cobrar", "saldos pendientes",
-"top deudores", "clientes con deuda", "cobrar". Devuelve cliente, monto adeudado, fecha vencimiento.`,
+  description: `Consulta deudas de clientes y facturas pendientes de cobro.
+
+USAR CUANDO: "quién nos debe", "clientes morosos", "deudas de clientes",
+"cuentas por cobrar", "cobranzas", "quién tiene facturas vencidas",
+"monto total de deuda", "morosidad".
+Es la herramienta principal para gestionar cobranzas y entender quién debe dinero.
+
+NO USAR: Para ver cuánto le vendimos a alguien (usar get_sales_by_customer).
+Para ver el balance contable de una cuenta específica (usar get_account_balance).
+
+RETORNA: Lista de clientes con deuda total, cantidad de facturas pendientes y días de atraso de la más antigua.`,
 
   tool: 'odoo',
 

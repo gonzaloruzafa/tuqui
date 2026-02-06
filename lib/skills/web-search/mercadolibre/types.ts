@@ -64,11 +64,13 @@ export function parsePrice(text: string): number | null {
  */
 export function extractPriceFromText(text: string): number | null {
   const patterns = [
-    /\$\s*([\d.]+)/, // $ 123.456
-    /([\d.]+)\s*pesos/i, // 123.456 pesos
-    /ARS\s*([\d.]+)/i, // ARS 123.456
-    /precio[:\s]*([\d.]+)/i, // precio: 123.456
-    /desde\s*\$?\s*([\d.]+)/i, // desde $ 123.456
+    /\$\s*(\d{1,3}(?:\.\d{3})+)/, // $ 123.456 (con puntos)
+    /\$\s*(\d{4,})/,             // $ 123456 (sin puntos, min 4 digitos)
+    /([\d.]+)\s*pesos/i,         // 123.456 pesos
+    /ARS\s*([\d.]+)/i,           // ARS 123.456
+    /precio[:\s]*\$?\s*([\d.]+)/i, // precio: 123.456
+    /desde\s*\$?\s*([\d.]+)/i,   // desde $ 123.456
+    /pagá\s*\$?\s*([\d.]+)/i,    // pagá $ 123.456
   ]
 
   for (const pattern of patterns) {

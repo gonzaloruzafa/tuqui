@@ -82,10 +82,16 @@ export const getSalesByCustomer: Skill<
 > = {
   name: 'get_sales_by_customer',
 
-  description: `Análisis detallado de ventas por cliente - incluye cantidad de órdenes, monto total, y valor promedio.
-USAR PARA: análisis detallado, "cuánto le vendimos a X", "detalle de ventas por cliente", métricas por cliente.
-NO usar para ranking rápido (usar get_top_customers en su lugar).
-Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cliente".`,
+  description: `Análisis detallado de ventas agrupadas por cliente para un período.
+
+USAR CUANDO: "cuánto le vendimos a [Cliente]", "detalle de ventas por cliente",
+"análisis de ventas de [Cliente]", "ventas a [Cliente] este año".
+Es ideal para ver el comportamiento de compra de clientes específicos.
+
+NO USAR: Para un ranking rápido de mejores clientes (usar get_top_customers).
+Para deudas o saldos pendientes (usar get_debt_by_customer).
+
+RETORNA: Lista de clientes con monto total, cantidad de órdenes y ticket promedio.`,
 
   tool: 'odoo',
 

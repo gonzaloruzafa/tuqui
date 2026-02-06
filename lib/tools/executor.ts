@@ -1,6 +1,7 @@
 import { webSearchTool } from './web-search'
 import { loadSkillsForAgent, hasOdooTools, shouldUseSkills } from '@/lib/skills/loader'
 import { createRagTool } from './definitions/rag-tool'
+import { memoryTool } from './definitions/memory-tool'
 
 /**
  * Agent configuration subset needed for tool loading
@@ -47,6 +48,12 @@ export async function getToolsForAgent(
     // Web Search Unificado - Tavily + Google Grounding
     if (agentTools.includes('web_search')) {
         tools.web_search = webSearchTool
+    }
+
+    // Memoria Conversacional - Recuperación de insights pasados
+    if (agentTools.includes('memory') || agentTools.includes('conversation_memory')) {
+        tools.get_relevant_memory = memoryTool
+        console.log('[Tools/Executor] Memory tool loaded')
     }
 
     // Knowledge Base (RAG) - On-demand document search

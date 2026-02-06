@@ -68,10 +68,16 @@ export const getProductStock: Skill<
 > = {
   name: 'get_product_stock',
 
-  description: `Get stock levels for products using stock.quant model.
-Use when user asks: "stock", "inventory", "how many do we have",
-"stock disponible", "inventario", "cuánto tenemos", "existencias".
-Can search by product name or show low stock items.`,
+  description: `Consulta niveles de stock real de productos usando el modelo stock.quant.
+
+USAR CUANDO: "stock", "inventario", "cuánto hay de [Producto]", "existencias",
+"tenemos [Producto]?", "disponibilidad de stock", "cuántas unidades quedan".
+Puede filtrar por nombre de producto o mostrar productos con stock bajo si se especifica un umbral.
+
+NO USAR: Para valuación total del inventario (usar get_stock_valuation).
+Para ver productos que más rotan (usar get_top_products).
+
+RETORNA: Lista de productos con su cantidad disponible actual.`,
 
   tool: 'odoo',
 
