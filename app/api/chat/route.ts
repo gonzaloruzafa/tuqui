@@ -5,7 +5,6 @@ import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 // God Tool removed - now using atomic Skills architecture
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
-import { getClient } from '@/lib/supabase/client'
 // NEW: Using LLM orchestrator instead of keyword-based router
 import { orchestrate } from '@/lib/agents/orchestrator'
 import { ResponseGuard } from '@/lib/validation/response-guard'
@@ -15,23 +14,6 @@ const google = createGoogleGenerativeAI({
 })
 
 export const maxDuration = 120 // Plan Pro - longer timeout for multi-tool calls
-
-async function getCompanyContext(tenantId: string): Promise<string | null> {
-    try {
-        const db = getClient()
-        const { data, error } = await db
-            .from('tenants')
-            .select('company_context')
-            .eq('id', tenantId)
-            .single()
-
-        if (error || !data?.company_context) return null
-        return data.company_context
-    } catch (e) {
-        console.error('[Chat] Error fetching company context:', e)
-        return null
-    }
-}
 
 export async function POST(req: Request) {
     const session = await auth()

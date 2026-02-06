@@ -1,4 +1,5 @@
 import { getClient } from '@/lib/supabase/client'
+import { getCompanyContextString } from '@/lib/company/context-injector'
 // RAG search moved to tool - see lib/tools/definitions/rag-tool.ts
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
@@ -67,23 +68,6 @@ export interface ChatEngineResponse {
     }
 }
 
-async function getCompanyContext(tenantId: string): Promise<string | null> {
-    try {
-        const db = getClient()
-        const { data, error } = await db
-            .from('tenants')
-            .select('company_context')
-            .eq('id', tenantId)
-            .single()
-
-        if (error || !data?.company_context) return null
-        return data.company_context
-    } catch (e) {
-        console.error('[ChatEngine] Error fetching company context:', e)
-        return null
-    }
-}
-
 /**
  * Unified Chat Engine
  * Process a chat request from any channel (Web, WhatsApp, etc.)
@@ -137,10 +121,10 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             }
         }
 
-        const companyContext = await getCompanyContext(tenantId)
+        const companyContext = await getCompanyContextString(tenantId)
 
         if (companyContext) {
-            systemPrompt += `\n\nCONTEXTO DE LA EMPRESA:\n${companyContext}`
+            systemPrompt += `\n\n---\nCONTEXTO DE LA EMPRESA:\n${companyContext}\n---`
         }
 
         if (channel === 'whatsapp') {
