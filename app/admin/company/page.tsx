@@ -1,16 +1,16 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
-import { Building, Globe, Mail, MapPin, Phone, Save, BookOpen, Eye, MessageSquare, ArrowRight } from 'lucide-react'
+import { Building, Globe, Mail, MapPin, Phone, BookOpen, MessageSquare, ArrowRight } from 'lucide-react'
 import { getClient, getTenantClient } from '@/lib/supabase/client'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
+import { CompanyForm } from '@/components/admin/CompanyForm'
 import { DynamicList } from '@/components/admin/DynamicList'
 import { RulesList } from '@/components/admin/RulesList'
 import { WebScanner } from '@/components/admin/WebScanner'
 import { DocumentSelector } from '@/components/ui/DocumentSelector'
 import { getCompanyContext } from '@/lib/company/context-injector'
-import { saveCompanyContext, scanWebsite } from './actions'
 import Link from 'next/link'
 
 async function getTenantData(tenantId: string) {
@@ -62,7 +62,7 @@ export default async function AdminCompanyPage() {
       <AdminSubHeader title="Tu Empresa" backHref="/admin" icon={Building} tenantName={tenant.name} />
 
       <div className="flex-grow max-w-5xl mx-auto px-6 py-10 w-full">
-        <form action={saveCompanyContext} className="space-y-8">
+        <CompanyForm initialPreview={contextPreview}>
 
           {/* SECTION 1: Datos Básicos */}
           <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
@@ -102,7 +102,6 @@ export default async function AdminCompanyPage() {
             currentUrl={scanUrl}
             currentSummary={webSummary}
             scannedAt={ctx?.web_scanned_at || null}
-            scanAction={scanWebsite}
           />
 
           {/* SECTION 3: Clientes Clave */}
@@ -196,41 +195,9 @@ export default async function AdminCompanyPage() {
             </div>
           </section>
 
-          {/* SECTION 8: Preview */}
-          <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-gray-50 bg-gray-50/20">
-              <h2 className="text-xl font-bold text-gray-900 font-display flex items-center gap-2">
-                <Eye className="w-5 h-5 text-adhoc-violet" />
-                Así ve Tuqui a tu empresa
-              </h2>
-              <p className="text-sm text-gray-500 mt-1 italic">
-                ~{contextPreview.tokenEstimate} tokens · Fuentes: {contextPreview.sources.join(', ') || 'ninguna'}
-              </p>
-            </div>
-            <div className="p-8">
-              {contextPreview.context ? (
-                <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 border border-gray-100 rounded-xl p-6 text-gray-700 leading-relaxed">
-                  {contextPreview.context}
-                </pre>
-              ) : (
-                <p className="text-sm text-gray-400 italic text-center py-6">
-                  Completá los datos de arriba para que Tuqui conozca tu empresa
-                </p>
-              )}
-            </div>
-          </section>
+          {/* Preview + Save button are rendered by CompanyForm */}
 
-          {/* SAVE BUTTON */}
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="flex items-center gap-2 bg-adhoc-violet hover:bg-adhoc-violet/90 text-white font-semibold px-8 py-3 rounded-xl transition-all shadow-md shadow-adhoc-violet/20 active:scale-95"
-            >
-              <Save className="w-4 h-4" />
-              Guardar cambios
-            </button>
-          </div>
-        </form>
+        </CompanyForm>
       </div>
 
       <Footer />

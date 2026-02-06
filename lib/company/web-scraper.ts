@@ -1,11 +1,19 @@
 import { generateText } from 'ai'
 import { google } from '@ai-sdk/google'
 
-interface ScrapeResult {
+export interface ScrapeResult {
   success: boolean
   summary?: string
   pagesScanned?: number
   error?: string
+}
+
+export interface CrawlProgress {
+  url: string
+  status: 'scanning' | 'done' | 'skipped'
+  current: number
+  total: number
+  phase: 'crawling' | 'summarizing'
 }
 
 const MAX_DEPTH = 2
@@ -78,19 +86,28 @@ async function fetchPage(url: string): Promise<{ html: string; text: string } | 
  * Crawlea un sitio hasta 2 niveles de profundidad (max 10 páginas).
  * Retorna todo el texto concatenado.
  */
-export async function crawlSite(startUrl: string): Promise<{ texts: string[]; urls: string[] }> {
+export async function crawlSite(
+  startUrl: string,
+  onProgress?: (progress: CrawlProgress) => void
+): Promise<{ texts: string[]; urls: string[] }> {
   const baseUrl = new URL(startUrl)
   const visited = new Set<string>()
   const texts: string[] = []
   const urls: string[] = []
 
+  const report = (url: string, status: CrawlProgress['status']) => {
+    onProgress?.({ url, status, current: urls.length, total: MAX_PAGES, phase: 'crawling' })
+  }
+
   // Nivel 0: página principal
+  report(startUrl, 'scanning')
   const mainPage = await fetchPage(startUrl)
-  if (!mainPage) return { texts: [], urls: [] }
+  if (!mainPage) { report(startUrl, 'skipped'); return { texts: [], urls: [] } }
 
   visited.add(baseUrl.origin + baseUrl.pathname)
   texts.push(mainPage.text)
   urls.push(startUrl)
+  report(startUrl, 'done')
 
   // Extraer links para nivel 1
   const level1Links = extractInternalLinks(mainPage.html, baseUrl)
@@ -100,11 +117,13 @@ export async function crawlSite(startUrl: string): Promise<{ texts: string[]; ur
     if (visited.has(link)) continue
     visited.add(link)
 
+    report(link, 'scanning')
     const page = await fetchPage(link)
-    if (!page) continue
+    if (!page) { report(link, 'skipped'); continue }
 
     texts.push(page.text)
     urls.push(link)
+    report(link, 'done')
 
     // Nivel 2: links desde páginas de nivel 1
     if (visited.size < MAX_PAGES) {
@@ -114,10 +133,12 @@ export async function crawlSite(startUrl: string): Promise<{ texts: string[]; ur
         if (visited.has(l2)) continue
         visited.add(l2)
 
+        report(l2, 'scanning')
         const p2 = await fetchPage(l2)
-        if (!p2) continue
+        if (!p2) { report(l2, 'skipped'); continue }
         texts.push(p2.text)
         urls.push(l2)
+        report(l2, 'done')
       }
     }
   }
@@ -128,7 +149,10 @@ export async function crawlSite(startUrl: string): Promise<{ texts: string[]; ur
 /**
  * Escanea un sitio web (2 niveles) y genera resumen con Gemini.
  */
-export async function scrapeAndSummarize(url: string): Promise<ScrapeResult> {
+export async function scrapeAndSummarize(
+  url: string,
+  onProgress?: (progress: CrawlProgress) => void
+): Promise<ScrapeResult> {
   try {
     // Validar URL
     new URL(url)
@@ -137,11 +161,14 @@ export async function scrapeAndSummarize(url: string): Promise<ScrapeResult> {
   }
 
   try {
-    const { texts, urls } = await crawlSite(url)
+    const { texts, urls } = await crawlSite(url, onProgress)
 
     if (texts.length === 0) {
       return { success: false, error: 'No se pudo acceder al sitio' }
     }
+
+    // Notify summarizing phase
+    onProgress?.({ url, status: 'scanning', current: urls.length, total: urls.length, phase: 'summarizing' })
 
     // Concatenar y limitar texto para el prompt
     const allText = texts.join('\n\n---\n\n').slice(0, 15_000)

@@ -1,42 +1,97 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Globe, Loader2, Search } from 'lucide-react'
+import { useState } from 'react'
+import { Globe, Loader2, Search, Check, X, Sparkles } from 'lucide-react'
+
+interface ScanProgress {
+  url: string
+  status: 'scanning' | 'done' | 'skipped'
+  current: number
+  total: number
+  phase: 'crawling' | 'summarizing'
+}
 
 interface WebScannerProps {
   currentUrl: string
   currentSummary: string
   scannedAt: string | null
-  scanAction: (formData: FormData) => Promise<{ success: boolean; summary?: string; pagesScanned?: number; error?: string }>
 }
 
-export function WebScanner({ currentUrl, currentSummary, scannedAt, scanAction }: WebScannerProps) {
+export function WebScanner({ currentUrl, currentSummary, scannedAt }: WebScannerProps) {
   const [url, setUrl] = useState(currentUrl)
   const [summary, setSummary] = useState(currentSummary)
   const [scanning, setScanning] = useState(false)
+  const [progress, setProgress] = useState<ScanProgress | null>(null)
+  const [scannedUrls, setScannedUrls] = useState<{ url: string; status: 'done' | 'skipped' }[]>([])
   const [scanResult, setScanResult] = useState<{ pages?: number; error?: string } | null>(null)
 
   const handleScan = async () => {
     if (!url.trim()) return
     setScanning(true)
     setScanResult(null)
+    setProgress(null)
+    setScannedUrls([])
 
     try {
-      const fd = new FormData()
-      fd.set('url', url)
-      const result = await scanAction(fd)
+      const res = await fetch('/api/admin/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
 
-      if (result.success && result.summary) {
-        setSummary(result.summary)
-        setScanResult({ pages: result.pagesScanned })
-      } else {
-        setScanResult({ error: result.error || 'Error desconocido' })
+      if (!res.ok || !res.body) {
+        setScanResult({ error: 'Error de conexión' })
+        setScanning(false)
+        return
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const data = JSON.parse(line.slice(6))
+
+            if (data.type === 'progress') {
+              setProgress(data)
+              if (data.status === 'done' || data.status === 'skipped') {
+                setScannedUrls(prev => [...prev, { url: data.url, status: data.status }])
+              }
+            } else if (data.type === 'result') {
+              if (data.success && data.summary) {
+                setSummary(data.summary)
+                setScanResult({ pages: data.pagesScanned })
+              } else {
+                setScanResult({ error: data.error || 'Error desconocido' })
+              }
+            }
+          } catch { /* parse error, skip */ }
+        }
       }
     } catch {
       setScanResult({ error: 'Error de conexión' })
     } finally {
       setScanning(false)
+      setProgress(null)
     }
+  }
+
+  const progressPercent = progress
+    ? progress.phase === 'summarizing' ? 95 : Math.min(90, (progress.current / progress.total) * 90)
+    : 0
+
+  const shortUrl = (u: string) => {
+    try { return new URL(u).pathname || '/' } catch { return u }
   }
 
   return (
@@ -77,15 +132,61 @@ export function WebScanner({ currentUrl, currentSummary, scannedAt, scanAction }
           </button>
         </div>
 
+        {/* Progress bar + page log */}
+        {scanning && (
+          <div className="space-y-3 animate-in fade-in duration-300">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span className="flex items-center gap-1.5">
+                  {progress?.phase === 'summarizing' ? (
+                    <><Sparkles className="w-3.5 h-3.5 text-adhoc-violet animate-pulse" /> Generando resumen con IA...</>
+                  ) : (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Escaneando páginas...</>
+                  )}
+                </span>
+                <span className="font-mono">{scannedUrls.filter(u => u.status === 'done').length} páginas</span>
+              </div>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-adhoc-violet to-adhoc-violet/70 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Page log */}
+            <div className="max-h-32 overflow-y-auto bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1">
+              {progress?.status === 'scanning' && (
+                <div className="flex items-center gap-2 text-xs text-gray-500 animate-pulse">
+                  <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />
+                  <span className="truncate font-mono">{shortUrl(progress.url)}</span>
+                </div>
+              )}
+              {[...scannedUrls].reverse().map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  {item.status === 'done' ? (
+                    <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <X className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                  )}
+                  <span className={`truncate font-mono ${item.status === 'done' ? 'text-gray-600' : 'text-gray-300'}`}>
+                    {shortUrl(item.url)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Scan result feedback */}
         {scanResult?.error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
             ⚠️ {scanResult.error}
           </div>
         )}
-        {scanResult?.pages && (
+        {scanResult?.pages && !scanning && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700">
-            ✅ {scanResult.pages} páginas escaneadas
+            ✅ {scanResult.pages} páginas escaneadas correctamente
           </div>
         )}
 
@@ -110,7 +211,7 @@ export function WebScanner({ currentUrl, currentSummary, scannedAt, scanAction }
         {!summary && <input type="hidden" name="web_summary" value="" />}
 
         {/* Metadata */}
-        {scannedAt && (
+        {scannedAt && !scanning && (
           <p className="text-xs text-gray-400">
             📊 Último escaneo: {new Date(scannedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>

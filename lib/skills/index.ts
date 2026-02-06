@@ -1,7 +1,7 @@
 /**
  * Skills Module - Atomic, Typed, Testable Skills
  *
- * This module provides the Skills architecture for Tuqui Agents.
+ * This module provides the Skills architecture for Tuqui.
  * Skills are deterministic functions that replace LLM-driven query generation.
  *
  * @example

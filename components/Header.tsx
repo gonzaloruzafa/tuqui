@@ -13,7 +13,7 @@ export async function Header() {
                 <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <img src="/adhoc-logo.png" alt="Adhoc" className="h-10 w-auto" />
                     <span className="hidden md:inline-block px-3 py-1 bg-adhoc-lavender/30 text-adhoc-violet rounded-full text-sm font-medium">
-                        Tuqui Agents
+                        Tuqui
                     </span>
                 </Link>
                 <div className="flex items-center gap-4">

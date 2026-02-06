@@ -1,4 +1,4 @@
-// Tuqui Agents - Service Worker for Push Notifications
+// Tuqui - Service Worker for Push Notifications
 // This handles incoming push notifications from Prometeo
 
 self.addEventListener('install', (event) => {
@@ -15,7 +15,7 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
   
   let data = {
-    title: 'Tuqui Agents',
+    title: 'Tuqui',
     body: 'Tienes una nueva notificación',
     icon: '/icon-192.png',
     badge: '/badge-72.png',

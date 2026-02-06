@@ -56,7 +56,7 @@ export default async function LoginPage({
                         Plataforma Alpha
                     </span>
                     <h1 className="text-4xl font-medium text-gray-900 tracking-tight font-display">
-                        Tuqui Agents
+                        Tuqui
                     </h1>
                     <p className="mt-3 text-base text-gray-500">
                         Agentes IA para tu negocio
