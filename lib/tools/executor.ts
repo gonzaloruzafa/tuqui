@@ -37,6 +37,10 @@ export async function getToolsForAgent(
         ? { id: 'legacy', tools: agentOrTools, rag_enabled: false }
         : agentOrTools
     
+    if (agent.id === 'legacy') {
+        console.warn('[Tools/Executor] ⚠️ DEPRECATED: getToolsForAgent called with string[] instead of AgentToolConfig. RAG tool will be skipped. Pass { id, tools, rag_enabled } instead.')
+    }
+    
     const tools: Record<string, any> = {}
     const agentTools = agent.tools || []
 
@@ -47,10 +51,14 @@ export async function getToolsForAgent(
 
     // Knowledge Base (RAG) - On-demand document search
     // Activated by: tools.includes('knowledge_base') OR legacy rag_enabled flag
+    // Requires a valid agent UUID to scope the search
     const hasKnowledgeBase = agentTools.includes('knowledge_base') || agent.rag_enabled
-    if (hasKnowledgeBase) {
+    const hasValidAgentId = agent.id !== 'legacy' && agent.id !== 'test'
+    if (hasKnowledgeBase && hasValidAgentId) {
         tools.search_knowledge_base = createRagTool(tenantId, agent.id)
         console.log('[Tools/Executor] Knowledge Base tool loaded for agent:', agent.id)
+    } else if (hasKnowledgeBase && !hasValidAgentId) {
+        console.warn('[Tools/Executor] Skipping RAG tool: agent.id is not a valid UUID:', agent.id)
     }
 
     // Odoo Skills - New atomic skills architecture

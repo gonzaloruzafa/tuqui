@@ -1,6 +1,5 @@
 import { auth } from '@/lib/auth/config'
 import { getAgentBySlug } from '@/lib/agents/service'
-import { searchDocuments } from '@/lib/rag/search'
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
 // God Tool removed - now using atomic Skills architecture
@@ -127,19 +126,8 @@ export async function POST(req: Request) {
             systemSystem += '\n\nREGLA PARA VOZ: Sé extremadamente conciso. Respuestas de máximo 2 oraciones, tipo telegrama elegante. No des rodeos ni explicaciones largas excepto que te lo pidan explícitamente.'
         }
 
-        if (agent.rag_enabled && !voiceMode) {
-            try {
-                console.log(`[Chat] RAG enabled for agent ${agent.slug}. Searching for: "${inputContent.substring(0, 50)}..."`)
-                const docs = await searchDocuments(tenantId, agent.id, inputContent)
-                console.log(`[Chat] RAG search returned ${docs.length} documents`)
-                if (docs.length > 0) {
-                    systemSystem += `\n\nCONTEXTO RELEVANTE (Usar para responder):\n${docs.map(d => `- ${d.content}`).join('\n')}`
-                }
-            } catch (ragError) {
-                console.error('[Chat] RAG search failed:', ragError)
-                // Continue without RAG if it fails
-            }
-        }
+        // RAG is handled exclusively via search_knowledge_base tool
+        // The LLM decides when to search (saves tokens, avoids duplicate embeddings)
 
         console.log('[Chat] Loading tools:', effectiveTools)
 
@@ -148,7 +136,11 @@ export async function POST(req: Request) {
             // All agents use standard AI SDK path with Skills
             let tools: any = {}
             try {
-                tools = await getToolsForAgent(tenantId, effectiveTools, session.user.email!)
+                tools = await getToolsForAgent(tenantId, {
+                    id: routedAgent.id,
+                    tools: effectiveTools,
+                    rag_enabled: routedAgent.rag_enabled || baseAgent.rag_enabled
+                }, session.user.email!)
                 console.log('[Chat] Tools loaded:', Object.keys(tools))
             } catch (toolsError) {
                 console.error('[Chat] Error loading tools:', toolsError)
