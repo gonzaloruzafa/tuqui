@@ -197,7 +197,11 @@ export async function POST(req: NextRequest) {
         let toolsUsed: string[] = effectiveTools
 
         // Use unified Skills-based approach for all agents
-        const tools = await getToolsForAgent(tenantId, effectiveTools, 'test@internal.com')
+        const tools = await getToolsForAgent(tenantId, {
+            id: selectedAgent.id,
+            tools: effectiveTools,
+            rag_enabled: selectedAgent.rag_enabled || agent.rag_enabled
+        }, 'test@internal.com')
         const { generateTextNative } = await import('@/lib/tools/native-gemini')
 
         const result = await generateTextNative({
