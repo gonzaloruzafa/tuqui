@@ -3,7 +3,7 @@
 > **Filosofía:** Código mínimo, tests máximos, escalable sin prompts monstruosos  
 > **Principio:** La inteligencia viene de buenas descripciones, no de prompts enormes  
 > **Para:** Un founder que no es developer pero controla calidad via tests y LLMs  
-> **Última actualización:** 2026-02-05
+> **Última actualización:** 2026-02-06
 
 ---
 
@@ -163,9 +163,10 @@ DEFAULT: mes actual si no se especifica período
 |-------|-------|
 | Fase actual | F2 - Company Context |
 | Branch actual | `main` |
-| Último merge | PR #4 - 4 accounting skills (96cae4e) |
-| Unit tests | 208 passing (~2s) |
+| Último checkpoint | F1 completado + F3 parcial (4 accounting skills, PR #4) |
 | Baseline evals | 73.2% (98% sin rate limits) |
+| Unit tests | 208 pasando |
+| PRs mergeados | #2 (RAG), #3 (Orchestrator), #4 (Accounting Skills) |
 
 ### Progreso General
 
@@ -181,7 +182,7 @@ DEFAULT: mes actual si no se especifica período
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ 🔄 SIGUIENTE                                                                │
 │   └─ F2: Company Context             [ ] ⬜⬜⬜⬜⬜ 0%                      │
-│   └─ F3: Skill Descriptions          [~] ██⬜⬜⬜⬜ 25% (4 accounting skills)│
+│   └─ F3: Skill Descriptions          [~] 🟡⬜⬜⬜⬜ ~20% (4 skills nuevos)  │
 │   └─ F4: Memory Tool                 [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F5: User Credentials & Onboard  [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F6: Infraestructura (PWA/Push)  [ ] ⬜⬜⬜⬜⬜ 0%                      │
@@ -269,7 +270,7 @@ DEFAULT: mes actual si no se especifica período
 | Slug | Descripción | Tools | RAG |
 |------|-------------|-------|-----|
 | `tuqui` | Conversación general, fallback | web_search | ✅ |
-| `odoo` | Datos internos: ventas, stock, clientes, cobranzas | odoo_skills (20+) | ✅ |
+| `odoo` | Datos internos: ventas, stock, clientes, cobranzas | odoo_skills (34) | ✅ |
 | `meli` | Precios de MercadoLibre, competencia | web_search | ❌ |
 | `contador` | Impuestos argentinos, IVA, Monotributo | web_search | ✅ |
 | `abogado` | Leyes argentinas, contratos, laboral | web_search | ✅ |
@@ -295,14 +296,14 @@ DEFAULT: mes actual si no se especifica período
 |------|--------|-------------|--------|
 | F0 | 2h | Tests Baseline - Establecer métricas | ✅ Completado |
 | F1 | 3h | Orquestador LLM - Reemplazar router | ✅ Completado |
-| F2 | 3h | Company Context - Tuqui conoce la empresa | 🔜 Siguiente |
-| F3 | 4h | Skill Descriptions - Mejorar descripciones | 🟡 Parcial (PR #4: 4 accounting skills) |
+| F2 | 5h | Company Context - Multi-fuente (UI + Web + RAG) | 🔜 Siguiente |
+| F3 | 4h | Skill Descriptions - Mejorar descripciones | 🟡 Parcial (4 accounting skills) |
 | F4 | 4h | Memory Tool - Memoria conversacional | ⬜ Pendiente |
 | F5 | 8h | User Credentials & Onboarding | ⬜ Pendiente |
 | F6 | 6h | Infraestructura - PWA, Push | ⬜ Pendiente |
 | F7 | 6h | Features - Briefings, Alertas | ⬜ Pendiente |
 
-**Total estimado: ~36 horas** | **Completado: ~6 horas** | **34 skills, 208 tests**
+**Total estimado: ~36 horas** | **Completado: ~5 horas**
 
 ---
 
@@ -366,111 +367,357 @@ a6559d0 - feat(F1): LLM orchestrator replaces keyword router
 
 ---
 
-## 🔜 FASE 2: COMPANY CONTEXT (~3 horas)
+## 🔜 FASE 2: COMPANY CONTEXT (~5 horas)
 
-> **Objetivo:** Tuqui conoce la empresa sin prompts enormes
+> **Objetivo:** Que Tuqui conozca la empresa de verdad — datos manuales + web scraping + docs vinculados
 
-### ¿Por qué es importante?
+### TL;DR
 
-Sin contexto de empresa, Tuqui da respuestas genéricas:
-- ❌ "Vendiste $4.2M en enero"
-- ✅ "Vendiste $4.2M en enero. Cedent (tu cliente más grande) bajó 40%."
+Reemplazar el campo `company_context` vacío por un sistema de **3 fuentes**:
+1. **Datos manuales** — Admin configura industria, clientes, productos, reglas, tono
+2. **Web scraping** — Crawler a 2 niveles de profundidad, resumen con Gemini
+3. **Docs vinculados** — Selector de documentos de la Base de Conocimiento (ya existente)
+
+El contexto resultante (~300 tokens) se inyecta en cada prompt. La UI centraliza todo en `/admin/company`.
+
+### Cómo funciona hoy (y por qué no alcanza)
+
+| Problema | Detalle |
+|----------|---------|
+| `company_context` es TEXT libre | Nadie lo escribe, queda vacío |
+| Admin UI solo tiene 5 campos | nombre, web, email, tel, dirección |
+| `context-generator.ts` es código muerto | 87 líneas, nunca se importa → **eliminar** |
+| Inyección duplicada | `engine.ts` y `route.ts` inyectan por separado |
+| Sin alimentación automática | No lee la web ni vincula docs |
+
+### Arquitectura
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                  COMPANY CONTEXT (~300 tokens)                │
+└──────────────────────────────────────────────────────────────┘
+         ▲                    ▲                    ▲
+         │                    │                    │
+┌────────────────┐  ┌────────────────┐  ┌─────────────────┐
+│  UI MANUAL     │  │  WEB CRAWLER   │  │  DOCS VINCULADOS│
+│                │  │                │  │                 │
+│ • Industria    │  │ • Fetch URL    │  │ • Selector de   │
+│ • Clientes key │  │ • 2 niveles    │  │   docs de RAG   │
+│ • Productos    │  │ • Máx 10 pags  │  │ • Ya indexados  │
+│ • Reglas       │  │ • Gemini resume│  │ • Misma tabla   │
+│ • Tono de voz  │  │ • Editable     │  │   `documents`   │
+└────────────────┘  └────────────────┘  └─────────────────┘
+         │                    │                    │
+         └────────────────────┼────────────────────┘
+                              ▼
+                 ┌──────────────────────┐
+                 │ context-injector.ts  │
+                 │ Combina las 3       │
+                 │ → String ~300 tok   │
+                 └──────────────────────┘
+                              │
+                              ▼
+                 ┌──────────────────────┐
+                 │ Se inyecta en el     │
+                 │ system prompt (1x,   │
+                 │ centralizado)        │
+                 └──────────────────────┘
+```
 
 ### Implementación
 
-#### 2.1: Tabla `company_contexts`
+#### 2.1: Migration `200_company_context.sql`
 
 ```sql
--- supabase/migrations/200_company_context.sql
 CREATE TABLE IF NOT EXISTS company_contexts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   
-  -- Conocimiento estructurado (no texto libre)
-  key_products JSONB DEFAULT '[]',    -- [{ name, notes }]
-  key_customers JSONB DEFAULT '[]',   -- [{ name, notes }]
-  key_suppliers JSONB DEFAULT '[]',   -- [{ name, notes }]
-  business_rules JSONB DEFAULT '[]',  -- ["Regla 1", "Regla 2"]
+  -- DATOS MANUALES
+  basics JSONB DEFAULT '{}'::jsonb,
+  -- { industry, description, location }
   
+  key_customers JSONB DEFAULT '[]'::jsonb,
+  -- [{ name, notes }]
+  
+  key_products JSONB DEFAULT '[]'::jsonb,
+  -- [{ name, notes }]
+  
+  business_rules JSONB DEFAULT '[]'::jsonb,
+  -- ["Margen mínimo 30%", "No vender sin anticipo a nuevos"]
+  
+  tone_of_voice TEXT,
+  
+  -- WEB SCRAPING
+  web_summary TEXT,
+  web_scanned_at TIMESTAMPTZ,
+  source_urls JSONB DEFAULT '[]'::jsonb,
+  
+  -- DOCS VINCULADOS (referencia a tabla `documents` existente)
+  linked_documents UUID[] DEFAULT '{}',
+  
+  -- METADATA
   updated_at TIMESTAMPTZ DEFAULT now(),
+  updated_by UUID REFERENCES users(id),
+  
   UNIQUE(tenant_id)
 );
 ```
 
-**¿Por qué JSONB estructurado y no texto libre?**
-- Texto libre → "Nuestro cliente más importante es Cedent que nos compra mucho"
-- Estructurado → `{ name: "Cedent", notes: "Cliente más importante" }`
-- Beneficios: Editable en UI, validable, no depende de cómo escriba el admin
+**Nota:** `linked_documents` es un array de UUIDs que apunta a `documents.id` (tabla RAG existente). Los docs vinculados a empresa se inyectan siempre como contexto base. Los docs vinculados a un agente específico (via `agent_documents`) solo cuando ese agente responde.
 
-#### 2.2: Inyector de contexto (~30 líneas)
+#### 2.2: Web Scraper con crawler a 2 niveles
 
 ```typescript
-// lib/company/context-injector.ts
+// lib/company/web-scraper.ts (~120 líneas)
 
-export async function getCompanyContext(tenantId: string): Promise<string> {
-  const { data: tenant } = await db.from('tenants').select('*').eq('id', tenantId).single()
-  const { data: ctx } = await db.from('company_contexts').select('*').eq('tenant_id', tenantId).single()
-  
-  const parts = []
-  
-  // Info básica del tenant
-  if (tenant?.name) parts.push(`Empresa: ${tenant.name}`)
-  if (tenant?.industry) parts.push(`Rubro: ${tenant.industry}`)
-  
-  // Contexto enriquecido
-  if (ctx?.key_customers?.length) {
-    const customers = ctx.key_customers.map(c => 
-      c.notes ? `${c.name} (${c.notes})` : c.name
-    ).join(', ')
-    parts.push(`Clientes importantes: ${customers}`)
-  }
-  
-  if (ctx?.business_rules?.length) {
-    parts.push(`Reglas de negocio: ${ctx.business_rules.join('. ')}`)
-  }
-  
-  return parts.join('\n')
-}
+// Funciones principales:
+scrapeAndSummarize(url: string): Promise<ScrapeResult>
+crawlSite(baseUrl: string, maxDepth: 2, maxPages: 10): Promise<string[]>
 ```
 
-**Ejemplo de output:**
-```
-Empresa: Cedent S.A.
-Rubro: Distribuidora de productos odontológicos
-Clientes importantes: MegaDent (mayor volumen), OdontoPlus (siempre paga tarde)
-Reglas de negocio: Margen mínimo 30%. No vender a monotributistas sin anticipo.
-```
+**Flujo del crawler:**
+1. Fetch la URL base → extraer texto + todos los `<a href>` internos (mismo dominio)
+2. Para cada link encontrado (nivel 1) → fetch → extraer texto
+3. Para cada link de nivel 1 → extraer links → fetch nivel 2 (si no se alcanzó maxPages)
+4. Concatenar todo el texto (limitado a ~15.000 chars)
+5. Enviar a Gemini: "Resumí esta empresa en ~200 palabras"
+6. El resumen es **editable** por el admin antes de guardar
 
-#### 2.3: UI en /admin/company
+**Límites hardcodeados:** profundidad = 2, máx páginas = 10, timeout por página = 10s.
 
-Mejorar la página existente:
-- Campos estructurados para clientes, productos, proveedores
-- Lista editable de reglas de negocio
-- Preview de cómo queda el contexto
-
-#### 2.4: Tests
+#### 2.3: Context Injector
 
 ```typescript
-describe('Company Context', () => {
-  test('genera contexto conciso', async () => {
-    const ctx = await getCompanyContext('test-tenant')
-    expect(ctx.length).toBeLessThan(500) // Debe ser conciso
-  })
-  
-  test('incluye clientes importantes', async () => {
-    const ctx = await getCompanyContext('cedent-tenant')
-    expect(ctx).toContain('MegaDent')
-  })
+// lib/company/context-injector.ts (~80 líneas)
+
+// Funciones:
+getCompanyContext(tenantId): Promise<{ context, tokenEstimate, sources }>
+getCompanyContextString(tenantId): Promise<string>
+```
+
+Combina:
+1. `tenants.name` (siempre)
+2. `company_contexts.basics` (industria, descripción)
+3. `company_contexts.web_summary` (si existe)
+4. `company_contexts.key_customers` (máx 5)
+5. `company_contexts.key_products` (máx 5)
+6. `company_contexts.business_rules` (máx 3)
+7. `company_contexts.tone_of_voice`
+8. Contenido de `linked_documents` (busca en `documents` por los UUIDs)
+
+**Output ejemplo:**
+```
+EMPRESA: Cedent S.A.
+RUBRO: Distribuidora de productos odontológicos
+SOBRE LA EMPRESA: Cedent es una distribuidora líder de insumos
+odontológicos en Argentina, con 15+ años en el mercado...
+CLIENTES CLAVE: MegaDent (mayor volumen), OdontoPlus (paga tarde)
+PRODUCTOS CLAVE: Adhesivo 3M (estrella, 40% margen)
+REGLAS: Margen mínimo 30%. No vender sin anticipo a nuevos.
+```
+
+#### 2.4: Limpiar inyección duplicada
+
+- **Eliminar** `lib/company/context-generator.ts` (código muerto)
+- **Centralizar** en `engine.ts` con `getCompanyContextString()` — un solo punto de inyección
+- **Quitar** la inyección redundante de `route.ts`
+
+#### 2.5: UI `/admin/company` — Diseño preciso
+
+La página usa el mismo patrón de secciones del admin actual (`rounded-3xl`, `border-adhoc-lavender/30`, inputs `rounded-xl`, botón primary `bg-adhoc-violet`). Todo es un **Server Component** con server action inline.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ← Volver   🏢 Tu Empresa                    [tenant badge] │  ← AdminSubHeader
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─── SECCIÓN 1: Información básica ──────────────────────┐ │
+│  │ 🏢                                                     │ │
+│  │                                                        │ │
+│  │  Nombre Comercial    [Cedent S.A.____________]         │ │
+│  │  Industria           [Distribuidora odontológica]      │ │
+│  │  Descripción         [Distribuimos insumos dentales    │ │
+│  │                       en toda Argentina_________]      │ │
+│  │  Ubicación           [Buenos Aires, Argentina__]       │ │
+│  │  Sitio Web           [https://cedent.com.ar____]       │ │
+│  │  Email               [info@cedent.com.ar_______]       │ │
+│  │  Teléfono            [+54 11 4444-5555_________]       │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─── SECCIÓN 2: Web Scraping ────────────────────────────┐ │
+│  │ 🌐 Información de tu web                              │ │
+│  │ Tuqui lee tu página para conocer mejor tu empresa      │ │
+│  │                                                        │ │
+│  │  URL: [https://cedent.com.ar____] [🔍 Escanear]       │ │
+│  │                                                        │ │
+│  │  ┌─ Resumen generado (editable) ───────────────────┐  │ │
+│  │  │ Cedent es una distribuidora líder de insumos    │  │ │
+│  │  │ odontológicos en Argentina, con más de 15 años  │  │ │
+│  │  │ en el mercado. Ofrece productos de marcas como  │  │ │
+│  │  │ 3M, Colgate Professional y Dentsply...          │  │ │
+│  │  └─────────────────────────────────────────────────┘  │ │
+│  │                                                        │ │
+│  │  📊 12 páginas escaneadas · Hace 3 días                │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─── SECCIÓN 3: Clientes importantes ───────────────────┐ │
+│  │ 👥 Clientes importantes                               │ │
+│  │ Tuqui mencionará estos clientes cuando sea relevante   │ │
+│  │                                                        │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │ MegaDent       | Mayor volumen, paga siempre  ✕ │  │ │
+│  │  │ OdontoPlus     | Suele pagar tarde            ✕ │  │ │
+│  │  │ Smile Center   | Cliente nuevo, creciendo     ✕ │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
+│  │                                                        │ │
+│  │  [+ Agregar cliente] ← botón dashed                    │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─── SECCIÓN 4: Productos importantes ──────────────────┐ │
+│  │ 📦 Productos importantes                              │ │
+│  │                                                        │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │ Adhesivo 3M    | Producto estrella, margen 40% ✕ │  │ │
+│  │  │ Resina Filtek  | Alto volumen                  ✕ │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
+│  │                                                        │ │
+│  │  [+ Agregar producto]                                   │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─── SECCIÓN 5: Reglas de negocio ──────────────────────┐ │
+│  │ 📋 Reglas de negocio                                  │ │
+│  │ Tuqui seguirá estas reglas al responder                │ │
+│  │                                                        │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │ 1. Margen mínimo 30%                          ✕ │  │ │
+│  │  │ 2. No vender sin anticipo a clientes nuevos   ✕ │  │ │
+│  │  │ 3. Precio incluye IVA siempre                 ✕ │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
+│  │                                                        │ │
+│  │  [+ Agregar regla]                                      │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─── SECCIÓN 6: Tono de comunicación ───────────────────┐ │
+│  │ 🎯 Tono de comunicación                               │ │
+│  │                                                        │ │
+│  │  [Profesional pero cercano. Tutear al cliente.    ]    │ │
+│  │  [Usar emojis con moderación. Siempre ofrecer     ]    │ │
+│  │  [alternativas cuando algo no está disponible.    ]    │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─── SECCIÓN 7: Documentos vinculados ──────────────────┐ │
+│  │ 📚 Base de conocimiento                               │ │
+│  │ Estos documentos se inyectan como contexto de empresa  │ │
+│  │                                                        │ │
+│  │  ┌─ Selector (mismo componente DocumentSelector) ──┐  │ │
+│  │  │ ☑ catalogo-productos-2025.pdf                   │  │ │
+│  │  │ ☑ politica-comercial.md                         │  │ │
+│  │  │ ☐ manual-odoo-cedent.pdf                        │  │ │
+│  │  │ ☐ proceso-reclamos.txt                          │  │ │
+│  │  └─────────────────────────────────────────────────┘  │ │
+│  │                                                        │ │
+│  │  Los docs marcados se inyectan SIEMPRE como contexto.  │ │
+│  │  Los docs de agentes se inyectan solo en ese agente.   │ │
+│  │                                                        │ │
+│  │  ¿Necesitás subir archivos nuevos?                     │ │
+│  │  → Ir a Base de Conocimiento (/admin/rag)              │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─── SECCIÓN 8: Preview ────────────────────────────────┐ │
+│  │ 👁️ Así ve Tuqui a tu empresa (~280 tokens)            │ │
+│  │                                                        │ │
+│  │  ┌─ bg-gray-50 font-mono text-sm ──────────────────┐  │ │
+│  │  │ EMPRESA: Cedent S.A.                            │  │ │
+│  │  │ RUBRO: Distribuidora de productos odontológicos │  │ │
+│  │  │ SOBRE LA EMPRESA: Cedent es una distribuidora   │  │ │
+│  │  │ líder de insumos odontológicos en Argentina...  │  │ │
+│  │  │ CLIENTES CLAVE: MegaDent (mayor volumen), ...   │  │ │
+│  │  │ PRODUCTOS CLAVE: Adhesivo 3M (estrella, 40%)    │  │ │
+│  │  │ REGLAS: Margen mínimo 30%. No vender sin...     │  │ │
+│  │  └─────────────────────────────────────────────────┘  │ │
+│  │                                                        │ │
+│  │  Fuentes: manual · web_scraping · 2 documentos         │ │
+│  │                                                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                             │
+│                              [💾 Guardar cambios]           │
+│                              ↑ bg-adhoc-violet              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Comportamiento de cada sección:**
+
+| Sección | Componente | Tipo | Detalle |
+|---------|------------|------|---------|
+| Datos básicos | Server (form inputs) | Estático | Mismos inputs que hoy + industria, descripción, ubicación |
+| Web Scraping | Client (`'use client'`) | Interactivo | Botón "Escanear" llama server action → muestra loading → textarea editable con resumen |
+| Clientes | Client | Dinámico | Lista con `[+ Agregar]` → agrega fila inline (nombre + notas). Botón ✕ para borrar |
+| Productos | Client | Dinámico | Igual que clientes |
+| Reglas | Client | Dinámico | Lista simple de strings con `[+ Agregar]` |
+| Tono | Server (textarea) | Estático | Textarea simple |
+| Docs vinculados | Client (`DocumentSelector`) | Interactivo | Reutiliza el `DocumentSelector` existente (mismo que agentes). Link a `/admin/rag` para subir nuevos |
+| Preview | Server | Read-only | Llama `getCompanyContext()` y muestra el string + tokens |
+
+**Server actions necesarias:**
+- `saveCompanyContext(formData)` — Upsert en `company_contexts` con todos los campos
+- `scanWebsite(url)` — Llama `scrapeAndSummarize()`, devuelve resumen para preview
+
+### Decisiones de diseño
+
+| Pregunta | Decisión | Razón |
+|----------|----------|-------|
+| ¿Profundidad del crawler? | 2 niveles, hardcodeado | Landing + páginas principales (Nosotros, Servicios). 3 trae ruido |
+| ¿Máx páginas? | 10 | Suficiente para una PyME, no explota tokens ni tiempo |
+| ¿Resumen editable? | Sí | Admin puede corregir si Gemini interpretó mal |
+| ¿Dónde se suben docs? | En `/admin/rag` (ya existe) | No duplicar lógica de upload. Selector en company solo linkea |
+| ¿Docs de empresa vs agente? | Empresa = siempre inyectado. Agente = solo ese agente | Separa contexto global de contexto específico |
+| ¿Eliminar context-generator.ts? | Sí | Código muerto, reemplazado por context-injector.ts |
+| ¿Auto-enriquecimiento? | Postergado a fase futura | Complejo ahora, mejor arrancar simple |
+
+### Tests
+
+```typescript
+// tests/unit/web-scraper.test.ts
+describe('Web Scraper', () => {
+  test('crawlea hasta 2 niveles de profundidad')
+  test('respeta límite de 10 páginas')
+  test('solo sigue links del mismo dominio')
+  test('genera resumen con Gemini (mock)')
+  test('maneja errores de red gracefully')
+  test('maneja timeout de 10s')
+})
+
+// tests/unit/context-injector.test.ts
+describe('Context Injector', () => {
+  test('combina datos manuales + web_summary')
+  test('incluye contenido de linked_documents')
+  test('respeta límite de ~500 tokens')
+  test('retorna sources correctos')
+  test('funciona sin company_contexts (solo tenant name)')
 })
 ```
 
 ### Checklist F2
 
 - [ ] Migration `200_company_context.sql` creada y aplicada
-- [ ] `lib/company/context-injector.ts` implementado (~30 líneas)
-- [ ] UI en `/admin/company` mejorada
-- [ ] Contexto se inyecta en `engine.ts`
-- [ ] Tests pasan
+- [ ] `lib/company/web-scraper.ts` — crawler 2 niveles + resumen Gemini
+- [ ] `lib/company/context-injector.ts` — combina 3 fuentes
+- [ ] `lib/company/context-generator.ts` eliminado (código muerto)
+- [ ] UI `/admin/company` rediseñada (8 secciones)
+- [ ] Server action `saveCompanyContext` funciona
+- [ ] Server action `scanWebsite` funciona
+- [ ] `DocumentSelector` reutilizado para docs vinculados
+- [ ] Inyección centralizada en `engine.ts` (quitar duplicados)
+- [ ] Tests unitarios pasan
 - [ ] Evals no bajan
 
 ---
@@ -478,22 +725,6 @@ describe('Company Context', () => {
 ## 🟡 FASE 3: SKILL DESCRIPTIONS (~4 horas) — PARCIAL
 
 > **Objetivo:** La inteligencia está en las descripciones de los tools, no en prompts
-
-### Avance
-
-✅ **PR #4 mergeado:** 4 accounting skills con descripciones ricas + 46 unit tests.
-
-| Skill | Modelo | Descripción |
-|-------|--------|-------------|
-| `get_account_balance` | account.move.line | Saldos del plan de cuentas (balancete) |
-| `get_journal_entries` | account.move | Asientos contables con filtro por tipo y cuenta |
-| `get_accounts_payable` | account.move | Cuentas por pagar (mirror de receivable) |
-| `get_payments_made` | account.payment | Pagos a proveedores (mirror de received) |
-
-### Pendiente
-
-- [ ] Auditar y mejorar descripciones de los 30 skills existentes
-- [ ] Tests de selección (evals que validen que el LLM elige el skill correcto)
 
 ### ¿Por qué es importante?
 
@@ -1123,11 +1354,12 @@ export async function GET(request: Request) {
 | Métrica | Baseline | Actual | Target | Cómo medir |
 |---------|----------|--------|--------|------------|
 | Agent Evals | 46.2% | 73.2% | ≥80% | `npm run test:evals` |
-| Unit Tests | 0 | 208 | ≥250 | `npm run test:ci` (~2s) |
-| Odoo Skills | 20 | 34 | 40+ | `odooSkills.length` |
+| Unit tests | 0 | 208 ✅ | ≥250 | `npm test` |
+| Odoo skills | 20 | 34 | ~40 | `odooSkills.length` |
 | Líneas router | ~400 | ~100 | ~50 | `wc -l orchestrator.ts` |
 | Rate limit issues | Muchos | Mitigados | 0 | Observar en tests |
 | Prompts size | ~2000 tok | - | <500 tok | Medir en agentes |
+| Tests coverage | ? | ? | ≥70% | `npm run test:coverage` |
 
 ---
 
@@ -1201,7 +1433,6 @@ lib/alerts/evaluator.ts             # F7
 
 ---
 
-*Última actualización: 2026-02-05*  
-*Commit actual: 96cae4e (PR #4 mergeado — 4 accounting skills)*  
-*PRs mergeados: #2 (RAG tool), #3 (F1 Orchestrator), #4 (Accounting skills)*  
+*Última actualización: 2026-02-06*  
+*Commit actual: 6daf1a4 (F1 completado, F3 parcial — 4 accounting skills)*  
 *Filosofía: Simple > Complejo, Tests > Features, Descripciones > Prompts*
