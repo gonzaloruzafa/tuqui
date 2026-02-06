@@ -99,16 +99,17 @@ jobs:
       - name: Extract pass rate
         id: extract
         run: |
-          # Try to extract pass rate from output
-          PASS_RATE=$(grep -oP 'Pass Rate: \K[\d.]+' eval-output.txt 2>/dev/null || echo "")
+          # Try to extract pass rate from output (take only the first match)
+          PASS_RATE=$(grep -oP 'Pass Rate: \K[\d.]+' eval-output.txt | head -n 1 || echo "")
           
           # If not found, try alternative format
           if [ -z "$PASS_RATE" ]; then
-            PASS_RATE=$(grep -oP '\d+\.\d+(?=% pass)' eval-output.txt 2>/dev/null || echo "0")
+            PASS_RATE=$(grep -oP '\d+\.\d+(?=% pass)' eval-output.txt | head -n 1 || echo "0")
           fi
           
           # Check for 404 errors (deployment not ready)
-          NOT_FOUND_COUNT=$(grep -c "404" eval-output.txt 2>/dev/null || echo "0")
+          # Use grep | wc -l to avoid the "0 + exit 1" behavior of grep -c which causes duplicate output
+          NOT_FOUND_COUNT=$(grep "404" eval-output.txt | wc -l | xargs)
           
           echo "pass_rate=$PASS_RATE" >> $GITHUB_OUTPUT
           echo "not_found_count=$NOT_FOUND_COUNT" >> $GITHUB_OUTPUT

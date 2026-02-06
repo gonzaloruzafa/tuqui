@@ -320,9 +320,9 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
 
   // Final threshold check
   test.skipIf(SKIP_EVALS)('📊 Overall pass rate meets threshold', () => {
-    const passRate = totalPassed / (totalPassed + totalFailed);
-    // Keep this format as it is what the CI script expects
-    console.log(`\n🎯 Pass Rate: ${(passRate * 100).toFixed(1)}% (threshold: ${PASSING_THRESHOLD * 100}%)`);
+    const passRate = totalPassed / (totalPassed + totalFailed) || 0;
+    // Keep this format as it is what the CI script expects (regex matches 'Pass Rate: [digits]')
+    console.log(`\n🎯 FINAL_EVAL_RESULT | Pass Rate: ${(passRate * 100).toFixed(1)}% (threshold: ${PASSING_THRESHOLD * 100}%)`);
     expect(passRate).toBeGreaterThanOrEqual(PASSING_THRESHOLD);
   });
 });
