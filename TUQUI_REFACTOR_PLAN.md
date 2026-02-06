@@ -161,10 +161,10 @@ DEFAULT: mes actual si no se especifica período
 
 | Campo | Valor |
 |-------|-------|
-| Fase actual | F2 - Company Context |
-| Branch actual | `main` |
+| Fase actual | F4 - Memory Tool |
+| Branch actual | `improve-intelligence-v4` |
 | Último merge | PR #4 - 4 accounting skills (96cae4e) |
-| Unit tests | 208 passing (~2s) |
+| Unit tests | 209 passing (~2s) |
 | Baseline evals | 73.2% (98% sin rate limits) |
 
 ### Progreso General
@@ -178,11 +178,11 @@ DEFAULT: mes actual si no se especifica período
 │ ✅ COMPLETADO: REFACTOR v3                                                  │
 │   └─ F0: Tests Baseline              [x] ██████████ 100% (73.2% pass rate) │
 │   └─ F1: Orquestador LLM Lean        [x] ██████████ 100% (router.deprecated)│
+│   └─ F2: Company Context             [x] ██████████ 100% (UI + Injector)   │
+│   └─ F4: Memory Tool                 [x] ██████████ 100% (Insights + Tool) │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ 🔄 SIGUIENTE                                                                │
-│   └─ F2: Company Context             [ ] ⬜⬜⬜⬜⬜ 0%                      │
-│   └─ F3: Skill Descriptions          [~] ██⬜⬜⬜⬜ 25% (4 accounting skills)│
-│   └─ F4: Memory Tool                 [ ] ⬜⬜⬜⬜⬜ 0%                      │
+│   └─ F3: Skill Descriptions          [~] ████⬜⬜⬜ 40% (Core skills enriched)│
 │   └─ F5: User Credentials & Onboard  [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F6: Infraestructura (PWA/Push)  [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F7: Features (Briefings/Alertas)[ ] ⬜⬜⬜⬜⬜ 0%                      │

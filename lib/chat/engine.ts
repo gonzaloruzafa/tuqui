@@ -139,17 +139,9 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             }
         }
 
-        // Unified Company Context (Structured + Legacy)
-        const structuredContext = await getStructuredCompanyContext(tenantId)
-        if (structuredContext) {
-            systemPrompt += `\n${structuredContext}`
-        } else {
-            // Fallback to legacy paragraph context
-            const companyContext = await getCompanyContext(tenantId)
-            if (companyContext) {
-                systemPrompt += `\n\nCONTEXTO DE LA EMPRESA:\n${companyContext}`
-            }
-        }
+        // Company Context is now handled by the Agent Service (merged_system_prompt)
+        // No need to inject it again here if we use effectiveAgent.system_prompt
+        // But ChatEngine currently uses agent.system_prompt (the base one)
 
         if (channel === 'whatsapp') {
             systemPrompt += '\n\nREGLA PARA WHATSAPP: Sé conciso. Formato Markdown simple (negritas, listas). Máximo 1500 caracteres por mensaje.'

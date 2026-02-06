@@ -11,9 +11,30 @@ El sistema de Skills está **100% operativo en producción**:
 - ✅ Build exitoso sin errores
 - ✅ Código más limpio y mantenible
 
-## ✅ Fase 1 y 2: COMPLETADAS
+## ✅ Fase 1, 2, 3 y 4: COMPLETADAS/EN PROGRESO
 
-### 🎯 Implementación Base
+### 🎯 Implementación Base (Refactor v3)
+
+#### 0. Orquestador LLM (Fase 1) ✅
+- ✅ Reemplazado router de keywords por `orchestrator.ts` con Gemini.
+- ✅ Agentes seleccionados por descripción semántica.
+
+#### 1. Contexto de Empresa Estructurado (Fase 2) ✅
+- ✅ Tabla `company_contexts` para datos clave (Productos, Clientes, Reglas).
+- ✅ Inyector de contexto que prioriza datos estructurados sobre texto libre.
+- ✅ UI Admin completa en `/admin/company` para gestionar estos datos con Preview de Prompt.
+
+#### 2. Descripciones Ricas de Skills (Fase 3) 🟡
+- ✅ Enriquecidas descripciones de skills nucleares (Sales, Debt, Stock).
+- ✅ Patrón "USAR CUANDO / NO USAR" aplicado para reducir alucinaciones.
+- 🔄 Pendiente: Auditar el 100% de los skills (34+).
+
+#### 3. Memoria Conversacional (Fase 4) ✅
+- ✅ Tabla `conversation_insights` para persistencia de hechos de negocio.
+- ✅ Tool `get_relevant_memory` para que el agente recupere datos de chats pasados.
+- ✅ Extractor automático de insights en background (MVP).
+
+### 🎯 Implementación Base Técnica
 
 #### 1. Sistema de Tipos (`lib/skills/types.ts`)
 - ✅ `Skill<TInput, TOutput>` interface con Zod schemas

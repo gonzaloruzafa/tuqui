@@ -7,6 +7,8 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
 import { revalidatePath } from 'next/cache'
+import { StrategicContextEditor } from '@/components/admin/StrategicContextEditor'
+import { getStructuredCompanyContext } from '@/lib/company/context-injector'
 
 async function getTenantData(tenantId: string) {
     const db = getClient()
@@ -21,6 +23,21 @@ async function getTenantData(tenantId: string) {
         return null
     }
     return data
+}
+
+async function getStrategicContext(tenantId: string) {
+    const db = getClient()
+    const { data, error } = await db
+        .from('company_contexts')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .single()
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        console.error('Error fetching strategic context:', error)
+        return null
+    }
+    return data || { key_products: [], key_customers: [], key_suppliers: [], business_rules: [] }
 }
 
 async function getRecentDocuments(tenantId: string) {
@@ -50,6 +67,31 @@ async function updateCompany(formData: FormData) {
         .update({ name, website, email, phone, address })
         .eq('id', session.tenant.id)
 
+    // Handle strategic context if present in formData
+    const keyProducts = formData.get('key_products_json') as string
+    const keyCustomers = formData.get('key_customers_json') as string
+    const businessRules = formData.get('business_rules_json') as string
+
+    if (keyProducts || keyCustomers || businessRules) {
+        try {
+            const strategicData = {
+                key_products: JSON.parse(keyProducts || '[]'),
+                key_customers: JSON.parse(keyCustomers || '[]'),
+                business_rules: JSON.parse(businessRules || '[]'),
+                updated_at: new Date().toISOString()
+            }
+
+            await db
+                .from('company_contexts')
+                .upsert({
+                    tenant_id: session.tenant.id,
+                    ...strategicData
+                }, { onConflict: 'tenant_id' })
+        } catch (e) {
+            console.error('Error updating strategic context:', e)
+        }
+    }
+
     revalidatePath('/admin/company')
 }
 
@@ -60,8 +102,11 @@ export default async function AdminCompanyPage() {
         redirect('/')
     }
 
-    const tenant = await getTenantData(session.tenant!.id)
-    const recentDocs = await getRecentDocuments(session.tenant!.id)
+    const tenantId = session.tenant!.id
+    const tenant = await getTenantData(tenantId)
+    const strategic = await getStrategicContext(tenantId)
+    const recentDocs = await getRecentDocuments(tenantId)
+    const previewPrompt = await getStructuredCompanyContext(tenantId)
 
     if (!tenant) return <div>Error: No se encontró la empresa.</div>
 
@@ -167,13 +212,21 @@ export default async function AdminCompanyPage() {
                                     </div>
                                 </div>
 
-                                <div className="pt-4 flex justify-end">
+                                {/* Strategic Context Section */}
+                                <StrategicContextEditor
+                                    initialProducts={strategic?.key_products || []}
+                                    initialCustomers={strategic?.key_customers || []}
+                                    initialRules={strategic?.business_rules || []}
+                                    previewPrompt={previewPrompt || ''}
+                                />
+
+                                <div className="pt-10 flex justify-end">
                                     <button
                                         type="submit"
-                                        className="flex items-center gap-2 bg-adhoc-violet hover:bg-adhoc-violet/90 text-white font-semibold px-8 py-3 rounded-xl transition-all shadow-md shadow-adhoc-violet/20 active:scale-95"
+                                        className="flex items-center gap-2 bg-adhoc-violet hover:bg-adhoc-violet/90 text-white font-semibold px-12 py-4 rounded-2xl transition-all shadow-lg shadow-adhoc-violet/20 active:scale-95"
                                     >
-                                        <Save className="w-4 h-4" />
-                                        Guardar Cambios
+                                        <Save className="w-5 h-5" />
+                                        Guardar Configuración Unificada
                                     </button>
                                 </div>
                             </form>

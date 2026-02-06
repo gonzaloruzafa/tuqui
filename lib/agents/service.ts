@@ -9,6 +9,7 @@
  */
 
 import { getTenantClient, getClient } from '../supabase/client'
+import { getStructuredCompanyContext } from '../company/context-injector'
 
 // =============================================================================
 // TYPES
@@ -265,11 +266,14 @@ export async function getAgentBySlug(tenantId: string, slug: string): Promise<Ag
         .eq('id', tenantId)
         .single()
     
-    // Build merged prompt
+    // Build merged prompt (Structured context prioritized)
+    const structuredContext = await getStructuredCompanyContext(tenantId)
+    const finalCompanyContext = structuredContext || tenant?.company_context
+
     const mergedPrompt = buildMergedPrompt(
         agent.system_prompt || '',
         agent.custom_instructions,
-        tenant?.company_context,
+        finalCompanyContext,
         tenant?.name
     )
     
