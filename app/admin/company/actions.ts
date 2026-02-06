@@ -21,6 +21,19 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
   const db = getClient()
 
   try {
+    // Look up real user UUID from users table
+    const userEmail = session.user?.email
+    let userId: string | null = null
+    if (userEmail) {
+      const { data: userData } = await db
+        .from('users')
+        .select('id')
+        .eq('email', userEmail)
+        .eq('tenant_id', tenantId)
+        .single()
+      userId = userData?.id || null
+    }
+
     // 1. Update tenant basics
     const { error: tenantError } = await db.from('tenants').update({
       name: formData.get('name') as string,
@@ -57,7 +70,7 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
       web_summary: webSummary || null,
       source_urls: scanUrl ? [scanUrl] : [],
       linked_documents: linkedDocs,
-      updated_by: session.user?.id || null,
+      updated_by: userId,
     }, { onConflict: 'tenant_id' })
 
     if (ctxError) throw ctxError
@@ -67,8 +80,11 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
 
     revalidatePath('/admin/company')
     return { success: true, preview }
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Error al guardar' }
+  } catch (error: any) {
+    const message = error?.message || error?.details || error?.hint || 'Error desconocido'
+    const code = error?.code || ''
+    console.error('[saveCompanyContext] Error:', { message, code, details: error?.details, hint: error?.hint, error })
+    return { success: false, error: `${message}${code ? ` (${code})` : ''}` }
   }
 }
 

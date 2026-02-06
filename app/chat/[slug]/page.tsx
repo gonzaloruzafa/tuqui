@@ -707,12 +707,8 @@ export default function ChatPage() {
                         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors">
                             <PanelLeft className="w-5 h-5" />
                         </button>
-                        {/* Logo - mobile only when sidebar closed */}
-                        <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto md:hidden" />
-                        <div className="w-8 h-8 rounded-full bg-adhoc-lavender/30 flex items-center justify-center">
-                            {getAgentIcon(agent.icon, 'sm', 'text-adhoc-violet')}
-                        </div>
-                        <span className="font-medium text-gray-800">{agent.name}</span>
+                        {/* Logo */}
+                        <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto" />
                     </div>
                     {/* Right side: Admin link */}
                     <div className="flex items-center gap-2">

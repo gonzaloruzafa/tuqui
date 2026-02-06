@@ -21,7 +21,9 @@ export function CompanyForm({ children, initialPreview }: CompanyFormProps) {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [preview, setPreview] = useState<Preview>(initialPreview)
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
     startTransition(async () => {
       setToast(null)
       const result = await saveCompanyContext(formData)
@@ -39,7 +41,7 @@ export function CompanyForm({ children, initialPreview }: CompanyFormProps) {
 
   return (
     <>
-      <form ref={formRef} action={handleSubmit} className="space-y-8">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
         {children}
 
         {/* PREVIEW SECTION */}
