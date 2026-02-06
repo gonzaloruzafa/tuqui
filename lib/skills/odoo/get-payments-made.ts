@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult, Period } from '../types';
 import { PeriodSchema, success, authError } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain, type DomainFilter } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -72,7 +72,7 @@ Retorna total pagado, cantidad de pagos. Acepta período y agrupación por diari
       const odoo = createOdooClient(context.credentials.odoo);
       const period = input.period || getDefaultPeriod();
 
-      const baseDomain: OdooDomain = [
+      const baseDomain: DomainFilter[] = [
         ['payment_type', '=', 'outbound'],
         ['partner_type', '=', 'supplier'],
         ['state', '=', 'paid'],

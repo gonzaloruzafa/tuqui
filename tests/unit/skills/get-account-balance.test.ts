@@ -53,7 +53,7 @@ describe('Skill: get_account_balance', () => {
 
   describe('Authentication', () => {
     it('returns AUTH_ERROR without credentials', async () => {
-      const result = await getAccountBalance.execute({}, { ...mockContext, credentials: {} });
+      const result = await getAccountBalance.execute({ limit: 50 }, { ...mockContext, credentials: {} });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('AUTH_ERROR');
     });
@@ -66,7 +66,7 @@ describe('Skill: get_account_balance', () => {
         { account_id: [20, '1.1.2.01 Banco'], debit: 10000, credit: 4000, balance: 6000 },
       ]);
 
-      const result = await getAccountBalance.execute({}, mockContext);
+      const result = await getAccountBalance.execute({ limit: 50 }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -80,7 +80,7 @@ describe('Skill: get_account_balance', () => {
     it('returns empty when no accounts match', async () => {
       mockOdoo.readGroup.mockResolvedValue([]);
 
-      const result = await getAccountBalance.execute({ accountCode: '9.9.9' }, mockContext);
+      const result = await getAccountBalance.execute({ accountCode: '9.9.9', limit: 50 }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -91,7 +91,7 @@ describe('Skill: get_account_balance', () => {
 
     it('handles API errors gracefully', async () => {
       mockOdoo.readGroup.mockRejectedValue(new Error('Connection refused'));
-      const result = await getAccountBalance.execute({}, mockContext);
+      const result = await getAccountBalance.execute({ limit: 50 }, mockContext);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('API_ERROR');
     });

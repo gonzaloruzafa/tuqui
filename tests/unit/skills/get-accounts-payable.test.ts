@@ -48,7 +48,7 @@ describe('Skill: get_accounts_payable', () => {
 
   describe('Authentication', () => {
     it('returns AUTH_ERROR without credentials', async () => {
-      const result = await getAccountsPayable.execute({}, { ...mockContext, credentials: {} });
+      const result = await getAccountsPayable.execute({ overdueOnly: false, groupBySupplier: false, limit: 20 }, { ...mockContext, credentials: {} });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('AUTH_ERROR');
     });
@@ -67,7 +67,7 @@ describe('Skill: get_accounts_payable', () => {
         { id: 3, partner_id: [20, 'Prov B'] },
       ]);
 
-      const result = await getAccountsPayable.execute({}, mockContext);
+      const result = await getAccountsPayable.execute({ overdueOnly: false, groupBySupplier: false, limit: 20 }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -88,7 +88,7 @@ describe('Skill: get_accounts_payable', () => {
         ]);
       mockOdoo.searchRead.mockResolvedValue([{ id: 1, partner_id: [10, 'Prov A'] }]);
 
-      const result = await getAccountsPayable.execute({ groupBySupplier: true }, mockContext);
+      const result = await getAccountsPayable.execute({ overdueOnly: false, groupBySupplier: true, limit: 20 }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -99,7 +99,7 @@ describe('Skill: get_accounts_payable', () => {
 
     it('handles API errors gracefully', async () => {
       mockOdoo.readGroup.mockRejectedValue(new Error('Connection refused'));
-      const result = await getAccountsPayable.execute({}, mockContext);
+      const result = await getAccountsPayable.execute({ overdueOnly: false, groupBySupplier: false, limit: 20 }, mockContext);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('API_ERROR');
     });

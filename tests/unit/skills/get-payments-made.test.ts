@@ -53,7 +53,7 @@ describe('Skill: get_payments_made', () => {
 
   describe('Authentication', () => {
     it('returns AUTH_ERROR without credentials', async () => {
-      const result = await getPaymentsMade.execute({ limit: 20 }, { ...mockContext, credentials: {} });
+      const result = await getPaymentsMade.execute({ groupByJournal: false, groupBySupplier: false, limit: 20 }, { ...mockContext, credentials: {} });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('AUTH_ERROR');
     });
@@ -63,7 +63,7 @@ describe('Skill: get_payments_made', () => {
     it('returns total payments made', async () => {
       mockOdoo.readGroup.mockResolvedValue([{ amount: 75000, __count: 12 }]);
 
-      const result = await getPaymentsMade.execute({ limit: 20 }, mockContext);
+      const result = await getPaymentsMade.execute({ groupByJournal: false, groupBySupplier: false, limit: 20 }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -76,7 +76,7 @@ describe('Skill: get_payments_made', () => {
     it('returns zero when no payments', async () => {
       mockOdoo.readGroup.mockResolvedValue([{}]);
 
-      const result = await getPaymentsMade.execute({ limit: 20 }, mockContext);
+      const result = await getPaymentsMade.execute({ groupByJournal: false, groupBySupplier: false, limit: 20 }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -94,7 +94,7 @@ describe('Skill: get_payments_made', () => {
         { journal_id: [2, 'Efectivo'], amount: 20000, journal_id_count: 2 },
       ]);
 
-      const result = await getPaymentsMade.execute({ groupByJournal: true, limit: 20 }, mockContext);
+      const result = await getPaymentsMade.execute({ groupByJournal: true, groupBySupplier: false, limit: 20 }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -105,7 +105,7 @@ describe('Skill: get_payments_made', () => {
 
     it('handles API errors gracefully', async () => {
       mockOdoo.readGroup.mockRejectedValue(new Error('Connection refused'));
-      const result = await getPaymentsMade.execute({ limit: 20 }, mockContext);
+      const result = await getPaymentsMade.execute({ groupByJournal: false, groupBySupplier: false, limit: 20 }, mockContext);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('API_ERROR');
     });
