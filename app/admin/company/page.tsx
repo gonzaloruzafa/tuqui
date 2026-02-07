@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
-import { Building, Globe, Mail, MapPin, Phone, BookOpen, MessageSquare, ArrowRight } from 'lucide-react'
+import { Building, Globe, BookOpen, MessageSquare, ArrowRight } from 'lucide-react'
 import { getClient, getTenantClient } from '@/lib/supabase/client'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -90,9 +90,6 @@ export default async function AdminCompanyPage() {
                   />
                 </div>
                 <InputField label="Sitio Web" name="website" icon={Globe} defaultValue={tenant.website || ''} type="url" />
-                <InputField label="Email de Contacto" name="email" icon={Mail} defaultValue={tenant.email || ''} type="email" />
-                <InputField label="Teléfono" name="phone" icon={Phone} defaultValue={tenant.phone || ''} />
-                <InputField label="Dirección" name="address" icon={MapPin} defaultValue={tenant.address || ''} />
               </div>
             </div>
           </section>

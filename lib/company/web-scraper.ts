@@ -17,7 +17,7 @@ export interface CrawlProgress {
 }
 
 const MAX_DEPTH = 2
-const MAX_PAGES = 10
+const MAX_PAGES = 20
 const TIMEOUT_MS = 10_000
 const USER_AGENT = 'TuquiBot/1.0 (company-context-scanner)'
 

@@ -34,13 +34,10 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
       userId = userData?.id || null
     }
 
-    // 1. Update tenant basics
+    // 1. Update tenant basics (only name + website exist in tenants table)
     const { error: tenantError } = await db.from('tenants').update({
       name: formData.get('name') as string,
       website: formData.get('website') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      address: formData.get('address') as string,
     }).eq('id', tenantId)
 
     if (tenantError) throw tenantError
@@ -49,7 +46,6 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
     const basics = {
       industry: formData.get('industry') as string || '',
       description: formData.get('description') as string || '',
-      location: formData.get('address') as string || '',
     }
 
     const keyCustomers = safeParseJSON(formData.get('key_customers') as string, [])

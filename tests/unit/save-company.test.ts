@@ -61,9 +61,6 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
   const defaults: Record<string, string> = {
     name: 'Test Corp',
     website: 'https://test.com',
-    email: 'info@test.com',
-    phone: '+54 11 1234',
-    address: 'Buenos Aires',
     industry: 'Tecnología',
     description: 'Software ERP',
     tone_of_voice: 'Profesional',
@@ -86,7 +83,7 @@ describe('saveCompanyContext', () => {
   })
 
   test('rejects unauthenticated users', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(null)
+    vi.mocked(auth).mockResolvedValueOnce(null as any)
 
     const result = await saveCompanyContext(buildFormData())
 
@@ -138,9 +135,6 @@ describe('saveCompanyContext', () => {
     expect(mockUpdate).toHaveBeenCalledWith({
       name: 'Mi Empresa',
       website: 'https://mi.com',
-      email: 'info@test.com',
-      phone: '+54 11 1234',
-      address: 'Buenos Aires',
     })
   })
 
@@ -160,7 +154,7 @@ describe('saveCompanyContext', () => {
     expect(mockUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         tenant_id: 'tenant-123',
-        basics: { industry: 'Retail', description: 'Venta de ropa', location: 'Buenos Aires' },
+        basics: { industry: 'Retail', description: 'Venta de ropa' },
         key_customers: [{ name: 'Pepito' }],
         key_products: [{ name: 'Remera' }],
         business_rules: ['No fiamos'],

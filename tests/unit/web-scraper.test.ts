@@ -103,7 +103,7 @@ describe('Web Scraper', () => {
 
       const result = await crawlSite('https://example.com')
 
-      expect(result.urls.length).toBeLessThanOrEqual(10)
+      expect(result.urls.length).toBeLessThanOrEqual(20)
     })
 
     test('skips non-HTML responses', async () => {
