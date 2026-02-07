@@ -34,10 +34,9 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
       userId = userData?.id || null
     }
 
-    // 1. Update tenant basics (only name + website exist in tenants table)
+    // 1. Update tenant name
     const { error: tenantError } = await db.from('tenants').update({
       name: formData.get('name') as string,
-      website: formData.get('website') as string,
     }).eq('id', tenantId)
 
     if (tenantError) throw tenantError

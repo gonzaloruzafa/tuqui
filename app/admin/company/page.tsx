@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
-import { Building, Globe, BookOpen, MessageSquare, ArrowRight } from 'lucide-react'
+import { Building, BookOpen, MessageSquare, ArrowRight } from 'lucide-react'
 import { getClient, getTenantClient } from '@/lib/supabase/client'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -89,7 +89,6 @@ export default async function AdminCompanyPage() {
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm resize-none focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
                   />
                 </div>
-                <InputField label="Sitio Web" name="website" icon={Globe} defaultValue={tenant.website || ''} type="url" />
               </div>
             </div>
           </section>

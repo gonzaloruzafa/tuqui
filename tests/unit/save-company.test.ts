@@ -60,7 +60,6 @@ const { saveCompanyContext } = await import('@/app/admin/company/actions')
 function buildFormData(overrides: Record<string, string> = {}): FormData {
   const defaults: Record<string, string> = {
     name: 'Test Corp',
-    website: 'https://test.com',
     industry: 'Tecnología',
     description: 'Software ERP',
     tone_of_voice: 'Profesional',
@@ -128,13 +127,12 @@ describe('saveCompanyContext', () => {
 
   test('updates tenant with form fields', async () => {
     vi.mocked(auth).mockResolvedValueOnce(mockSession as any)
-    const fd = buildFormData({ name: 'Mi Empresa', website: 'https://mi.com' })
+    const fd = buildFormData({ name: 'Mi Empresa' })
 
     await saveCompanyContext(fd)
 
     expect(mockUpdate).toHaveBeenCalledWith({
       name: 'Mi Empresa',
-      website: 'https://mi.com',
     })
   })
 
