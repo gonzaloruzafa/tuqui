@@ -103,10 +103,18 @@ export async function getMasterAgentBySlug(slug: string): Promise<MasterAgent | 
 // TENANT AGENTS (Instances)
 // =============================================================================
 
+// Cache: skip ensureAgents if checked recently (5 min TTL)
+const ensureCache = new Map<string, number>()
+const ENSURE_TTL_MS = 5 * 60 * 1000
+
 /**
  * Ensure all master agents are instantiated for a tenant
  */
 export async function ensureAgentsForTenant(tenantId: string): Promise<void> {
+    const now = Date.now()
+    const lastCheck = ensureCache.get(tenantId)
+    if (lastCheck && now - lastCheck < ENSURE_TTL_MS) return
+
     const db = getClient()
     
     // Get all published master agents
@@ -155,6 +163,8 @@ export async function ensureAgentsForTenant(tenantId: string): Promise<void> {
             console.error(`[Agents] Error creating ${master.slug}:`, error)
         }
     }
+
+    ensureCache.set(tenantId, Date.now())
 }
 
 /**
@@ -352,6 +362,6 @@ export async function toggleAgentActive(
 /**
  * @deprecated Use getAgentBySlug instead
  */
-export async function getTuqui(tenantId: string): Promise<Agent | null> {
+export async function getTuqui(tenantId: string): Promise<AgentWithMergedPrompt | null> {
     return getAgentBySlug(tenantId, 'tuqui')
 }
