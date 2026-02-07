@@ -140,6 +140,15 @@ export async function orchestrate(
   // 1. Obtener agentes disponibles
   const agents = await getAvailableAgents(tenantId)
   
+  // Fast path: skip LLM call if only 1 agent
+  if (agents.length <= 1) {
+    const agent = agents[0] || { id: '', slug: 'tuqui', name: 'Tuqui', description: null, tools: [], rag_enabled: false }
+    return {
+      agent,
+      decision: { agentSlug: agent.slug, confidence: 'high', reason: 'Único agente activo' }
+    }
+  }
+
   // 2. Construir contexto de conversación (últimos 3 mensajes)
   const context = conversationHistory.slice(-3).join(' | ')
   

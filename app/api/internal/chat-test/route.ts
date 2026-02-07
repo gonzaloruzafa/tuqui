@@ -143,10 +143,9 @@ export async function POST(req: NextRequest) {
 
         console.log(`[TestChat] Orchestrator: ${selectedAgent.slug} (${decision.confidence})`)
 
-        // 3. Build system prompt - use unified.ts prompt for consistency
-        const { TUQUI_UNIFIED } = await import('@/lib/agents/unified')
-        const baseSystemPrompt = TUQUI_UNIFIED.systemPrompt.replace('{{CURRENT_DATE}}', new Date().toISOString().split('T')[0])
-        let systemPrompt = baseSystemPrompt
+        // 3. Build system prompt from agent config (DB-driven)
+        let systemPrompt = agent.merged_system_prompt || agent.system_prompt || 'Sos un asistente útil.'
+        systemPrompt = systemPrompt.replace('{{CURRENT_DATE}}', new Date().toISOString().split('T')[0])
         
         // Add specialized prompt if orchestrator selected a different agent
         if (selectedAgent.slug !== agentSlug && decision.confidence !== 'low') {
@@ -196,23 +195,21 @@ export async function POST(req: NextRequest) {
         let response = ''
         let toolsUsed: string[] = effectiveTools
 
-        // Use unified Skills-based approach for all agents
-        const tools = await getToolsForAgent(tenantId, {
-            id: selectedAgent.id,
-            tools: effectiveTools,
-            rag_enabled: selectedAgent.rag_enabled || agent.rag_enabled
-        }, 'test@internal.com')
-        const { generateTextNative } = await import('@/lib/tools/native-gemini')
+        // Use V2 (thinking + retry + force-text) — same engine as web/whatsapp
+        const tools = await getToolsForAgent(tenantId, effectiveTools, 'test@internal.com')
+        const { generateTextWithThinking } = await import('@/lib/tools/native-gemini-v2')
 
-        const result = await generateTextNative({
-            model: 'gemini-2.0-flash',
+        const result = await generateTextWithThinking({
+            model: 'gemini-3-flash-preview',
             system: systemPrompt + ragContext,
             messages: messages.map((m: any) => ({
                 role: m.role,
                 content: m.content
             })),
             tools,
-            maxSteps: 5
+            maxSteps: 10,
+            thinkingLevel: 'medium',
+            includeThoughts: false
         })
 
         response = result.text

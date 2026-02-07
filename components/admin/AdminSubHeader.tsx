@@ -34,12 +34,9 @@ export function AdminSubHeader({
                 </div>
                 <div className="flex items-center gap-4">
                     {tenantName && (
-                        <div className="hidden sm:flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tenant</span>
-                            <span className="text-xs font-semibold text-adhoc-violet px-2.5 py-1 bg-adhoc-lavender/20 rounded-full border border-adhoc-lavender/30">
-                                {tenantName}
-                            </span>
-                        </div>
+                        <span className="hidden sm:inline-flex text-xs font-semibold text-adhoc-violet px-2.5 py-1 bg-adhoc-lavender/20 rounded-full border border-adhoc-lavender/30">
+                            {tenantName}
+                        </span>
                     )}
                     <Link href="/" className="p-2 hover:bg-adhoc-lavender/20 rounded-lg transition-colors text-gray-400 hover:text-adhoc-violet" title="Ir a inicio">
                         <Home className="w-5 h-5" />

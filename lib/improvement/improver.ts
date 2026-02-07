@@ -88,7 +88,7 @@ export async function suggestionToChange(
     index: number
 ): Promise<ProposedChange | null> {
     if (suggestion.changeType === 'system_prompt') {
-        const filePath = path.join(AGENTS_DIR, 'unified.ts')
+        const filePath = path.join(AGENTS_DIR, 'service.ts')
         try {
             const content = await fs.readFile(filePath, 'utf-8')
             return {

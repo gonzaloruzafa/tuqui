@@ -103,10 +103,18 @@ export async function getMasterAgentBySlug(slug: string): Promise<MasterAgent | 
 // TENANT AGENTS (Instances)
 // =============================================================================
 
+// Cache: skip ensureAgents if checked recently (5 min TTL)
+const ensureCache = new Map<string, number>()
+const ENSURE_TTL_MS = 5 * 60 * 1000
+
 /**
  * Ensure all master agents are instantiated for a tenant
  */
 export async function ensureAgentsForTenant(tenantId: string): Promise<void> {
+    const now = Date.now()
+    const lastCheck = ensureCache.get(tenantId)
+    if (lastCheck && now - lastCheck < ENSURE_TTL_MS) return
+
     const db = getClient()
     
     // Get all published master agents
@@ -155,6 +163,8 @@ export async function ensureAgentsForTenant(tenantId: string): Promise<void> {
             console.error(`[Agents] Error creating ${master.slug}:`, error)
         }
     }
+
+    ensureCache.set(tenantId, Date.now())
 }
 
 /**
@@ -258,18 +268,17 @@ export async function getAgentBySlug(tenantId: string, slug: string): Promise<Ag
         return null
     }
     
-    // Get tenant info for company context
+    // Get tenant name (company context now injected at chat level via context-injector)
     const { data: tenant } = await db
         .from('tenants')
-        .select('name, company_context')
+        .select('name')
         .eq('id', tenantId)
         .single()
     
-    // Build merged prompt
+    // Build merged prompt (without company_context — now handled universally)
     const mergedPrompt = buildMergedPrompt(
         agent.system_prompt || '',
         agent.custom_instructions,
-        tenant?.company_context,
         tenant?.name
     )
     
@@ -287,7 +296,6 @@ export async function getAgentBySlug(tenantId: string, slug: string): Promise<Ag
 function buildMergedPrompt(
     masterPrompt: string,
     customInstructions?: string | null,
-    companyContext?: string | null,
     companyName?: string | null
 ): string {
     let prompt = masterPrompt
@@ -295,11 +303,6 @@ function buildMergedPrompt(
     // Add custom instructions if present
     if (customInstructions?.trim()) {
         prompt += `\n\n---\n## 📋 INSTRUCCIONES ESPECÍFICAS DE ${companyName || 'LA EMPRESA'}\n${customInstructions}`
-    }
-    
-    // Add company context if present
-    if (companyContext?.trim()) {
-        prompt += `\n\n---\n## 🏢 CONTEXTO DE LA EMPRESA\n${companyContext}`
     }
     
     return prompt
@@ -359,6 +362,6 @@ export async function toggleAgentActive(
 /**
  * @deprecated Use getAgentBySlug instead
  */
-export async function getTuqui(tenantId: string): Promise<Agent | null> {
+export async function getTuqui(tenantId: string): Promise<AgentWithMergedPrompt | null> {
     return getAgentBySlug(tenantId, 'tuqui')
 }

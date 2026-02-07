@@ -377,40 +377,41 @@ export async function generateTextWithThinking({
                 thinkingTokens += response.usageMetadata.thoughtsTokenCount || 0
             }
 
-            // CRITICAL FIX: If this is the last iteration, we MUST extract text now
-            // because the loop will end and there won't be another iteration to process it.
-            // Without this fix, responses after many tool calls would be empty.
+            // If this is the last step, force a text-only response
             if (step === maxSteps - 1) {
-                console.log(`[NativeGeminiV2] Reached maxSteps (${maxSteps}), processing final response`)
+                console.log(`[NativeGeminiV2] Reached maxSteps (${maxSteps}), forcing text response`)
                 const finalParts = response.candidates?.[0]?.content?.parts || []
-                let hasMoreFunctionCalls = false
                 
                 for (const part of finalParts) {
-                    // Extract thinking from final response
                     if (part.thought && part.text) {
                         thinkingSummary += part.text
-                        if (onThinkingSummary) {
-                            onThinkingSummary(part.text)
-                        }
+                        if (onThinkingSummary) onThinkingSummary(part.text)
                     }
-                    // Track if model wanted more tools (we can't execute them)
-                    if (part.functionCall) {
-                        hasMoreFunctionCalls = true
-                    }
-                    // Extract text from final response
-                    if (!part.thought && part.text) {
-                        finalText += part.text
-                    }
+                    if (!part.thought && part.text) finalText += part.text
                 }
                 
-                if (hasMoreFunctionCalls) {
-                    console.warn(`[NativeGeminiV2] Model requested more tools at maxSteps limit - some tool calls were skipped`)
-                }
-                
-                // If still no text, add a fallback message
+                // If model wanted more tools instead of answering, force one final text-only call
                 if (!finalText.trim()) {
-                    console.warn(`[NativeGeminiV2] No text in final response after ${maxSteps} steps`)
-                    finalText = 'Procesé la información pero no pude generar una respuesta. Por favor, intentá reformular tu pregunta.'
+                    console.log(`[NativeGeminiV2] No text yet, making force-text call (mode: NONE)`)
+                    const forceResponse = await withRetry(
+                        () => client.models.generateContent({
+                            model: modelName,
+                            contents,
+                            config: {
+                                systemInstruction: system,
+                                toolConfig: { functionCallingConfig: { mode: 'NONE' as any } },
+                                thinkingConfig: { thinkingLevel: resolvedThinkingLevel, includeThoughts }
+                            }
+                        }),
+                        { maxAttempts: 2, initialDelayMs: 1000, maxDelayMs: 4000 }
+                    )
+                    const forceParts = forceResponse.candidates?.[0]?.content?.parts || []
+                    for (const part of forceParts) {
+                        if (!part.thought && part.text) finalText += part.text
+                    }
+                    if (forceResponse.usageMetadata) {
+                        totalTokens += forceResponse.usageMetadata.totalTokenCount || 0
+                    }
                 }
             }
             // Otherwise, the next loop iteration will handle the response
