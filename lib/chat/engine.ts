@@ -99,8 +99,13 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             rag_enabled: selectedAgent.rag_enabled || agent.rag_enabled
         }
 
-        // 3. Build System Prompt & Context
-        let systemPrompt = agent.system_prompt || 'Sos un asistente útil.'
+        // 3. Build System Prompt — company context goes FIRST (universal for all agents)
+        const companyContext = await getCompanyContextString(tenantId)
+        let systemPrompt = ''
+        if (companyContext) {
+            systemPrompt = `CONTEXTO DE LA EMPRESA:\n${companyContext}\n---\n\n`
+        }
+        systemPrompt += agent.system_prompt || 'Sos un asistente útil.'
 
         // Inject current date for temporal context (usando DateService)
         const { DateService } = await import('@/lib/date/service')
@@ -119,12 +124,6 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
             if (agentData?.system_prompt) {
                 systemPrompt = `${systemPrompt}\n\n--- ESPECIALIDAD: ${selectedAgent.name} ---\n${agentData.system_prompt}`
             }
-        }
-
-        const companyContext = await getCompanyContextString(tenantId)
-
-        if (companyContext) {
-            systemPrompt += `\n\n---\nCONTEXTO DE LA EMPRESA:\n${companyContext}\n---`
         }
 
         if (channel === 'whatsapp') {
@@ -182,7 +181,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
                 system: systemPrompt,
                 messages: messages as any,
                 tools: tools as any,
-                maxSteps: 5
+                maxSteps: 10
             })
             responseText = result.text
             totalTokens = result.usage.totalTokens || 0

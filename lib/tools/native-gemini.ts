@@ -324,6 +324,30 @@ export async function generateTextNative({
 
         response = result.response
         totalTokens += response.usageMetadata?.totalTokenCount || 0
+
+        // If this is the last step, check if we got text or need to force it
+        if (i === maxSteps - 1) {
+            const lastParts = response.candidates?.[0]?.content?.parts || []
+            const hasMoreCalls = lastParts.some((p: any) => 'functionCall' in p)
+            const hasText = lastParts.some((p: any) => p.text?.trim())
+            
+            if (hasMoreCalls && !hasText) {
+                console.log(`[NativeGemini] Reached maxSteps (${maxSteps}), forcing text response`)
+                // Force a text-only response using a new model instance without tools
+                const forceModel = genAI.getGenerativeModel({ model: modelName })
+                const forceChat = forceModel.startChat({
+                    history: [
+                        ...history,
+                        ...chat.params?.history || []
+                    ],
+                    systemInstruction: { role: 'system', parts: [{ text: system }] }
+                })
+                // Rebuild conversation for force call
+                const forceResult = await chat.sendMessage([{ text: 'Respondé con la información que ya tenés recopilada. No uses herramientas.' }])
+                response = forceResult.response
+                totalTokens += response.usageMetadata?.totalTokenCount || 0
+            }
+        }
     }
 
     return {

@@ -258,18 +258,17 @@ export async function getAgentBySlug(tenantId: string, slug: string): Promise<Ag
         return null
     }
     
-    // Get tenant info for company context
+    // Get tenant name (company context now injected at chat level via context-injector)
     const { data: tenant } = await db
         .from('tenants')
-        .select('name, company_context')
+        .select('name')
         .eq('id', tenantId)
         .single()
     
-    // Build merged prompt
+    // Build merged prompt (without company_context — now handled universally)
     const mergedPrompt = buildMergedPrompt(
         agent.system_prompt || '',
         agent.custom_instructions,
-        tenant?.company_context,
         tenant?.name
     )
     
@@ -287,7 +286,6 @@ export async function getAgentBySlug(tenantId: string, slug: string): Promise<Ag
 function buildMergedPrompt(
     masterPrompt: string,
     customInstructions?: string | null,
-    companyContext?: string | null,
     companyName?: string | null
 ): string {
     let prompt = masterPrompt
@@ -295,11 +293,6 @@ function buildMergedPrompt(
     // Add custom instructions if present
     if (customInstructions?.trim()) {
         prompt += `\n\n---\n## 📋 INSTRUCCIONES ESPECÍFICAS DE ${companyName || 'LA EMPRESA'}\n${customInstructions}`
-    }
-    
-    // Add company context if present
-    if (companyContext?.trim()) {
-        prompt += `\n\n---\n## 🏢 CONTEXTO DE LA EMPRESA\n${companyContext}`
     }
     
     return prompt

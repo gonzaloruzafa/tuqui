@@ -2,10 +2,9 @@ import { auth } from '@/lib/auth/config'
 import { getAgentBySlug } from '@/lib/agents/service'
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
-// God Tool removed - now using atomic Skills architecture
+import { getCompanyContextString } from '@/lib/company/context-injector'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { streamText } from 'ai'
-// NEW: Using LLM orchestrator instead of keyword-based router
 import { orchestrate } from '@/lib/agents/orchestrator'
 import { ResponseGuard } from '@/lib/validation/response-guard'
 
@@ -72,8 +71,13 @@ export async function POST(req: Request) {
             console.log(`[Chat] Using specialized config: ${routedAgent.slug} with tools: ${effectiveTools.join(', ')}`)
         }
 
-        // 3. System Prompt (already merged with custom instructions + company context)
-        let systemSystem = agent.merged_system_prompt || agent.system_prompt || 'Sos un asistente útil.'
+        // 3. System Prompt — company context goes FIRST (universal for all agents)
+        const companyContext = await getCompanyContextString(tenantId)
+        let systemSystem = ''
+        if (companyContext) {
+            systemSystem = `CONTEXTO DE LA EMPRESA:\n${companyContext}\n---\n\n`
+        }
+        systemSystem += agent.system_prompt || 'Sos un asistente útil.'
         
         // Replace {{CURRENT_DATE}} placeholder with actual date
         const now = new Date()
@@ -143,7 +147,7 @@ export async function POST(req: Request) {
                             system: systemSystem,
                             messages,
                             tools,
-                            maxSteps: 5
+                            maxSteps: 10
                         })
                         responseText = result.text
                         totalTokens = result.usage.totalTokens
@@ -198,7 +202,7 @@ export async function POST(req: Request) {
                                 system: systemSystem,
                                 messages,
                                 tools,
-                                maxSteps: 5,
+                                maxSteps: 10,
                                 thinkingLevel: 'medium', // Balanced thinking for most tasks
                                 includeThoughts: true,
                                 onThinkingStep: (step) => {
