@@ -7,7 +7,7 @@ import { createTenant, syncAgentsFromMasters } from '@/lib/tenants/service'
 export async function GET() {
     const session = await auth()
 
-    if (!isPlatformAdmin(session?.user?.email)) {
+    if (!await isPlatformAdmin(session?.user?.email)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -37,7 +37,7 @@ export async function GET() {
 export async function POST(req: Request) {
     const session = await auth()
 
-    if (!isPlatformAdmin(session?.user?.email)) {
+    if (!await isPlatformAdmin(session?.user?.email)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
