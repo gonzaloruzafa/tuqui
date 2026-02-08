@@ -79,7 +79,6 @@ export async function PATCH(
         if (body.description !== undefined) updateData.description = body.description
         if (body.system_prompt !== undefined) updateData.system_prompt = body.system_prompt
         if (body.custom_instructions !== undefined) updateData.custom_instructions = body.custom_instructions
-        if (body.rag_enabled !== undefined) updateData.rag_enabled = body.rag_enabled
         if (body.is_active !== undefined) updateData.is_active = body.is_active
         if (body.tools !== undefined) updateData.tools = body.tools
         if (body.welcome_message !== undefined) updateData.welcome_message = body.welcome_message

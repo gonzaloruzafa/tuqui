@@ -140,7 +140,7 @@ export async function orchestrate(
   
   // Fast path: skip LLM call if only 1 agent
   if (agents.length <= 1) {
-    const agent = agents[0] || { id: '', slug: 'tuqui', name: 'Tuqui', description: null, tools: [], rag_enabled: false }
+    const agent = agents[0] || { id: '', slug: 'tuqui', name: 'Tuqui', description: null, tools: [] }
     return {
       agent,
       decision: { agentSlug: agent.slug, confidence: 'high', reason: 'Único agente activo' }
