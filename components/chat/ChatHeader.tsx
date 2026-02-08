@@ -18,8 +18,6 @@ export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
                 </button>
                 <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto md:hidden" />
             </div>
-            {/* Centered logo on desktop */}
-            <img src="/adhoc-logo.png" alt="Adhoc" className="hidden md:block h-7 w-auto absolute left-1/2 -translate-x-1/2" />
             <div className="flex items-center gap-2">
                 <a
                     href="/admin"

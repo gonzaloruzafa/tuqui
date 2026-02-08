@@ -566,14 +566,12 @@ export default function ChatPage() {
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           fixed md:relative top-0 left-0 h-full z-40 bg-white flex flex-col transition-transform duration-300 ease-in-out border-r border-adhoc-lavender/30 w-[260px] shadow-xl md:shadow-none
       `}>
-                <div className="p-3 flex items-center justify-between border-b border-gray-200/50 h-14">
+                <div className="p-3 flex items-center justify-center border-b border-gray-200/50 h-14 relative">
                     {/* Logo */}
-                    <div className="flex items-center gap-2">
-                        <img src="/adhoc-logo.png" alt="Adhoc" className="h-6 w-auto" />
-                    </div>
+                    <img src="/adhoc-logo.png" alt="Adhoc" className="h-6 w-auto" />
 
                     {/* Close Sidebar (Mobile only) */}
-                    <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 text-gray-400 hover:text-gray-600">
+                    <button onClick={() => setSidebarOpen(false)} className="md:hidden absolute right-3 p-1 text-gray-400 hover:text-gray-600">
                         <PanelLeftClose className="w-5 h-5" />
                     </button>
                 </div>
