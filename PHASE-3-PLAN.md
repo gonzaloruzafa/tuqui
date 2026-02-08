@@ -469,6 +469,26 @@ No son 3000 tokens de instrucciones. Son 3 líneas que multiplican la calidad.
 
 ### Estimación: ~2-3h
 
+### ✅ Resultado (2026-02-08):
+
+**Descubrimiento:** Las instrucciones de calidad YA estaban en el system prompt del agente Odoo (migration 126 — comparativas, tendencias, anomalías, follow-ups). El gap real era que no se MEDÍA si el agente las cumplía.
+
+**Implementado:**
+
+1. **`insightScore` en el auditor** — Nueva dimensión 1-5 que mide si la respuesta agrega valor (comparativas, tendencias, recomendaciones). El `overallScore` ahora promedia 5 dimensiones en vez de 4.
+
+2. **`shallow_response` issue category** — Nuevo tipo de issue para respuestas que dan datos crudos sin contexto.
+
+3. **8 test cases L5 `quality`** — Categoría nueva que valida inteligencia de negocio:
+   - quality-001→008: ventas, deudores, stock, facturación, compras, cobranzas, ventas diarias, mejor cliente
+   - Cada uno con `qualityPatterns` que buscan señales de comparativas, tendencias y sugerencias
+
+4. **`qualityPatterns` en evaluateResponse()** — Evaluación separada (warnings, no hard failures) que trackea si las respuestas incluyen señales de calidad. Métricas reportadas en el summary.
+
+**Archivos:** types.ts, auditor.ts, test-cases.ts, agent-evals.test.ts
+**Tests:** 310/310 unit tests passing, 0 errores TS
+**Baseline pendiente:** Correr evals L5 quality contra el agente para medir el baseline actual
+
 ---
 
 ## 📋 Orden de Ejecución

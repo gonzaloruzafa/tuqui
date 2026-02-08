@@ -22,7 +22,7 @@ export interface TestScenario {
     id: string
     name: string
     description: string
-    category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre' | 'rag' | 'ambiguous' | 'multi-skill' | 'insight'
+    category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre' | 'rag' | 'ambiguous' | 'multi-skill' | 'insight' | 'quality'
     difficulty: 1 | 2 | 3 | 4 | 5
     requiresValidLinks?: boolean
     turns: {
@@ -59,6 +59,7 @@ export interface AuditResult {
     accuracyScore: number
     completenessScore: number
     toneScore: number
+    insightScore: number
     
     // Overall assessment
     overallScore: number
@@ -76,7 +77,7 @@ export interface AuditResult {
  */
 export interface AuditIssue {
     severity: 'low' | 'medium' | 'high' | 'critical'
-    category: 'wrong_tool' | 'missing_data' | 'hallucination' | 'tone' | 'incomplete' | 'wrong_params' | 'unnecessary_question'
+    category: 'wrong_tool' | 'missing_data' | 'hallucination' | 'tone' | 'incomplete' | 'wrong_params' | 'unnecessary_question' | 'shallow_response'
     description: string
     evidence: string
 }

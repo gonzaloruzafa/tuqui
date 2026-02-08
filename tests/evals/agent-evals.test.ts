@@ -72,6 +72,7 @@ interface EvalResult {
   passed: boolean;
   response: ChatTestResponse | null;
   failures: string[];
+  qualityWarnings: string[];  // Quality pattern misses (not hard failures)
   latencyMs: number;
 }
 
@@ -118,6 +119,7 @@ function evaluateResponse(testCase: EvalTestCase, response: ChatTestResponse): E
       passed: true,
       response,
       failures: [],
+      qualityWarnings: [],
       latencyMs: response.latencyMs,
     };
   }
@@ -174,11 +176,24 @@ function evaluateResponse(testCase: EvalTestCase, response: ChatTestResponse): E
     }
   }
 
+  // Quality pattern evaluation (warnings, not hard failures)
+  const qualityWarnings: string[] = [];
+  if (testCase.qualityPatterns && testCase.qualityPatterns.length > 0) {
+    const qualityMatches = testCase.qualityPatterns.filter(p => p.test(text));
+    if (qualityMatches.length === 0) {
+      qualityWarnings.push('No quality signals found (no comparisons, trends, or suggestions)');
+    } else if (qualityMatches.length < testCase.qualityPatterns.length) {
+      const missing = testCase.qualityPatterns.length - qualityMatches.length;
+      qualityWarnings.push(`Missing ${missing}/${testCase.qualityPatterns.length} quality signals`);
+    }
+  }
+
   return {
     testCase,
     passed: failures.length === 0,
     response,
     failures,
+    qualityWarnings,
     latencyMs: response.latencyMs,
   };
 }
@@ -236,6 +251,22 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
       console.log(`      ${icon} ${category}: ${categoryPassed}/${categoryTotal} (${categoryPct}%)`);
     }
 
+    // Quality metrics
+    const qualityResults = evalResults.filter(r => r.testCase.qualityPatterns && r.testCase.qualityPatterns.length > 0);
+    if (qualityResults.length > 0) {
+      const withWarnings = qualityResults.filter(r => r.qualityWarnings.length > 0);
+      const qualityPassRate = ((qualityResults.length - withWarnings.length) / qualityResults.length * 100).toFixed(0);
+      console.log(`\n   📊 Quality Insights:`);
+      console.log(`      Tests with quality patterns: ${qualityResults.length}`);
+      console.log(`      Full quality match: ${qualityResults.length - withWarnings.length}/${qualityResults.length} (${qualityPassRate}%)`);
+      if (withWarnings.length > 0) {
+        console.log(`      ⚠️  Quality warnings:`);
+        for (const r of withWarnings) {
+          console.log(`         ${r.testCase.id}: ${r.qualityWarnings.join(', ')}`);
+        }
+      }
+    }
+
     // Failed tests details
     const failedResults = evalResults.filter(r => !r.passed);
     if (failedResults.length > 0) {
@@ -289,6 +320,9 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
 
               if (result.passed) {
                 console.log(`   ✅ PASSED`);
+                if (result.qualityWarnings.length > 0) {
+                  console.log(`   ⚠️  Quality: ${result.qualityWarnings.join(', ')}`);
+                }
                 totalPassed++;
               } else {
                 console.log(`   ❌ FAILED:`);
@@ -307,6 +341,7 @@ describe('🤖 Agent Evaluations (E2E)', { timeout: DEFAULT_TIMEOUT * 2 }, () =>
                 passed: false,
                 response: null,
                 failures: [error.message],
+                qualityWarnings: [],
                 latencyMs: 0,
               });
               throw error;

@@ -21,10 +21,11 @@ const AuditResultSchema = z.object({
     accuracyScore: z.number().min(1).max(5).describe('1-5: ¿Los datos son correctos y verificables?'),
     completenessScore: z.number().min(1).max(5).describe('1-5: ¿La respuesta está completa?'),
     toneScore: z.number().min(1).max(5).describe('1-5: ¿El tono es apropiado (español argentino, profesional)?'),
+    insightScore: z.number().min(1).max(5).describe('1-5: ¿Agrega contexto, comparativas, tendencias o recomendaciones actionables? 1=dato crudo sin contexto, 3=menciona algo de contexto, 5=comparativa+tendencia+sugerencia'),
     
     issues: z.array(z.object({
         severity: z.enum(['low', 'medium', 'high', 'critical']),
-        category: z.enum(['wrong_tool', 'missing_data', 'hallucination', 'tone', 'incomplete', 'wrong_params', 'unnecessary_question']),
+        category: z.enum(['wrong_tool', 'missing_data', 'hallucination', 'tone', 'incomplete', 'wrong_params', 'unnecessary_question', 'shallow_response']),
         description: z.string(),
         evidence: z.string()
     })),
@@ -129,6 +130,10 @@ EVALÚA LA RESPUESTA:
 4. ¿El tono es apropiado (español argentino, profesional pero cercano)?
 5. ¿Hay alucinaciones o datos inventados?
 6. ¿Preguntó innecesariamente cuando debía usar defaults?
+7. ¿Agrega VALOR más allá del dato crudo? (comparativas, tendencias, anomalías, sugerencias de acción)
+   - insightScore 1: Solo dato crudo ("Vendiste $4.2M")
+   - insightScore 3: Algo de contexto ("Vendiste $4.2M, tu mejor cliente fue X")
+   - insightScore 5: Inteligencia de negocio ("Vendiste $4.2M, 25% menos que dic. Tu mejor cliente bajó 40%. Sugerencia: revisar")
 
 IMPORTANTE: 
 - Sé CONCISO en descriptions y evidence (máximo 100 palabras cada uno)
@@ -142,7 +147,7 @@ IMPORTANTE:
             prompt
         })
         
-        let overallScore = (object.relevanceScore + object.accuracyScore + object.completenessScore + object.toneScore) / 4
+        let overallScore = (object.relevanceScore + object.accuracyScore + object.completenessScore + object.toneScore + object.insightScore) / 5
         const issues = [...object.issues] as AuditIssue[]
         
         // Si requiere validación de links, validar formato (no HTTP porque MeLi bloquea bots)
@@ -201,6 +206,7 @@ IMPORTANTE:
             accuracyScore: object.accuracyScore,
             completenessScore: object.completenessScore,
             toneScore: object.toneScore,
+            insightScore: object.insightScore,
             overallScore,
             passed: overallScore >= 4.0 && !issues.some(i => i.severity === 'critical'),
             issues,
@@ -217,6 +223,7 @@ IMPORTANTE:
             accuracyScore: 0,
             completenessScore: 0,
             toneScore: 0,
+            insightScore: 0,
             overallScore: 0,
             passed: false,
             issues: [{

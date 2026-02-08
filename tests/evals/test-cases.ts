@@ -14,7 +14,7 @@
 export interface EvalTestCase {
   id: string;
   question: string;
-  category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'rrhh' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre' | 'rag';
+  category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'rrhh' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre' | 'rag' | 'quality';
   /**
    * Nivel de complejidad (1-5) para el loop progresivo
    * L1: Básico (1 skill, pregunta directa)
@@ -30,6 +30,7 @@ export interface EvalTestCase {
   requiresValidLinks?: boolean; // Para tests de MeLi: validar que los links sean de producto real
   requiresList?: boolean;
   expectedSkillHints?: string[];
+  qualityPatterns?: RegExp[];  // Señales de calidad: comparativas, tendencias, follow-ups
   timeout?: number; // ms, default 30000
 }
 
@@ -858,6 +859,128 @@ const ragTestCases: EvalTestCase[] = [
 ];
 
 // ============================================
+// TEST CASES: QUALITY (Insight & Business Intelligence)
+// ============================================
+
+const qualityTestCases: EvalTestCase[] = [
+  {
+    id: 'quality-001',
+    question: '¿Cuánto vendimos en enero?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+    ],
+    qualityPatterns: [
+      /compar|vs\.?|anterior|diciembre|período|mes pasado|más|menos|%/i,  // Comparativa con otro período
+      /tendencia|viene|subiendo|bajando|crecimiento|caída/i,  // Tendencia
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'quality-002',
+    question: '¿Quién nos debe más plata?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /cliente|deudor|partner/i,
+    ],
+    qualityPatterns: [
+      /vencid|días|antigüedad|aging|atraso/i,  // Aging context
+      /acción|gestionar|contactar|seguimiento|cobrar|reclam/i,  // Sugerencia de acción
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'quality-003',
+    question: '¿Cómo viene el stock?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /stock|inventario|producto|unidad/i,
+    ],
+    qualityPatterns: [
+      /crítico|bajo|alerta|mínimo|reponer|agotando|⚠/i,  // Alertas
+      /acción|pedir|comprar|reponer|revisar/i,  // Sugerencia
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'quality-004',
+    question: '¿Cuánto facturamos esta semana?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+    ],
+    qualityPatterns: [
+      /semana anterior|pasada|vs|compar|promedio|%/i,  // Comparativa
+      /ritmo|proyección|si seguimos|cerrar/i,  // Proyección / insight
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'quality-005',
+    question: '¿Cuántas compras hicimos este mes?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /\d+/i,
+      /compr|orden|pedido|proveedor/i,
+    ],
+    qualityPatterns: [
+      /compar|anterior|vs|mes pasado|%/i,  // Comparativa
+      /proveedor principal|mayor|concentración/i,  // Insight de concentración
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'quality-006',
+    question: '¿Cuál es nuestra situación de cobranzas?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+      /cobr|cuenta|deuda|pendiente/i,
+    ],
+    qualityPatterns: [
+      /vencid|días|antigüedad|aging/i,  // Aging
+      /prioridad|urgente|acción|gestionar|mayor riesgo/i,  // Priorización
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'quality-007',
+    question: '¿Qué onda las ventas de hoy?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /\$\s?[\d.,]+|venta|pedido|factur/i,
+    ],
+    qualityPatterns: [
+      /ayer|promedio|normal|habitual|compar/i,  // Contexto vs normal
+      /cliente|producto|destac/i,  // Desglose relevante
+    ],
+    requiresNumericData: true,
+  },
+  {
+    id: 'quality-008',
+    question: '¿Cuánto le vendimos a nuestro mejor cliente este mes?',
+    category: 'quality',
+    difficulty: 5,
+    expectedPatterns: [
+      /\$\s?[\d.,]+/i,
+    ],
+    qualityPatterns: [
+      /compar|anterior|vs|mes pasado|%|representa|porcentaje|participación/i,  // Contexto
+      /tendencia|viene|subiendo|bajando|product/i,  // Tendencia o desglose
+    ],
+    requiresNumericData: true,
+  },
+];
+
+// ============================================
 // EXPORT ALL TEST CASES
 // ============================================
 
@@ -872,6 +995,7 @@ export const ALL_TEST_CASES: EvalTestCase[] = [
   ...edgeCasesTestCases,
   ...mercadolibreTestCases,
   ...ragTestCases,
+  ...qualityTestCases,
 ];
 
 // Group by category for reporting
@@ -886,6 +1010,7 @@ export const TEST_CASES_BY_CATEGORY = {
   'edge-cases': edgeCasesTestCases,
   mercadolibre: mercadolibreTestCases,
   rag: ragTestCases,
+  quality: qualityTestCases,
 };
 
 export const PASSING_THRESHOLD = 0.80; // Target: 80% pass rate
