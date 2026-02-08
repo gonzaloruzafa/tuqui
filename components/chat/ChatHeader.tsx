@@ -16,7 +16,7 @@ export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
                 >
                     <PanelLeft className="w-5 h-5" />
                 </button>
-                <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto" />
+                <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto md:hidden" />
             </div>
             <div className="flex items-center gap-2">
                 <a

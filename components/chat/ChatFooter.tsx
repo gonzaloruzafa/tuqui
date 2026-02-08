@@ -171,7 +171,7 @@ export function ChatFooter({
                             </div>
                         </div>
                     )}
-                    <p className="text-center text-[10px] text-gray-400 mt-2">IA puede cometer errores.</p>
+                    <p className="text-center text-[10px] text-gray-400 mt-2">Tuqui puede cometer errores.</p>
                 </div>
             </div>
         </div>
