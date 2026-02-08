@@ -27,6 +27,7 @@ export { getOverdueInvoices } from './get-overdue-invoices';
 export { getProductStock, type GetProductStockInput, type GetProductStockOutput } from './get-product-stock';
 export { getLowStockProducts } from './get-low-stock-products';
 export { getStockValuation } from './get-stock-valuation';
+export { getExpiringStock, type GetExpiringStockInput, type GetExpiringStockOutput } from './get-expiring-stock';
 
 // Payment Skills
 export { getPaymentsReceived, type GetPaymentsReceivedInput, type GetPaymentsReceivedOutput } from './get-payments-received';
@@ -94,6 +95,7 @@ import { getAccountBalance } from './get-account-balance';
 import { getJournalEntries } from './get-journal-entries';
 import { getAccountsPayable } from './get-accounts-payable';
 import { getPaymentsMade } from './get-payments-made';
+import { getExpiringStock } from './get-expiring-stock';
 
 export const odooSkills = [
   // Sales (10)
@@ -112,11 +114,12 @@ export const odooSkills = [
   getInvoicesByCustomer,
   getInvoiceLines, // NEW - line-level detail
   getOverdueInvoices,
-  // Stock (4)
+  // Stock (5)
   getProductStock,
   getLowStockProducts,
   getStockValuation,
-  getTopStockProducts, // NEW
+  getTopStockProducts,
+  getExpiringStock, // NEW - expiration date tracking
   // Payments (1)
   getPaymentsReceived,
   // Purchases (3)
