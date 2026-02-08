@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
 
         // Use V2 (thinking + retry + force-text) — same engine as web/whatsapp
         const tools = await getToolsForAgent(tenantId, effectiveTools, 'test@internal.com')
-        const { generateTextWithThinking } = await import('@/lib/tools/native-gemini-v2')
+        const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
 
         const result = await generateTextWithThinking({
             model: 'gemini-3-flash-preview',

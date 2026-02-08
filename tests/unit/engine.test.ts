@@ -31,7 +31,7 @@ vi.mock('@/lib/tools/executor', () => ({
     getToolsForAgent: vi.fn()
 }))
 
-vi.mock('@/lib/tools/native-gemini-v2', () => ({
+vi.mock('@/lib/tools/llm-engine', () => ({
     generateTextWithThinking: vi.fn()
 }))
 
@@ -45,7 +45,7 @@ const { processChatRequest } = await import('@/lib/chat/engine')
 const { orchestrate } = await import('@/lib/agents/orchestrator')
 const { buildSystemPrompt } = await import('@/lib/chat/build-system-prompt')
 const { getToolsForAgent } = await import('@/lib/tools/executor')
-const { generateTextWithThinking } = await import('@/lib/tools/native-gemini-v2')
+const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
 const { checkUsageLimit, trackUsage } = await import('@/lib/billing/tracker')
 const { ResponseGuard } = await import('@/lib/validation/response-guard')
 

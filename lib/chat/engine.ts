@@ -4,7 +4,7 @@ import { AgentWithMergedPrompt } from '@/lib/agents/service'
 import { orchestrate } from '@/lib/agents/orchestrator'
 import { buildSystemPrompt } from '@/lib/chat/build-system-prompt'
 import { ResponseGuard } from '@/lib/validation/response-guard'
-import type { ToolCallRecord as V2ToolCallRecord } from '@/lib/tools/native-gemini-v2'
+import type { ToolCallRecord as V2ToolCallRecord } from '@/lib/tools/llm-engine'
 import type { ToolCallRecord as HistoryToolCallRecord } from '@/lib/supabase/chat-history'
 
 export interface ChatMessage {
@@ -73,7 +73,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
     console.log(`[ChatEngine] Tools loaded: ${Object.keys(tools).join(', ') || 'none'}`)
 
     // 5. Execute with Gemini V2 (thinking + retry + force-text fallback)
-    const { generateTextWithThinking } = await import('@/lib/tools/native-gemini-v2')
+    const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
     const result = await generateTextWithThinking({
         model: 'gemini-3-flash-preview',
         system: systemPrompt,

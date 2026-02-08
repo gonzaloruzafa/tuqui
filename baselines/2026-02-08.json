@@ -1,0 +1,20 @@
+{
+  "date": "2026-02-08",
+  "model": "gemini-3-flash-preview",
+  "levels": {
+    "4": {
+      "total": 6,
+      "passed": 6,
+      "rate": 1
+    },
+    "5": {
+      "total": 3,
+      "passed": 3,
+      "rate": 1
+    }
+  },
+  "maxLevelPassed": 5,
+  "changesApplied": [],
+  "regressions": [],
+  "duration": 123257
+}
