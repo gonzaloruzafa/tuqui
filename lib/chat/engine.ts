@@ -65,8 +65,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
     const effectiveTools = selectedAgent.tools.length > 0 ? selectedAgent.tools : (agent.tools || [])
     const agentToolConfig = {
         id: selectedAgent.id,
-        tools: effectiveTools,
-        rag_enabled: selectedAgent.rag_enabled || agent.rag_enabled
+        tools: effectiveTools
     }
     const tools = await getToolsForAgent(tenantId, agentToolConfig, userEmail)
     const hasTools = Object.keys(tools).length > 0

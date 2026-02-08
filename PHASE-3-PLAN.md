@@ -2,7 +2,7 @@
 
 > **Filosofía:** Todo va a mejores skills e inteligencia. No features, no infra.
 > **Estado actual (post-merge PR#7):** Pipeline unificado, company context, orquestador LLM, 35 skills Odoo, Gemini 3 Flash, 272 unit tests, 69 evals
-> **Post F3.1-F3.4:** 36 skills, 283 unit tests, 67 evals con difficulty L1-L5, loop progresivo V2 funcional, V1 eliminado
+> **Post F3.1-F3.5:** 36 skills, 310 unit tests, 67 evals con difficulty L1-L5, loop progresivo V2 funcional, V1 eliminado, RAG limpio
 > **Baseline L1→L5:** L1 96% | L2 100% | L3 100% | L4 100% | L5 100% (66/67 = 98.5%)
 > **Objetivo:** Que cada respuesta de Tuqui se sienta como hablar con alguien que entiende el negocio
 
@@ -30,7 +30,7 @@ no vino de features — vino de respuestas inteligentes con contexto.
 
 | Métrica | Inicio | Actual |
 |---|---|---|
-| Unit tests | 272/272 ✅ | 283/283 ✅ |
+| Unit tests | 272/272 ✅ | 310/310 ✅ |
 | Agent evals | 69 test cases | 67 test cases (con difficulty L1-L5) |
 | Skills Odoo | 35 | 36 (+get_sales_by_category) |
 | Modelo | gemini-3-flash-preview | gemini-3-flash-preview |
@@ -479,8 +479,8 @@ No son 3000 tokens de instrucciones. Son 3 líneas que multiplican la calidad.
 | 2 | **F3.2 Categorías** | 🔥 Respuestas más ricas, análisis por línea | ✅ Completado |
 | 3 | **F3.3 Loop Progresivo** | 🔄 Motor de mejora continua con niveles L1→L5 | ✅ Completado |
 | 4 | **F3.4 Deprecar V1** | 🧹 358 líneas eliminadas | ✅ Completado |
-| 5 | **F3.5 RAG como Tool** | 💡 Ahorro de tokens + LLM decide cuándo buscar | ⬜ Siguiente |
-| 6 | **F3.6 Evals de Calidad** | 📈 Medimos inteligencia, no solo corrección | ⬜ |
+| 5 | **F3.5 RAG como Tool** | 💡 Cleanup legacy `rag_enabled`, RAG ya es tool | ✅ Completado |
+| 6 | **F3.6 Evals de Calidad** | 📈 Medimos inteligencia, no solo corrección | ⬜ Siguiente |
 
 **Total estimado: ~18-24h**
 
@@ -490,7 +490,7 @@ No son 3000 tokens de instrucciones. Son 3 líneas que multiplican la calidad.
 
 | Métrica | Inicio | Actual | Target |
 |---|---|---|---|
-| Unit tests | 272 | 283 | ≥ 300 |
+| Unit tests | 272 | 310 | ≥ 300 |
 | Agent evals (total) | 69 | 67 (con difficulty) | ≥ 80 |
 | Skills con descripción rica | ~4 | 32 (todos) | 35+ ✅ |
 | Skills con `categoryName` | 3 | 8+ | 10+ |

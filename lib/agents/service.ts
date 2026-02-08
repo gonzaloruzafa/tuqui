@@ -25,7 +25,6 @@ export interface MasterAgent {
     welcome_message: string | null
     placeholder_text: string | null
     tools: string[]
-    rag_enabled: boolean
     is_published: boolean
     sort_order: number
     version: number
@@ -39,7 +38,6 @@ export interface Agent {
     icon: string
     color: string
     is_active: boolean
-    rag_enabled: boolean
     system_prompt: string | null
     welcome_message: string | null
     placeholder_text: string | null
@@ -151,7 +149,6 @@ export async function ensureAgentsForTenant(tenantId: string): Promise<void> {
                 icon: master.icon,
                 color: master.color,
                 is_active: true,
-                rag_enabled: master.rag_enabled,
                 system_prompt: master.system_prompt,
                 welcome_message: master.welcome_message,
                 placeholder_text: master.placeholder_text,
@@ -194,7 +191,6 @@ async function syncAgentWithMaster(agentId: string): Promise<boolean> {
         .update({
             system_prompt: master.system_prompt,
             tools: master.tools,
-            rag_enabled: master.rag_enabled,
             master_version_synced: master.version,
             updated_at: new Date().toISOString()
         })

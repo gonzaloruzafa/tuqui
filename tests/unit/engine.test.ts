@@ -65,7 +65,6 @@ const baseAgent = {
     icon: '🤖',
     color: '#000',
     is_active: true,
-    rag_enabled: false,
     system_prompt: 'Sos Tuqui.',
     merged_system_prompt: 'Sos Tuqui. INSTRUCCIONES: Sé amable.',
     welcome_message: null,
@@ -81,7 +80,7 @@ describe('processChatRequest (Unified Engine)', () => {
 
         // Default mocks
         mockedOrchestrate.mockResolvedValue({
-            agent: { id: 'agent-1', slug: 'tuqui', name: 'Tuqui', description: null, tools: ['odoo'], rag_enabled: false },
+            agent: { id: 'agent-1', slug: 'tuqui', name: 'Tuqui', description: null, tools: ['odoo'] },
             decision: { agentSlug: 'tuqui', confidence: 'high', reason: 'general' }
         })
         mockedBuildPrompt.mockResolvedValue('SYSTEM PROMPT BUILT')
@@ -152,7 +151,7 @@ describe('processChatRequest (Unified Engine)', () => {
         for (const channel of ['web', 'whatsapp', 'voice'] as const) {
             vi.clearAllMocks()
             mockedOrchestrate.mockResolvedValue({
-                agent: { id: 'a1', slug: 'tuqui', name: 'Tuqui', description: null, tools: ['odoo'], rag_enabled: false },
+                agent: { id: 'a1', slug: 'tuqui', name: 'Tuqui', description: null, tools: ['odoo'] },
                 decision: { agentSlug: 'tuqui', confidence: 'high', reason: 'test' }
             })
             mockedBuildPrompt.mockResolvedValue('PROMPT')
@@ -185,7 +184,7 @@ describe('processChatRequest (Unified Engine)', () => {
         for (const channel of ['web', 'whatsapp'] as const) {
             vi.clearAllMocks()
             mockedOrchestrate.mockResolvedValue({
-                agent: { id: 'a1', slug: 'tuqui', name: 'Tuqui', description: null, tools: ['odoo'], rag_enabled: false },
+                agent: { id: 'a1', slug: 'tuqui', name: 'Tuqui', description: null, tools: ['odoo'] },
                 decision: { agentSlug: 'tuqui', confidence: 'high', reason: 'test' }
             })
             mockedBuildPrompt.mockResolvedValue('PROMPT')
