@@ -105,7 +105,7 @@ export function ChatFooter({
     return (
         <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
             <div className="h-8 bg-gradient-to-t from-white to-transparent" />
-            <div className="bg-white pb-[env(safe-area-inset-bottom,8px)] px-3 md:px-6 pb-3 md:pb-6 pointer-events-auto">
+            <div className="bg-white/80 backdrop-blur-md pb-[env(safe-area-inset-bottom,8px)] px-3 md:px-6 pb-3 md:pb-6 pointer-events-auto">
                 <div className="max-w-3xl mx-auto">
                     {isRecording ? (
                         <div className="w-full bg-gray-50 border border-adhoc-violet/30 rounded-full px-4 py-2 flex items-center gap-3 animate-in fade-in zoom-in duration-300 shadow-sm">

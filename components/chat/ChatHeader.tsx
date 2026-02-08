@@ -8,7 +8,7 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
     return (
-        <header className="absolute top-0 left-0 right-0 h-14 flex items-center px-4 justify-between bg-white/80 backdrop-blur-md z-20 shrink-0">
+        <header className="absolute top-0 left-0 right-0 h-14 flex items-center px-4 justify-between bg-white/60 backdrop-blur-md z-20 shrink-0">
             <div className="flex items-center gap-3">
                 <button
                     onClick={onToggleSidebar}
