@@ -26,20 +26,15 @@ export default function SuperAdminTenantsPage() {
     const fetchTenants = async () => {
         setLoading(true)
         setError(null)
-        console.log('[SuperAdmin Page] Fetching tenants...')
         try {
             const res = await fetch('/api/super-admin/tenants')
-            console.log('[SuperAdmin Page] Response status:', res.status)
             const data = await res.json()
-            console.log('[SuperAdmin Page] Response data:', data)
             if (res.ok) {
                 setTenants(Array.isArray(data) ? data : [])
             } else {
-                console.error('[SuperAdmin Page] Error:', data.error)
                 setError(data.error || 'Error desconocido')
             }
         } catch (err: any) {
-            console.error('[SuperAdmin Page] Fetch error:', err)
             setError(err.message || 'Error de conexión')
         } finally {
             setLoading(false)
@@ -65,8 +60,7 @@ export default function SuperAdminTenantsPage() {
                 const data = await res.json()
                 alert('Error al crear tenant: ' + data.error)
             }
-        } catch (error) {
-            console.error('Error creating tenant:', error)
+        } catch {
             alert('Error al crear tenant')
         }
 
@@ -90,8 +84,7 @@ export default function SuperAdminTenantsPage() {
                 const data = await res.json()
                 alert('❌ Error al sincronizar: ' + data.error)
             }
-        } catch (error) {
-            console.error('Error syncing:', error)
+        } catch {
             alert('❌ Error al sincronizar')
         }
 

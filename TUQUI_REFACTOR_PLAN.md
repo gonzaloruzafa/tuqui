@@ -3,7 +3,7 @@
 > **Filosofía:** Código mínimo, tests máximos, escalable sin prompts monstruosos  
 > **Principio:** La inteligencia viene de buenas descripciones, no de prompts enormes  
 > **Para:** Un founder que no es developer pero controla calidad via tests y LLMs  
-> **Última actualización:** 2026-02-05
+> **Última actualización:** 2026-02-08
 
 ---
 
@@ -161,27 +161,34 @@ DEFAULT: mes actual si no se especifica período
 
 | Campo | Valor |
 |-------|-------|
-| Fase actual | F2 - Company Context |
-| Branch actual | `main` |
-| Último merge | PR #4 - 4 accounting skills (96cae4e) |
-| Unit tests | 208 passing (~2s) |
-| Baseline evals | 73.2% (98% sin rate limits) |
+| Fase actual | F3 completada → F4 Memory siguiente |
+| Branch actual | `feat/tenant-management` |
+| Último merge | PR #10 — Phase 3 F3.1→F3.5 |
+| Unit tests | 310 passing (~1.4s) |
+| Eval test cases | 75 (67 originales + 8 quality) |
+| Baseline L1→L5 | 98.5% (66/67) |
+| Quality baseline | 100% corrección, 75% insights |
+| Modelo | gemini-3-flash-preview |
+| Engine | llm-engine.ts (V2, V1 eliminado) |
+| Skills Odoo | 36 |
 
 ### Progreso General
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ✅ COMPLETADO PREVIAMENTE                                                   │
-│   └─ F0-viejo: Preparación y limpieza                                      │
-│   └─ F1-viejo: RAG como Tool (mergeado 2026-02-04, PR #2)                  │
+│ ✅ COMPLETADO                                                               │
+│   └─ F0: Tests Baseline              [x] ██████████ 100%                   │
+│   └─ F1: Orquestador LLM Lean        [x] ██████████ 100%                   │
+│   └─ F2: Company Context             [x] ██████████ 100%                   │
+│   └─ F3: Skills & Inteligencia       [x] ██████████ 100%                   │
+│       ├─ F3.1: Rich Skill Descriptions    ✅                                │
+│       ├─ F3.2: Categorías de Producto     ✅                                │
+│       ├─ F3.3: Progressive Improvement    ✅ (loop L1→L5, 98.5%)           │
+│       ├─ F3.4: Deprecar V1               ✅ (native-gemini → llm-engine)   │
+│       ├─ F3.5: RAG Cleanup               ✅ (rag_enabled eliminado)        │
+│       └─ F3.6: Quality Evals             ✅ (insightScore + 8 test cases)  │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ ✅ COMPLETADO: REFACTOR v3                                                  │
-│   └─ F0: Tests Baseline              [x] ██████████ 100% (73.2% pass rate) │
-│   └─ F1: Orquestador LLM Lean        [x] ██████████ 100% (router.deprecated)│
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 🔄 SIGUIENTE                                                                │
-│   └─ F2: Company Context             [ ] ⬜⬜⬜⬜⬜ 0%                      │
-│   └─ F3: Skill Descriptions          [~] ██⬜⬜⬜⬜ 25% (4 accounting skills)│
+│ 🔜 SIGUIENTE                                                                │
 │   └─ F4: Memory Tool                 [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F5: User Credentials & Onboard  [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F6: Infraestructura (PWA/Push)  [ ] ⬜⬜⬜⬜⬜ 0%                      │
@@ -295,14 +302,14 @@ DEFAULT: mes actual si no se especifica período
 |------|--------|-------------|--------|
 | F0 | 2h | Tests Baseline - Establecer métricas | ✅ Completado |
 | F1 | 3h | Orquestador LLM - Reemplazar router | ✅ Completado |
-| F2 | 3h | Company Context - Tuqui conoce la empresa | 🔜 Siguiente |
-| F3 | 4h | Skill Descriptions - Mejorar descripciones | 🟡 Parcial (PR #4: 4 accounting skills) |
-| F4 | 4h | Memory Tool - Memoria conversacional | ⬜ Pendiente |
+| F2 | 3h | Company Context - Tuqui conoce la empresa | ✅ Completado |
+| F3 | ~15h | Skills & Inteligencia (6 sub-fases) | ✅ Completado |
+| F4 | 4h | Memory Tool - Memoria conversacional | 🔜 Siguiente |
 | F5 | 8h | User Credentials & Onboarding | ⬜ Pendiente |
 | F6 | 6h | Infraestructura - PWA, Push | ⬜ Pendiente |
 | F7 | 6h | Features - Briefings, Alertas | ⬜ Pendiente |
 
-**Total estimado: ~36 horas** | **Completado: ~6 horas** | **34 skills, 208 tests**
+**Total estimado: ~36 horas** | **Completado: ~23 horas** | **36 skills, 310 tests, 75 evals**
 
 ---
 
@@ -366,8 +373,9 @@ a6559d0 - feat(F1): LLM orchestrator replaces keyword router
 
 ---
 
-## 🔜 FASE 2: COMPANY CONTEXT (~3 horas)
+## ✅ FASE 2: COMPANY CONTEXT — COMPLETADA
 
+> **Completado:** 2026-02-06. Company context se inyecta universalmente. UI en /admin/company.
 > **Objetivo:** Tuqui conoce la empresa sin prompts enormes
 
 ### ¿Por qué es importante?
@@ -466,34 +474,42 @@ describe('Company Context', () => {
 
 ### Checklist F2
 
-- [ ] Migration `200_company_context.sql` creada y aplicada
-- [ ] `lib/company/context-injector.ts` implementado (~30 líneas)
-- [ ] UI en `/admin/company` mejorada
-- [ ] Contexto se inyecta en `engine.ts`
-- [ ] Tests pasan
-- [ ] Evals no bajan
+- [x] Migration `200_company_context.sql` creada y aplicada
+- [x] `lib/company/context-injector.ts` implementado
+- [x] UI en `/admin/company`
+- [x] Contexto se inyecta en `build-system-prompt.ts`
+- [x] Tests pasan
+- [x] Evals no bajan
 
 ---
 
-## 🟡 FASE 3: SKILL DESCRIPTIONS (~4 horas) — PARCIAL
+## ✅ FASE 3: SKILLS & INTELIGENCIA — COMPLETADA
 
+> **Completado:** 2026-02-08. 6 sub-fases ejecutadas. Ver PHASE-3-PLAN.md para detalle.
 > **Objetivo:** La inteligencia está en las descripciones de los tools, no en prompts
 
-### Avance
+### Lo que se hizo
 
-✅ **PR #4 mergeado:** 4 accounting skills con descripciones ricas + 46 unit tests.
+| Sub-fase | Qué | Resultado |
+|----------|-----|-----------|
+| F3.1 | Rich Skill Descriptions | 32 skills con template USAR CUANDO/NO USAR/RETORNA |
+| F3.2 | Categorías de Producto | `get_sales_by_category` + `categoryName` en 5 outputs |
+| F3.3 | Progressive Improvement Loop | Loop L1→L5 funcional, 98.5% pass rate |
+| F3.4 | Deprecar V1 | `native-gemini.ts` eliminado, renombrado a `llm-engine.ts` |
+| F3.5 | RAG Cleanup | `rag_enabled` eliminado, RAG es tool puro |
+| F3.6 | Quality Evals | `insightScore` en auditor, 8 test cases quality |
 
-| Skill | Modelo | Descripción |
-|-------|--------|-------------|
-| `get_account_balance` | account.move.line | Saldos del plan de cuentas (balancete) |
-| `get_journal_entries` | account.move | Asientos contables con filtro por tipo y cuenta |
-| `get_accounts_payable` | account.move | Cuentas por pagar (mirror de receivable) |
-| `get_payments_made` | account.payment | Pagos a proveedores (mirror de received) |
+### Métricas finales F3
 
-### Pendiente
-
-- [ ] Auditar y mejorar descripciones de los 30 skills existentes
-- [ ] Tests de selección (evals que validen que el LLM elige el skill correcto)
+| Métrica | Inicio F3 | Final F3 |
+|---------|-----------|----------|
+| Unit tests | 272 | 310 |
+| Eval cases | 69 | 75 |
+| Skills Odoo | 35 | 36 |
+| Baseline L1→L5 | N/A | 98.5% |
+| Quality insights | N/A | 75% |
+| V1 engine | Vivo | Eliminado |
+| `rag_enabled` | En 10+ archivos | 0 |
 
 ### ¿Por qué es importante?
 
@@ -573,10 +589,14 @@ describe('Skill Selection', () => {
 
 ### Checklist F3
 
-- [ ] Descripciones de skills principales mejoradas
-- [ ] Template de descripción documentado
-- [ ] Tests de selección creados
-- [ ] Evals mejoran vs baseline
+- [x] Descripciones de skills principales mejoradas (32 skills)
+- [x] Template de descripción documentado y aplicado
+- [x] Tests de selección creados (evals L1-L5)
+- [x] Evals mejoran vs baseline (98.5%)
+- [x] Improvement loop progresivo funcional
+- [x] V1 engine eliminado
+- [x] RAG cleanup
+- [x] Quality evals con insightScore
 
 ---
 
@@ -1122,12 +1142,13 @@ export async function GET(request: Request) {
 
 | Métrica | Baseline | Actual | Target | Cómo medir |
 |---------|----------|--------|--------|------------|
-| Agent Evals | 46.2% | 73.2% | ≥80% | `npm run test:evals` |
-| Unit Tests | 0 | 208 | ≥250 | `npm run test:ci` (~2s) |
-| Odoo Skills | 20 | 34 | 40+ | `odooSkills.length` |
-| Líneas router | ~400 | ~100 | ~50 | `wc -l orchestrator.ts` |
+| Agent Evals | 46.2% | 98.5% | ≥85% | `npx vitest run tests/evals/` |
+| Unit Tests | 0 | 310 | ≥250 | `npx vitest run tests/unit/` (~1.4s) |
+| Eval Test Cases | 67 | 75 | 80+ | test-cases.ts |
+| Odoo Skills | 20 | 36 | 40+ | `odooSkills.length` |
+| Quality Insights | N/A | 75% | ≥80% | qualityPatterns match rate |
+| Orquestador | ~400 líneas | ~155 líneas | ~100 | `wc -l orchestrator.ts` |
 | Rate limit issues | Muchos | Mitigados | 0 | Observar en tests |
-| Prompts size | ~2000 tok | - | <500 tok | Medir en agentes |
 
 ---
 
@@ -1169,9 +1190,13 @@ export async function GET(request: Request) {
 
 ### Archivos clave:
 ```
-lib/agents/orchestrator.ts          # ✅ Completado (~100 líneas)
-lib/company/context-injector.ts     # 🔜 F2 (~30 líneas)
-lib/tools/definitions/memory-tool.ts # F4
+lib/agents/orchestrator.ts          # ✅ Completado (~155 líneas)
+lib/company/context-injector.ts     # ✅ Completado
+lib/chat/build-system-prompt.ts     # ✅ Completado (7 capas)
+lib/tools/llm-engine.ts             # ✅ Engine único (V2, ex native-gemini-v2)
+lib/improvement/auditor.ts          # ✅ 5 dimensiones (incl insightScore)
+lib/improvement/loop.ts             # ✅ Progressive L1→L5
+lib/tools/definitions/memory-tool.ts # 🔜 F4
 lib/push/sender.ts                  # F6 (~50 líneas)
 lib/briefings/generator.ts          # F7
 lib/alerts/evaluator.ts             # F7
@@ -1201,7 +1226,7 @@ lib/alerts/evaluator.ts             # F7
 
 ---
 
-*Última actualización: 2026-02-05*  
-*Commit actual: 96cae4e (PR #4 mergeado — 4 accounting skills)*  
-*PRs mergeados: #2 (RAG tool), #3 (F1 Orchestrator), #4 (Accounting skills)*  
+*Última actualización: 2026-02-08*  
+*PRs mergeados: #2 (RAG), #3 (Orchestrator), #4 (Accounting), #5-#9 (pipeline/skills), #10 (Phase 3)*  
+*Fases completadas: F0, F1, F2, F3 (6 sub-fases) — Siguiente: F4 Memory*  
 *Filosofía: Simple > Complejo, Tests > Features, Descripciones > Prompts*

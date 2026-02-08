@@ -261,10 +261,10 @@ const [tenant, users, agents, usage, integrations] = await Promise.all([
 
 ---
 
-## Fase 3 — Master Agents CRUD (2-3 días) ⭐
+## Fase 3 — Master Agents CRUD + Documentos RAG (3-4 días) ⭐
 
-> **Esta es la fase más importante.** Poder editar prompts sin deploy cambia
-> completamente la velocidad de iteración.
+> **Esta es la fase más importante.** Poder editar prompts Y gestionar documentos
+> RAG por master agent sin deploy cambia completamente la velocidad de iteración.
 
 ### 3.1 — Lista de master agents
 
@@ -284,6 +284,11 @@ const [tenant, users, agents, usage, integrations] = await Promise.all([
 │ │ Business Intelligence para Odoo              │   │
 │ │ Tools: odoo_intelligent_query 3/5 tenants    │   │
 │ └──────────────────────────────────────────────┘   │
+│ ┌──────────────────────────────────────────────┐   │
+│ │ ⚖️ Abogado                         v1  ✅    │   │
+│ │ Asistente legal con base de conocimiento     │   │
+│ │ Tools: knowledge_base  📄 3 docs  4/4 tenants│   │
+│ └──────────────────────────────────────────────┘   │
 │ ...                                                │
 └────────────────────────────────────────────────────┘
 ```
@@ -291,61 +296,258 @@ const [tenant, users, agents, usage, integrations] = await Promise.all([
 **Datos por agent:**
 - Nombre, descripción, icon, version
 - Tools asignados
+- Count de documentos RAG vinculados (📄)
 - Count de tenants que lo tienen activo vs total
 - `is_published` (✅ / borrador)
 
-### 3.2 — Editor de master agent
+### 3.2 — Editor de master agent (con documentos)
 
 **Ruta:** `/super-admin/agents/[slug]`
 
-Server Component con Server Actions (mismo patrón que `admin/agents/[slug]`).
+Server Component con Server Actions.
 
 ```
 ┌────────────────────────────────────────────────────┐
 │ ← Master Agents                                   │
 │                                                    │
-│ Orchestrator                              v3       │
+│ Abogado                                   v2       │
 │                                                    │
 │ ─── Configuración ───────────────────────────────  │
-│ Nombre:      [Orchestrator              ]          │
-│ Descripción: [Asistente general...      ]          │
-│ Slug:        orchestrator (read-only)              │
+│ Nombre:      [Abogado                   ]          │
+│ Descripción: [Asistente legal...        ]          │
+│ Slug:        abogado (read-only)                   │
 │ Publicado:   [✅]                                  │
 │                                                    │
 │ ─── System Prompt ───────────────────────────────  │
 │ ┌────────────────────────────────────────────┐     │
-│ │ Sos un asistente de IA llamado Tuqui.      │     │
-│ │ Tu rol es ayudar al usuario respondiendo   │     │
-│ │ preguntas generales con información        │     │
-│ │ actualizada usando búsqueda web.           │     │
-│ │                                            │     │
-│ │ ## Reglas                                  │     │
-│ │ - Respondé en español argentino            │     │
-│ │ - Sé conciso y directo                     │     │
+│ │ Sos un asistente legal especializado.      │     │
+│ │ Usá la base de conocimiento para responder │     │
+│ │ sobre leyes, regulaciones y procedimientos.│     │
 │ │ ...                                        │     │
 │ └────────────────────────────────────────────┘     │
 │                                                    │
 │ ─── Tools ───────────────────────────────────────  │
+│ ☑ knowledge_base — Base de conocimiento (RAG)     │
 │ ☑ web_search — Búsqueda web con Tavily            │
 │ ☐ odoo_intelligent_query — Queries a Odoo ERP     │
-│ ☐ meli_search — Precios en MercadoLibre           │
-│ ☑ knowledge_base — Base de conocimiento (RAG)     │
+│                                                    │
+│ ─── Documentos RAG (3) ─────────────────────────  │
+│ ┌────────────────────────────────────────────┐     │
+│ │ 📄 Ley de Sociedades Comerciales           │     │
+│ │    PDF · 45 chunks · subido 2026-01-15     │     │
+│ │                                     [🗑️]   │     │
+│ ├────────────────────────────────────────────┤     │
+│ │ 📄 Código Civil y Comercial (extracto)     │     │
+│ │    PDF · 120 chunks · subido 2026-01-15    │     │
+│ │                                     [🗑️]   │     │
+│ ├────────────────────────────────────────────┤     │
+│ │ 📄 Régimen de Monotributo 2026             │     │
+│ │    PDF · 28 chunks · subido 2026-02-01     │     │
+│ │                                     [🗑️]   │     │
+│ └────────────────────────────────────────────┘     │
+│                                                    │
+│ [📎 Subir documento]                               │
 │                                                    │
 │ ─── Mensajes ────────────────────────────────────  │
-│ Welcome:     [¡Hola! Soy Tuqui...       ]         │
-│ Placeholder: [Preguntame lo que quieras  ]         │
-│                                                    │
-│ ─── RAG ─────────────────────────────────────────  │
-│ Habilitado:  [✅]                                  │
+│ Welcome:     [¡Hola! Soy tu asistente... ]         │
+│ Placeholder: [Preguntame sobre leyes...  ]         │
 │                                                    │
 │ [💾 Guardar]  [🔄 Sync a todos los tenants]       │
 │                                                    │
 │ ─── Tenants usando este agent ───────────────────  │
-│ Adhoc SA       ✅ activo  v3 synced    📝 custom   │
-│ Cliente Demo   ✅ activo  v2 ⚠️ desactualizado     │
+│ Adhoc SA       ✅ activo  v2 synced    📄 3 docs   │
+│ Cliente Demo   ✅ activo  v1 ⚠️ desact. 📄 3 docs  │
 │ Test Corp      ❌ inactivo                         │
 └────────────────────────────────────────────────────┘
 ```
+
+### 3.3 — Documentos RAG centralizados en master agents
+
+**Concepto:** Los documentos se gestionan a nivel de master agent. Los embeddings
+existen **una sola vez** en tablas `master_*`. Al buscar, `match_documents` consulta
+ambas fuentes (docs del tenant + docs del master) sin copiar nada.
+
+**Tablas nuevas:**
+
+```sql
+-- Documentos a nivel plataforma (sin tenant_id)
+CREATE TABLE master_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    source_type TEXT DEFAULT 'file',     -- 'file', 'manual', 'url'
+    file_name TEXT,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chunks con embeddings (sin tenant_id) — ÚNICA copia de los vectores
+CREATE TABLE master_document_chunks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES master_documents(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    embedding vector(768),
+    chunk_index INT DEFAULT 0,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_master_doc_chunks_embedding
+    ON master_document_chunks USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);
+
+-- M2M: qué documentos tiene cada master agent
+CREATE TABLE master_agent_documents (
+    master_agent_id UUID NOT NULL REFERENCES master_agents(id) ON DELETE CASCADE,
+    document_id UUID NOT NULL REFERENCES master_documents(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (master_agent_id, document_id)
+);
+```
+
+> **Nota:** Ya existía un placeholder comentado en migration 109 con esta estructura.
+> Ahora lo implementamos de verdad.
+
+**¿Por qué NO copiar embeddings a cada tenant?**
+- Sin duplicación: 1 PDF = 1 set de embeddings, no importa cuántos tenants
+- Sin sync de documentos: vincular doc al master → automáticamente visible en todos los tenants
+- Sin metadata de tracking, sin comparar versiones, sin re-copiar
+- Cada tenant TAMBIÉN puede tener docs propios adicionales en `document_chunks` (como hoy)
+
+### 3.4 — Upload de documentos en super-admin
+
+**Reusar** el mismo pipeline que ya existe en `app/admin/rag/actions.ts`:
+- `getUploadSignedUrl()` → upload a Supabase Storage
+- `processDocumentFromStorage()` → extract text → chunk → embed
+
+La diferencia: en vez de insertar en `documents` + `document_chunks` (con tenant_id),
+insertar en `master_documents` + `master_document_chunks` (sin tenant_id).
+
+**Archivos nuevos:**
+- `app/api/super-admin/agents/[slug]/documents/route.ts` → GET list, POST upload
+- `app/api/super-admin/agents/[slug]/documents/[docId]/route.ts` → DELETE
+- `lib/rag/master-documents.ts` → procesamiento + sync a tenants
+
+**Server Actions para el editor:**
+
+```typescript
+async function uploadMasterDocument(formData: FormData) {
+  'use server'
+  const slug = formData.get('agent_slug') as string
+  const file = formData.get('file') as File
+
+  // 1. Procesar archivo (extract text → chunk → embed)
+  const doc = await processMasterDocument(file)
+
+  // 2. Insertar en master_documents + master_document_chunks
+  const { data } = await db.from('master_documents').insert({
+    title: file.name,
+    content: doc.fullText,
+    file_name: file.name,
+    source_type: 'file',
+  }).select().single()
+
+  // 3. Insertar chunks con embeddings
+  await db.from('master_document_chunks').insert(
+    doc.chunks.map((chunk, i) => ({
+      document_id: data.id,
+      content: chunk.text,
+      embedding: chunk.embedding,
+      chunk_index: i,
+    }))
+  )
+
+  // 4. Vincular al master agent
+  const agent = await db.from('master_agents').select('id').eq('slug', slug).single()
+  await db.from('master_agent_documents').insert({
+    master_agent_id: agent.data.id,
+    document_id: data.id,
+  })
+
+  revalidatePath(`/super-admin/agents/${slug}`)
+}
+
+async function deleteMasterDocument(docId: string, slug: string) {
+  'use server'
+  // Cascade borra chunks y links automáticamente
+  await db.from('master_documents').delete().eq('id', docId)
+  revalidatePath(`/super-admin/agents/${slug}`)
+}
+```
+
+### 3.5 — Fix match_documents (buscar en ambas tablas)
+
+**Problema actual:** `match_documents` referencia `rag_enabled` que ya no existe
+en la tabla `agents`. Además, no busca en documentos centralizados.
+
+**Fix:** Reescribir para buscar en docs del tenant + docs del master agent (UNION).
+Sin copiar embeddings. Sin sync.
+
+```sql
+CREATE OR REPLACE FUNCTION match_documents(
+    query_embedding vector(768),
+    match_agent_id UUID,
+    match_threshold FLOAT DEFAULT 0.3,
+    match_count INT DEFAULT 5
+)
+RETURNS TABLE (id UUID, content TEXT, similarity FLOAT)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_tenant_id UUID;
+BEGIN
+    v_tenant_id := current_tenant_id();
+    IF v_tenant_id IS NULL THEN
+        RAISE EXCEPTION 'Tenant context not set';
+    END IF;
+
+    RETURN QUERY
+
+    -- 1. Docs propios del tenant (como hoy)
+    SELECT dc.id, dc.content,
+           1 - (dc.embedding <=> query_embedding) AS similarity
+    FROM document_chunks dc
+    JOIN documents d ON d.id = dc.document_id
+    WHERE dc.tenant_id = v_tenant_id
+      AND 1 - (dc.embedding <=> query_embedding) > match_threshold
+      AND (
+          d.is_global = true
+          OR d.agent_id = match_agent_id
+          OR EXISTS (
+              SELECT 1 FROM agent_documents ad
+              WHERE ad.agent_id = match_agent_id
+                AND ad.document_id = d.id
+                AND ad.tenant_id = v_tenant_id
+          )
+      )
+
+    UNION ALL
+
+    -- 2. Docs centralizados del master agent (sin copiar, query directo)
+    SELECT mdc.id, mdc.content,
+           1 - (mdc.embedding <=> query_embedding) AS similarity
+    FROM master_document_chunks mdc
+    JOIN master_agent_documents mad ON mad.document_id = mdc.document_id
+    JOIN agents a ON a.master_agent_id = mad.master_agent_id
+    WHERE a.id = match_agent_id
+      AND a.tenant_id = v_tenant_id
+      AND 1 - (mdc.embedding <=> query_embedding) > match_threshold
+
+    ORDER BY similarity DESC
+    LIMIT match_count;
+END;
+$$;
+```
+
+**Clave:** El UNION ALL busca en ambas tablas y retorna los mejores resultados
+combinados. Los embeddings centrales se leen pero nunca se copian.
+
+**Resultado:**
+- Subís un PDF al master agent → automáticamente disponible para TODOS los tenants
+- El tenant puede tener docs propios adicionales → se mezclan en los resultados
+- Cero sync, cero duplicación, cero mantenimiento
+
+### 3.6 — Editor de prompts (Server Actions)
 
 **Server Action `saveAgent`:**
 
@@ -375,38 +577,39 @@ async function saveAgent(formData: FormData) {
 ```typescript
 async function syncToTenants() {
   'use server'
+  // Solo sync de config — los docs centrales NO necesitan sync
   await db.rpc('sync_agents_from_masters')
   revalidatePath(`/super-admin/agents/${slug}`)
 }
 ```
 
-**Flujo:**
+**Flujo completo:**
 
 ```
 1. Editás el prompt en el textarea
-2. Click "Guardar" → actualiza master_agents + incrementa version
-3. Abajo ves qué tenants están desactualizados (version != master_version_synced)
-4. Click "Sync a todos" → ejecuta sync_agents_from_masters()
-5. Los tenants pasan a "synced"
+2. Subís documentos RAG desde el mismo editor (drag & drop)
+3. Click "Guardar" → actualiza master_agents + incrementa version
+4. Los documentos están disponibles INMEDIATAMENTE (sin sync)
+5. Click "Sync a todos" → solo propaga cambios de config (prompt, tools, etc.)
 ```
 
 > Los tenants con `custom_instructions` mantienen sus instrucciones —
 > el sync solo actualiza el `system_prompt` base, no pisa las customizaciones.
-> Esto ya funciona así en la función SQL existente.
+> Los tenants pueden tener documentos propios ADICIONALES subidos desde su admin.
 
-### 3.3 — Crear nuevo master agent
+### 3.7 — Crear nuevo master agent
 
 Modal simple con:
 - Nombre → auto-genera slug
 - Descripción
 - System prompt (textarea)
-- Tools (checkboxes)
-- RAG enabled (toggle)
+- Tools (checkboxes, `knowledge_base` incluido)
 
 Al crear, queda en `is_published = false` (borrador) hasta que lo publiques.
+Los documentos se suben después desde el editor del agente.
 Publicar + Sync lo propaga a todos los tenants.
 
-### 3.4 — Funciones nuevas en agent service
+### 3.8 — Funciones nuevas en agent service
 
 Agregar a `lib/agents/service.ts`:
 
@@ -415,6 +618,15 @@ export async function updateMasterAgent(slug: string, updates: Partial<MasterAge
 export async function createMasterAgent(data: CreateMasterAgentInput)
 export async function getMasterAgentWithTenants(slug: string)
 export async function syncMasterToTenants(slug?: string)  // slug opcional = sync all
+```
+
+Agregar `lib/rag/master-documents.ts`:
+
+```typescript
+export async function uploadMasterDocument(agentSlug: string, file: File)
+export async function deleteMasterDocument(docId: string)
+export async function getMasterDocuments(agentSlug: string)
+// NO hay syncMasterDocuments — los docs se leen directo desde match_documents
 ```
 
 ---
@@ -500,7 +712,7 @@ por request. Migrar callers gradualmente sin romper lo existente.
 
 ## 📁 Archivos — Resumen
 
-### Nuevos (14 archivos)
+### Nuevos (17 archivos)
 
 | Archivo | Fase |
 |---------|------|
@@ -513,11 +725,21 @@ por request. Migrar callers gradualmente sin romper lo existente.
 | `app/api/super-admin/agents/route.ts` | 3 |
 | `app/api/super-admin/agents/[slug]/route.ts` | 3 |
 | `app/api/super-admin/agents/[slug]/sync/route.ts` | 3 |
+| `app/api/super-admin/agents/[slug]/documents/route.ts` | 3 |
+| `app/api/super-admin/agents/[slug]/documents/[docId]/route.ts` | 3 |
+| `lib/rag/master-documents.ts` | 3 |
 | `components/super-admin/TenantTable.tsx` | 2 |
 | `components/super-admin/TenantDetail.tsx` | 2 |
 | `components/super-admin/MasterAgentList.tsx` | 3 |
 | `components/super-admin/MasterAgentEditor.tsx` | 3 |
 | `scripts/migrate-encryption.ts` | 5 |
+
+### Migraciones SQL nuevas
+
+| Archivo | Fase |
+|---------|------|
+| `supabase/migrations/XXX_master_documents.sql` | 3 |
+| `supabase/migrations/XXX_fix_match_documents.sql` | 3 |
 
 ### Modificados (6 archivos)
 
@@ -538,11 +760,11 @@ por request. Migrar callers gradualmente sin romper lo existente.
 |------|-----|----------|
 | **1** | Fundaciones (helper auth, cleanup, fix slug) | Medio día |
 | **2** | Tenants (tabla mejorada, detail view, crear mejorado) | 2-3 días |
-| **3** | Master Agents CRUD (lista, editor, sync) | 2-3 días |
+| **3** | Master Agents CRUD + Documentos RAG centralizados | 3-4 días |
 | **4** | Overview dashboard mínimo | Medio día |
 | **5** | Seguridad (crypto real, singleton fix) | 1 día |
 
-**Total: ~6-7 días**
+**Total: ~7-9 días**
 
 ---
 
