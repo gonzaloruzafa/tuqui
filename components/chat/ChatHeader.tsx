@@ -1,0 +1,35 @@
+'use client'
+
+import { PanelLeft, Settings } from 'lucide-react'
+
+interface ChatHeaderProps {
+    onToggleSidebar: () => void
+}
+
+export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
+    return (
+        <div className="absolute top-0 left-0 right-0 z-20">
+            <header className="h-14 flex items-center px-4 justify-between bg-white/40 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onToggleSidebar}
+                        className="md:hidden p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors"
+                    >
+                        <PanelLeft className="w-5 h-5" />
+                    </button>
+                    <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto md:hidden" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <a
+                        href="/admin"
+                        className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors"
+                        title="Configuración"
+                    >
+                        <Settings className="w-5 h-5" />
+                    </a>
+                </div>
+            </header>
+            <div className="h-6 bg-gradient-to-b from-white/40 to-transparent" />
+        </div>
+    )
+}

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
@@ -31,6 +31,14 @@ const apercu = localFont({
     variable: '--font-apercu',
     display: 'swap',
 })
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    viewportFit: 'cover',
+    interactiveWidget: 'resizes-content',
+}
 
 export const metadata: Metadata = {
     title: 'Tuqui',
