@@ -8,7 +8,6 @@ import { createRagTool } from './definitions/rag-tool'
 export interface AgentToolConfig {
     id: string
     tools: string[]
-    rag_enabled?: boolean  // Deprecated: use tools.includes('knowledge_base')
 }
 
 /**
@@ -18,7 +17,7 @@ export interface AgentToolConfig {
  * - web_search: Búsqueda web unificada (Tavily + Google Grounding)
  *   Handles: búsquedas generales, precios ecommerce, noticias, info actualizada
  * - knowledge_base: RAG tool - búsqueda en documentos cargados
- *   Activated when tools.includes('knowledge_base') OR agent.rag_enabled (legacy)
+ *   Activated when tools.includes('knowledge_base')
  * - odoo_*: Skills-based Odoo queries (NEW: atomic, typed, testable)
  *   Replaces the monolithic "odoo_intelligent_query" God Tool
  *
@@ -34,11 +33,11 @@ export async function getToolsForAgent(
 ) {
     // Backwards compatibility: accept array of tools (legacy) or agent config (new)
     const agent: AgentToolConfig = Array.isArray(agentOrTools)
-        ? { id: 'legacy', tools: agentOrTools, rag_enabled: false }
+        ? { id: 'legacy', tools: agentOrTools }
         : agentOrTools
     
     if (agent.id === 'legacy') {
-        console.warn('[Tools/Executor] ⚠️ DEPRECATED: getToolsForAgent called with string[] instead of AgentToolConfig. RAG tool will be skipped. Pass { id, tools, rag_enabled } instead.')
+        console.warn('[Tools/Executor] ⚠️ DEPRECATED: getToolsForAgent called with string[] instead of AgentToolConfig. Pass { id, tools } instead.')
     }
     
     const tools: Record<string, any> = {}
@@ -50,9 +49,8 @@ export async function getToolsForAgent(
     }
 
     // Knowledge Base (RAG) - On-demand document search
-    // Activated by: tools.includes('knowledge_base') OR legacy rag_enabled flag
     // Requires a valid agent UUID to scope the search
-    const hasKnowledgeBase = agentTools.includes('knowledge_base') || agent.rag_enabled
+    const hasKnowledgeBase = agentTools.includes('knowledge_base')
     const hasValidAgentId = agent.id !== 'legacy' && agent.id !== 'test'
     if (hasKnowledgeBase && hasValidAgentId) {
         tools.search_knowledge_base = createRagTool(tenantId, agent.id)

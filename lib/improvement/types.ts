@@ -3,7 +3,7 @@
  * Defines the data structures for the continuous improvement system
  */
 
-import { ToolCallRecord } from '../tools/native-gemini'
+import { ToolCallRecord } from '../tools/llm-engine'
 
 /**
  * A single conversation turn in a test scenario
@@ -22,8 +22,9 @@ export interface TestScenario {
     id: string
     name: string
     description: string
-    category: 'odoo' | 'meli' | 'general' | 'edge-case' | 'mercadolibre'
-    requiresValidLinks?: boolean  // For MeLi tests: validate HTTP links
+    category: 'ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre' | 'rag' | 'ambiguous' | 'multi-skill' | 'insight'
+    difficulty: 1 | 2 | 3 | 4 | 5
+    requiresValidLinks?: boolean
     turns: {
         userMessage: string
         expectedPatterns?: string[]
@@ -179,13 +180,22 @@ export interface LoopConfig {
     dryRun: boolean
     interactive: boolean
     
-    // Scope - matches test-cases.ts categories
-    categories: ('ventas' | 'compras' | 'stock' | 'cobranzas' | 'tesoreria' | 'comparativas' | 'productos' | 'edge-cases' | 'mercadolibre' | 'all')[]
+    // Scope
+    categories: string[]
     maxIterations: number
+    
+    // Progressive loop
+    startLevel: 1 | 2 | 3 | 4 | 5
+    maxLevel: 1 | 2 | 3 | 4 | 5
+    levelThresholds: Record<number, number>
+    maxRetriesPerLevel: number
     
     // Thresholds
     minPassRate: number
     minAuditScore: number
+    
+    // Model
+    model: string
     
     // Safety
     requirePrForRiskyChanges: boolean
@@ -202,12 +212,49 @@ export interface LoopConfig {
 export const DEFAULT_LOOP_CONFIG: LoopConfig = {
     dryRun: true,
     interactive: false,
-    categories: ['all'], // 'all' means run all categories
-    maxIterations: 5,
+    categories: ['all'],
+    maxIterations: 10,
+    startLevel: 1,
+    maxLevel: 5,
+    levelThresholds: {
+        1: 0.95,  // L1 must be near-perfect
+        2: 0.85,
+        3: 0.85,
+        4: 0.75,  // multi-skill is harder
+        5: 0.70,  // insights are subjective
+    },
+    maxRetriesPerLevel: 3,
     minPassRate: 0.85,
     minAuditScore: 3.5,
+    model: 'gemini-3-flash-preview',
     requirePrForRiskyChanges: true,
     goldStandardTests: ['ventas-001', 'stock-001', 'cobranzas-001'],
-    delayBetweenTests: 4000, // 4 seconds to avoid rate limits
+    delayBetweenTests: 4000,
     maxConcurrentTests: 1
+}
+
+/**
+ * Result of running all tests at a difficulty level
+ */
+export interface LevelResult {
+    level: number
+    total: number
+    passed: number
+    rate: number
+    graduated: boolean
+    attempts: number
+    audits: ScenarioAudit[]
+}
+
+/**
+ * Output of a complete progressive loop run
+ */
+export interface ProgressiveLoopResult {
+    date: string
+    model: string
+    levels: Record<number, { total: number; passed: number; rate: number }>
+    maxLevelPassed: number
+    changesApplied: { skill: string; field: string; diff: string }[]
+    regressions: string[]
+    duration: number
 }

@@ -12,7 +12,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgentBySlug } from '@/lib/agents/service'
-import { searchDocuments } from '@/lib/rag/search'
 // OLD: import { routeMessage } from '@/lib/agents/router'
 import { orchestrate } from '@/lib/agents/orchestrator'
 // God Tool removed - now using atomic Skills architecture
@@ -165,21 +164,7 @@ export async function POST(req: NextRequest) {
 
         systemPrompt += '\n\nIMPORTANTE: Usa el contexto de mensajes anteriores para entender referencias.'
 
-        // 4. Get RAG context if enabled (non-blocking)
-        let ragContext = ''
-        const effectiveRagEnabled = selectedAgent.rag_enabled || agent.rag_enabled
-        if (effectiveRagEnabled) {
-            try {
-                const docs = await searchDocuments(tenantId, selectedAgent.id, inputContent)
-                if (docs.length > 0) {
-                    ragContext = `\n\nCONTEXTO RELEVANTE:\n${docs.map(d => `- ${d.content}`).join('\n')}`
-                }
-            } catch (ragError) {
-                console.warn('[TestChat] RAG search failed (continuing without RAG):', ragError)
-            }
-        }
-
-        // 5. Determine which tools to use - from selected agent
+        // 4. Determine which tools to use - from selected agent
         let effectiveTools = selectedAgent.tools?.length 
             ? selectedAgent.tools 
             : agent.tools || []
@@ -191,17 +176,17 @@ export async function POST(req: NextRequest) {
         // Remove legacy odoo_intelligent_query if present
         effectiveTools = effectiveTools.filter(t => t !== 'odoo_intelligent_query')
 
-        // 6. Execute chat with Skills architecture
+        // 5. Execute chat with Skills architecture
         let response = ''
         let toolsUsed: string[] = effectiveTools
 
         // Use V2 (thinking + retry + force-text) — same engine as web/whatsapp
-        const tools = await getToolsForAgent(tenantId, effectiveTools, 'test@internal.com')
-        const { generateTextWithThinking } = await import('@/lib/tools/native-gemini-v2')
+        const tools = await getToolsForAgent(tenantId, { id: selectedAgent.id, tools: effectiveTools }, 'test@internal.com')
+        const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
 
         const result = await generateTextWithThinking({
             model: 'gemini-3-flash-preview',
-            system: systemPrompt + ragContext,
+            system: systemPrompt,
             messages: messages.map((m: any) => ({
                 role: m.role,
                 content: m.content
@@ -228,12 +213,10 @@ export async function POST(req: NextRequest) {
             },
             agent: {
                 slug: agent.slug,
-                name: agent.name,
-                ragEnabled: effectiveRagEnabled
+                name: agent.name
             },
             toolsAvailable: effectiveTools,
             toolsUsed,
-            ragDocsFound: ragContext ? ragContext.split('\n-').length - 1 : 0,
             response: response,
             responseLength: response.length,
             // Quality indicators

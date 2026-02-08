@@ -27,7 +27,6 @@ export interface AvailableAgent {
   name: string
   description: string | null
   tools: string[]
-  rag_enabled: boolean
 }
 
 export interface RoutingDecision {
@@ -45,7 +44,7 @@ export async function getAvailableAgents(tenantId: string): Promise<AvailableAge
   
   const { data: agents, error } = await db
     .from('agents')
-    .select('id, slug, name, description, tools, rag_enabled')
+    .select('id, slug, name, description, tools')
     .eq('is_active', true)
     .order('name')
 
@@ -59,8 +58,7 @@ export async function getAvailableAgents(tenantId: string): Promise<AvailableAge
     slug: a.slug,
     name: a.name,
     description: a.description,
-    tools: a.tools || [],
-    rag_enabled: a.rag_enabled || false
+    tools: a.tools || []
   }))
 }
 
@@ -89,7 +87,7 @@ export async function decideAgent(
 
   // Construir lista de agentes para el prompt
   const agentList = agents.map(a => 
-    `- **${a.slug}**: ${a.description || a.name}${a.rag_enabled ? ' [tiene documentos internos]' : ''}`
+    `- **${a.slug}**: ${a.description || a.name}${a.tools.includes('knowledge_base') ? ' [tiene documentos internos]' : ''}`
   ).join('\n')
 
   const systemPrompt = `Sos un router de agentes. Analizá el mensaje y elegí el agente más apropiado.
