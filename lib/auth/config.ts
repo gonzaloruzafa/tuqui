@@ -92,31 +92,29 @@ export const authConfig = {
         },
         async session({ session, token }) {
             if (session.user?.email) {
-                // Fetch tenant info
-                const { getTenantForUser, isUserAdmin, getClient } = await import("@/lib/supabase/client")
-                const tenant = await getTenantForUser(session.user.email)
+                try {
+                    const { getTenantForUser, isUserAdmin, getClient } = await import("@/lib/supabase/client")
+                    const tenant = await getTenantForUser(session.user.email)
 
-                if (tenant) {
-                    session.tenant = tenant
-                    session.isAdmin = await isUserAdmin(session.user.email)
-                    
-                    // Expose auth UUID on session for tools that need it (e.g. memory)
-                    if (token?.sub) {
-                        session.user.id = token.sub
+                    if (tenant) {
+                        session.tenant = tenant
+                        session.isAdmin = await isUserAdmin(session.user.email)
+                        
+                        if (token?.sub) {
+                            session.user.id = token.sub
+                            const db = getClient()
+                            await db
+                                .from('users')
+                                .update({ auth_user_id: token.sub })
+                                .eq('email', session.user.email)
+                                .eq('tenant_id', tenant.id)
+                                .is('auth_user_id', null)
+                        }
+                    } else {
+                        console.warn(`[Auth] No tenant found for ${session.user.email} - user may not exist in public.users`)
                     }
-
-                    // Store auth_user_id if we have it from the token (for password management)
-                    // token.sub contains the auth.users.id from Supabase or Google
-                    if (token?.sub) {
-                        const db = getClient()
-                        // Update auth_user_id if not set yet
-                        await db
-                            .from('users')
-                            .update({ auth_user_id: token.sub })
-                            .eq('email', session.user.email)
-                            .eq('tenant_id', tenant.id)
-                            .is('auth_user_id', null)
-                    }
+                } catch (err) {
+                    console.error('[Auth] Session callback error:', err)
                 }
             }
             return session
