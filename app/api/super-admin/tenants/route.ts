@@ -13,14 +13,16 @@ export async function GET() {
 
     try {
         const supabase = supabaseAdmin()
+        const currentMonth = new Date().toISOString().slice(0, 7)
 
         const { data: tenants, error } = await supabase
             .from('tenants')
             .select(`
                 id,
                 name,
-                created_at,
-                users(email, is_admin)
+                slug,
+                is_active,
+                created_at
             `)
             .order('created_at', { ascending: false })
 
@@ -28,7 +30,31 @@ export async function GET() {
             return NextResponse.json({ error: error.message }, { status: 500 })
         }
 
-        return NextResponse.json(tenants || [])
+        // Fetch metrics in parallel
+        const tenantIds = (tenants || []).map(t => t.id)
+
+        const [usersResult, usageResult] = await Promise.all([
+            supabase.from('users').select('tenant_id').in('tenant_id', tenantIds),
+            supabase.from('usage_stats').select('tenant_id, total_tokens').in('tenant_id', tenantIds).eq('year_month', currentMonth),
+        ])
+
+        const userCounts: Record<string, number> = {}
+        for (const u of usersResult.data || []) {
+            userCounts[u.tenant_id] = (userCounts[u.tenant_id] || 0) + 1
+        }
+
+        const tokenCounts: Record<string, number> = {}
+        for (const s of usageResult.data || []) {
+            tokenCounts[s.tenant_id] = (tokenCounts[s.tenant_id] || 0) + s.total_tokens
+        }
+
+        const enriched = (tenants || []).map(t => ({
+            ...t,
+            user_count: userCounts[t.id] || 0,
+            tokens_this_month: tokenCounts[t.id] || 0,
+        }))
+
+        return NextResponse.json(enriched)
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
@@ -43,7 +69,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json()
-        const { name, adminEmail, adminPassword, action } = body
+        const { name, slug, adminEmail, adminPassword, selectedAgentSlugs, action } = body
 
         // Handle sync action
         if (action === 'sync_masters') {
@@ -59,7 +85,7 @@ export async function POST(req: Request) {
             )
         }
 
-        const result = await createTenant({ name, adminEmail, adminPassword })
+        const result = await createTenant({ name, slug, adminEmail, adminPassword, selectedAgentSlugs })
         return NextResponse.json(result)
 
     } catch (error: any) {
