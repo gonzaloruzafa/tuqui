@@ -146,7 +146,8 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
     const AVAILABLE_TOOLS = [
         { slug: 'web_search', label: 'Búsqueda Web', description: 'TODO-EN-UNO: Tavily + Google Grounding (precios, noticias, info general)' },
         { slug: 'odoo_intelligent_query', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' },
-        { slug: 'knowledge_base', label: 'Base de Conocimiento', description: 'Buscar en documentos cargados (manuales, catálogos, políticas)', hasDocSelector: true }
+        { slug: 'knowledge_base', label: 'Base de Conocimiento', description: 'Buscar en documentos cargados (manuales, catálogos, políticas)', hasDocSelector: true },
+        { slug: 'memory', label: 'Memoria', description: 'Recordar notas sobre clientes, productos y proveedores entre conversaciones' }
     ]
     
     // For display purposes: if rag_enabled but knowledge_base not in tools, add it
