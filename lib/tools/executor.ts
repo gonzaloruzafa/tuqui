@@ -1,6 +1,7 @@
 import { webSearchTool } from './web-search'
 import { loadSkillsForAgent, hasOdooTools, shouldUseSkills } from '@/lib/skills/loader'
 import { createRagTool } from './definitions/rag-tool'
+import { createMemoryTools } from '@/lib/skills/memory'
 
 /**
  * Agent configuration subset needed for tool loading
@@ -57,6 +58,13 @@ export async function getToolsForAgent(
         console.log('[Tools/Executor] Knowledge Base tool loaded for agent:', agent.id)
     } else if (hasKnowledgeBase && !hasValidAgentId) {
         console.warn('[Tools/Executor] Skipping RAG tool: agent.id is not a valid UUID:', agent.id)
+    }
+
+    // Memory - User-scoped notes (recall + save)
+    if (agentTools.includes('memory') && userId) {
+        const memoryTools = createMemoryTools(tenantId, userId)
+        Object.assign(tools, memoryTools)
+        console.log('[Tools/Executor] Memory tools loaded (recall_memory, save_memory)')
     }
 
     // Odoo Skills - New atomic skills architecture
