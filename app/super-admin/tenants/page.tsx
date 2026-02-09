@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Building, Plus, RefreshCw, Loader2, Search, Users, Zap, ChevronRight, X } from 'lucide-react'
+import { Building, Plus, RefreshCw, Loader2, Search, Users, Zap, MessageSquare, ChevronRight, X } from 'lucide-react'
 import Link from 'next/link'
 
 interface Tenant {
@@ -12,6 +12,7 @@ interface Tenant {
     created_at: string
     user_count: number
     tokens_this_month: number
+    messages_this_month: number
 }
 
 interface MasterAgent {
@@ -63,14 +64,18 @@ export default function SuperAdminTenantsPage() {
     })
     const [slugManual, setSlugManual] = useState(false)
     const [creating, setCreating] = useState(false)
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
     const filteredTenants = useMemo(() => {
-        if (!search) return tenants
+        let result = tenants
+        if (statusFilter === 'active') result = result.filter(t => t.is_active)
+        if (statusFilter === 'inactive') result = result.filter(t => !t.is_active)
+        if (!search) return result
         const q = search.toLowerCase()
-        return tenants.filter(t =>
+        return result.filter(t =>
             t.name.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q)
         )
-    }, [tenants, search])
+    }, [tenants, search, statusFilter])
 
     const fetchTenants = async () => {
         setLoading(true)
@@ -218,16 +223,33 @@ export default function SuperAdminTenantsPage() {
                     </div>
                 </div>
 
-                {/* Search */}
-                <div className="relative mb-6">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Buscar por nombre o slug..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet"
-                    />
+                {/* Search + filter */}
+                <div className="flex gap-3 mb-6">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Buscar por nombre o slug..."
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet"
+                        />
+                    </div>
+                    <div className="flex bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        {(['all', 'active', 'inactive'] as const).map(status => (
+                            <button
+                                key={status}
+                                onClick={() => setStatusFilter(status)}
+                                className={`px-3 py-2 text-xs font-medium transition-colors ${
+                                    statusFilter === status
+                                        ? 'bg-adhoc-violet text-white'
+                                        : 'text-gray-500 hover:bg-gray-50'
+                                }`}
+                            >
+                                {status === 'all' ? 'Todos' : status === 'active' ? 'Activos' : 'Inactivos'}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {loading ? (
@@ -256,6 +278,9 @@ export default function SuperAdminTenantsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> Tokens (mes)</span>
                                     </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Mensajes</span>
+                                    </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Creado</th>
                                     <th className="px-6 py-4"></th>
@@ -271,6 +296,9 @@ export default function SuperAdminTenantsPage() {
                                         <td className="px-6 py-4 text-gray-600 text-sm">{t.user_count}</td>
                                         <td className="px-6 py-4 text-gray-600 text-sm font-mono">
                                             {t.tokens_this_month > 0 ? formatTokens(t.tokens_this_month) : '—'}
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-600 text-sm">
+                                            {t.messages_this_month > 0 ? t.messages_this_month : '—'}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
@@ -294,7 +322,7 @@ export default function SuperAdminTenantsPage() {
                                 ))}
                                 {filteredTenants.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                                             {search ? 'No se encontraron tenants.' : 'No hay tenants creados.'}
                                         </td>
                                     </tr>
@@ -383,7 +411,6 @@ export default function SuperAdminTenantsPage() {
                                                     onChange={() => toggleAgent(agent.slug)}
                                                     className="w-4 h-4 text-adhoc-violet rounded border-gray-300 focus:ring-adhoc-violet"
                                                 />
-                                                <span className="text-lg">{agent.icon || '🤖'}</span>
                                                 <span className="text-sm font-medium text-gray-700">{agent.name}</span>
                                                 {!agent.is_published && (
                                                     <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">borrador</span>

@@ -35,7 +35,7 @@ export async function GET() {
 
         const [usersResult, usageResult] = await Promise.all([
             supabase.from('users').select('tenant_id').in('tenant_id', tenantIds),
-            supabase.from('usage_stats').select('tenant_id, total_tokens').in('tenant_id', tenantIds).eq('year_month', currentMonth),
+            supabase.from('usage_stats').select('tenant_id, total_tokens, total_requests').in('tenant_id', tenantIds).eq('year_month', currentMonth),
         ])
 
         const userCounts: Record<string, number> = {}
@@ -44,14 +44,17 @@ export async function GET() {
         }
 
         const tokenCounts: Record<string, number> = {}
+        const messageCounts: Record<string, number> = {}
         for (const s of usageResult.data || []) {
             tokenCounts[s.tenant_id] = (tokenCounts[s.tenant_id] || 0) + s.total_tokens
+            messageCounts[s.tenant_id] = (messageCounts[s.tenant_id] || 0) + s.total_requests
         }
 
         const enriched = (tenants || []).map(t => ({
             ...t,
             user_count: userCounts[t.id] || 0,
             tokens_this_month: tokenCounts[t.id] || 0,
+            messages_this_month: messageCounts[t.id] || 0,
         }))
 
         return NextResponse.json(enriched)

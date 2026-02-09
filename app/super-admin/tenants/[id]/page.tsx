@@ -89,22 +89,34 @@ export default function TenantDetailPage() {
         setSaving(false)
     }
 
-    const toggleActive = async () => {
+    const toggleActive = () => {
         if (!data) return
         const newState = !data.tenant.is_active
-        if (!newState && !confirm('¿Desactivar este tenant? Los usuarios no podrán acceder.')) return
 
-        try {
-            const res = await fetch(`/api/super-admin/tenants/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ is_active: newState }),
-            })
-            if (res.ok) await fetchDetail()
-        } catch { /* ignore */ }
+        const doToggle = async () => {
+            if (!newState && !confirm('¿Desactivar este tenant? Los usuarios no podrán acceder.')) return
+
+            // Optimistic update
+            setData(prev => prev ? { ...prev, tenant: { ...prev.tenant, is_active: newState } } : prev)
+
+            try {
+                const res = await fetch(`/api/super-admin/tenants/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: newState }),
+                })
+                if (res.ok) await fetchDetail()
+                else setData(prev => prev ? { ...prev, tenant: { ...prev.tenant, is_active: !newState } } : prev)
+            } catch {
+                setData(prev => prev ? { ...prev, tenant: { ...prev.tenant, is_active: !newState } } : prev)
+            }
+        }
+
+        // Defer confirm() off the click handler to avoid blocking INP
+        setTimeout(doToggle, 0)
     }
 
-    useEffect(() => { fetchDetail() }, [id])
+        useEffect(() => { fetchDetail() }, [id])
 
     if (loading) {
         return (
@@ -223,8 +235,14 @@ export default function TenantDetailPage() {
                                     <span className="ml-2 text-[10px] bg-adhoc-violet/10 text-adhoc-violet px-1.5 py-0.5 rounded font-medium">admin</span>
                                 )}
                             </div>
-                            <div className="text-xs text-gray-400 font-mono">
-                                {u.tokens_this_month > 0 ? `${formatTokens(u.tokens_this_month)} tokens` : '—'}
+                            <div className="text-xs text-gray-400 font-mono flex items-center gap-3">
+                                <span>{u.tokens_this_month > 0 ? `${formatTokens(u.tokens_this_month)} tokens` : '—'}</span>
+                                {u.requests_this_month > 0 && (
+                                    <span className="text-gray-300">·</span>
+                                )}
+                                {u.requests_this_month > 0 && (
+                                    <span>{u.requests_this_month} msgs</span>
+                                )}
                             </div>
                         </div>
                     ))}

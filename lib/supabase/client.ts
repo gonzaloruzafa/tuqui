@@ -158,13 +158,14 @@ export async function getTenantForUser(email: string): Promise<{
 } | null> {
     const db = getClient()
     
-    // First get the user
-    const { data: user, error: userError } = await db
+    // First get the user (use .limit(1) to handle duplicate emails across tenants)
+    const { data: users, error: userError } = await db
         .from('users')
         .select('tenant_id')
         .eq('email', email)
-        .single()
+        .limit(1)
 
+    const user = users?.[0]
     if (userError || !user) {
         console.log(`[Supabase] No user found for email: ${email}`, userError?.message)
         return null
@@ -261,13 +262,13 @@ export async function getTenantByTwilioPhone(twilioPhone: string): Promise<{
 export async function isUserAdmin(email: string): Promise<boolean> {
     const db = getClient()
     
-    const { data: user } = await db
+    const { data: users } = await db
         .from('users')
         .select('is_admin')
         .eq('email', email)
-        .single()
+        .limit(1)
 
-    return user?.is_admin || false
+    return users?.[0]?.is_admin || false
 }
 
 // =============================================================================
