@@ -617,62 +617,21 @@ Hoy cada conversación arranca de cero. El único contexto persistente es el de 
 → María tampoco sabe lo que Juan aprendió. Cada uno en su burbuja.
 ```
 
-### 3 niveles de memoria
+### Approach: memoria por usuario, simple
 
-Hay 3 formas de resolver esto, cada una con distinto alcance:
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                     NIVELES DE MEMORIA                           │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Nivel 1: MEMORIA POR USUARIO                                   │
-│  ─────────────────────────────                                   │
-│  Juan guarda una nota → solo Juan la ve después                 │
-│  "MegaCorp paga tarde" → solo aparece en chats de Juan          │
-│                                                                  │
-│  Es lo que hace ChatGPT. Cada usuario tiene su libretita.       │
-│  Simple, sin conflictos, sin moderación.                        │
-│                                                                  │
-│  Nivel 2: MEMORIA POR EMPRESA (compartida)                      │
-│  ──────────────────────────────────────────                      │
-│  Juan guarda una nota → TODOS los del tenant la ven             │
-│  "MegaCorp paga tarde" → aparece cuando cualquiera pregunta     │
-│                                                                  │
-│  Es company_contexts con esteroides: se alimenta de charlas     │
-│  en vez de cargarse a mano. MÁS útil, pero MÁS riesgoso.      │
-│  ¿Qué pasa si Juan guarda algo incorrecto?                     │
-│                                                                  │
-│  Nivel 3: PROMOVER (user → empresa)                             │
-│  ──────────────────────────────────                              │
-│  Juan guarda una nota → solo Juan la ve                         │
-│  Admin va a /admin/memory y dice "esto es útil para todos"      │
-│  → Ahora la nota la ven todos los usuarios del tenant           │
-│                                                                  │
-│  Combina lo mejor: Juan puede anotar sin riesgo,               │
-│  y el admin decide qué merece ser conocimiento compartido.      │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-### Ejemplo concreto de "promover"
+Cada usuario tiene su libretita. Lo que Juan anota, solo Juan lo ve. Sin scopes, sin moderación, sin complejidad.
 
 ```
-1. Juan chatea: "Che, MegaCorp siempre pide factura A"
-2. Tuqui detecta el insight y lo guarda como MEMORIA DE JUAN:
-   → { entity: "MegaCorp", note: "Pide factura A", scope: "user", user: "Juan" }
+[Lunes]  Juan: "Recordá que MegaCorp siempre pide factura A"
+         Tuqui: "Anotado ✅"
 
-3. Pasan los días. Juan pregunta "¿Cuánto le vendimos a MegaCorp?"
-   → Tuqui busca memorias de Juan → encuentra la nota → enriquece respuesta
-   → "Le vendiste $2M. Recordá que siempre piden factura A."
-
-4. María NO ve esta nota. Ella pregunta lo mismo → respuesta sin ese contexto.
-
-5. El admin entra a /admin/memory, ve la nota de Juan, y la "promueve":
-   → { entity: "MegaCorp", note: "Pide factura A", scope: "company" }
-   
-6. Ahora cuando María pregunta → también ve "piden factura A"
+[Martes] Juan: "¿Cuánto le vendimos a MegaCorp?"
+         Tuqui busca memorias de Juan sobre "MegaCorp" → encuentra la nota
+         → "Le vendiste $2M. Recordá que siempre piden factura A."
 ```
+
+> **Fase futura:** Si hace falta compartir memorias entre usuarios (scope empresa),
+> se agrega un campo `scope` a la tabla y un filtro en el query. No requiere refactor.
 
 ### ¿Por qué memory como TOOL y no siempre inyectado?
 
@@ -718,12 +677,7 @@ La opción A es más simple y confiable. La opción B es más mágica pero puede
 CREATE TABLE IF NOT EXISTS memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  created_by UUID REFERENCES auth.users(id),  -- quién la creó
-  
-  -- Alcance
-  scope TEXT NOT NULL DEFAULT 'user',  -- 'user' | 'company'
-  -- Si scope='user', solo la ve el created_by
-  -- Si scope='company', la ven todos los del tenant
+  created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   
   -- Contenido
   entity_name TEXT,          -- 'MegaCorp', 'Producto X', null si es general
@@ -731,18 +685,12 @@ CREATE TABLE IF NOT EXISTS memories (
   content TEXT NOT NULL,     -- 'Siempre pide factura A'
   
   -- Metadata
-  source TEXT DEFAULT 'user_dictated',  -- 'user_dictated' | 'auto_extracted'
-  promoted_by UUID REFERENCES auth.users(id),  -- quién la promovió (si aplica)
-  promoted_at TIMESTAMPTZ,
   use_count INT DEFAULT 0,   -- cuántas veces se usó en respuestas
-  
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_memories_tenant ON memories(tenant_id);
+CREATE INDEX idx_memories_user ON memories(created_by);
 CREATE INDEX idx_memories_entity ON memories(entity_name);
-CREATE INDEX idx_memories_scope ON memories(tenant_id, scope);
 ```
 
 #### F4.2: Tool `recall_memory` (~30 min)
@@ -766,19 +714,13 @@ RETORNA: Lista de notas con fecha y quién la creó`,
     execute: async ({ entity_name }) => {
       const { data } = await db
         .from('memories')
-        .select('entity_name, entity_type, content, created_at, scope')
-        .eq('tenant_id', tenantId)
-        .or(`scope.eq.company,and(scope.eq.user,created_by.eq.${userId})`)
+        .select('entity_name, entity_type, content, created_at')
+        .eq('created_by', userId)
         .ilike('entity_name', `%${entity_name}%`)
         .order('use_count', { ascending: false })
         .limit(5)
 
       if (!data?.length) return { found: false }
-
-      // Incrementar use_count
-      await db.from('memories')
-        .update({ use_count: db.rpc('increment_use_count') })
-        .in('id', data.map(d => d.id))
 
       return { found: true, notes: data }
     }
@@ -810,11 +752,9 @@ RETORNA: Confirmación`,
       await db.from('memories').insert({
         tenant_id: tenantId,
         created_by: userId,
-        scope: 'user',  // Siempre empieza como user
         entity_name,
         entity_type: entity_type || 'general',
         content: content.slice(0, 200),
-        source: 'user_dictated',
       })
       return { saved: true, message: `Anotado sobre ${entity_name} ✅` }
     }
@@ -822,23 +762,16 @@ RETORNA: Confirmación`,
 }
 ```
 
-#### F4.4: UI Admin para gestionar y promover (~1h)
+#### F4.4: Gestión de memorias (en el chat) (~30 min)
 
+El usuario puede gestionar sus memorias desde el chat:
 ```
-/admin/memory
-├── Filtros: [Todas | Solo mías | Solo empresa]
-├── Buscar: _______________
-│
-├── 📝 Memorias
-│   ├── 👤 "MegaCorp pide factura A" (Juan, hace 3 días, user)
-│   │   └── [Promover a empresa 🔼] [Editar ✏️] [Borrar 🗑️]
-│   ├── 🏢 "No vender a monotributistas sin anticipo" (empresa)
-│   │   └── [Editar ✏️] [Borrar 🗑️]
-│   └── 👤 "OdontoPlus prefiere envío por Andreani" (María, ayer, user)
-│       └── [Promover a empresa 🔼] [Editar ✏️] [Borrar 🗑️]
+Usuario: "¿Qué tenés anotado?"       → lista todas sus memorias
+Usuario: "Olvidate de MegaCorp"       → borra memorias de esa entidad
+Usuario: "Recordá que X pide factura A" → guarda
 ```
 
-"Promover" = cambiar `scope: 'user'` → `scope: 'company'` + guardar quién lo promovió.
+No hace falta UI dedicada por ahora. El LLM maneja todo conversacionalmente.
 
 #### F4.5: Registrar tools en agentes (~30 min)
 
@@ -849,20 +782,20 @@ Agregar `recall_memory` y `save_memory` al array de tools de los agentes relevan
 ```typescript
 // tests/unit/memory.test.ts
 describe('Memory Tools', () => {
-  test('save_memory guarda con scope user', ...)
+  test('save_memory guarda para el usuario', ...)
   test('recall_memory encuentra por entity_name', ...)
-  test('recall_memory solo muestra user propias + company', ...)
   test('recall_memory no muestra memorias de otros usuarios', ...)
-  test('promover cambia scope a company', ...)
+  test('recall_memory retorna found:false si no hay memorias', ...)
 })
 ```
 
 ### Qué NO hacer en F4
 
-- ❌ Extracción automática de insights (complejo, propenso a errores → fase posterior)
-- ❌ Embeddings/vector search para memorias (overkill para <1000 memorias, ILIKE alcanza)
+- ❌ Scope empresa / promover (agregar después si hace falta, es solo un campo + filtro)
+- ❌ Extracción automática de insights (fase posterior)
+- ❌ Embeddings/vector search (overkill para <1000 memorias, ILIKE alcanza)
 - ❌ Memorias que se inyectan siempre (gastan tokens)
-- ❌ Moderación automática de contenido
+- ❌ UI dedicada de admin (el chat alcanza)
 
 ### Checklist F4
 
@@ -870,11 +803,10 @@ describe('Memory Tools', () => {
 - [ ] `lib/skills/memory/recall.ts` implementado
 - [ ] `lib/skills/memory/save.ts` implementado
 - [ ] Tools registrados en agentes relevantes (DB)
-- [ ] UI `/admin/memory` con promover/editar/borrar
 - [ ] Tests unitarios
 - [ ] Evals no bajan
 
-### Estimación: ~6h
+### Estimación: ~4h
 
 ---
 
