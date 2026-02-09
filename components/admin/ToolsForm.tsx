@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Save, Loader2, CheckCircle, Database, ShoppingBag, MessageSquare, Globe } from 'lucide-react'
+import { Save, Loader2, CheckCircle, Database, ShoppingBag, Brain, Globe } from 'lucide-react'
 
 interface ConfigField {
     name: string
@@ -41,10 +41,10 @@ const TOOLS: ToolConfig[] = [
         envNote: 'Requiere: TAVILY_API_KEY y GOOGLE_GENERATIVE_AI_API_KEY'
     },
     {
-        slug: 'whatsapp',
-        name: 'WhatsApp Business',
-        icon: 'MessageSquare',
-        description: 'Integración vía Twilio para respuestas automáticas.',
+        slug: 'memory',
+        name: 'Memoria',
+        icon: 'Brain',
+        description: 'Permite a los agentes recordar notas sobre clientes, productos y proveedores entre conversaciones. Cada usuario tiene su propia memoria.',
         configFields: []
     },
 ]
@@ -52,7 +52,7 @@ const TOOLS: ToolConfig[] = [
 const IconMap: Record<string, React.ReactNode> = {
     'Database': <Database className="w-6 h-6" />,
     'ShoppingBag': <ShoppingBag className="w-6 h-6" />,
-    'MessageSquare': <MessageSquare className="w-6 h-6" />,
+    'Brain': <Brain className="w-6 h-6" />,
     'Globe': <Globe className="w-6 h-6" />,
 }
 
