@@ -53,10 +53,12 @@ export async function POST(req: Request) {
                 return new Response(result.text)
             } catch (voiceError: any) {
                 console.error('[Chat] VoiceMode error:', voiceError)
+                const { getFriendlyError } = await import('@/lib/errors/friendly-messages')
+                const friendly = getFriendlyError(voiceError)
                 return new Response(JSON.stringify({
-                    error: 'Voice generation failed',
-                    details: voiceError.message
-                }), { status: 500 })
+                    error: friendly.message,
+                    suggestion: friendly.suggestion
+                }), { status: friendly.statusCode })
             }
         }
 
@@ -87,7 +89,12 @@ export async function POST(req: Request) {
                     controller.close()
                 } catch (error: any) {
                     console.error('[Chat] Streaming error:', error)
-                    controller.error(error)
+                    // Send friendly error as text so client displays it as bot message
+                    const { getFriendlyError } = await import('@/lib/errors/friendly-messages')
+                    const friendly = getFriendlyError(error)
+                    const errorText = `${friendly.message}\n\n${friendly.suggestion}`
+                    controller.enqueue(encoder.encode(errorText))
+                    controller.close()
                 }
             }
         })
