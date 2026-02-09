@@ -600,148 +600,213 @@ describe('Skill Selection', () => {
 
 ---
 
-## ⬜ FASE 4: MEMORY TOOL (~4 horas)
+## ⬜ FASE 4: MEMORY (~6 horas)
 
-> **Objetivo:** Memoria conversacional como tool, no como contexto fijo
+> **Objetivo:** Que Tuqui recuerde cosas entre conversaciones y las use para dar mejores respuestas
 
-### ¿Por qué como Tool y no siempre inyectado?
+### El problema
 
-- **Contexto de empresa** (~200 tokens): Siempre relevante → Siempre inyectado
-- **Memoria conversacional** (variable): Solo relevante cuando se menciona la entidad → Tool on-demand
+Hoy cada conversación arranca de cero. El único contexto persistente es el de empresa (`company_contexts`), que se carga manualmente desde /admin.
 
-**Ejemplo:**
 ```
-[Ayer] Usuario: "MegaCorp siempre paga tarde"
-[Hoy]  Usuario: "¿Cuánto nos debe MegaCorp?"
+[Lunes]  Juan: "MegaCorp siempre paga tarde, hay que llamarlos antes"
+[Martes] Juan: "¿Cuánto nos debe MegaCorp?"
+→ Tuqui no tiene idea de lo que dijo Juan ayer. Da el número pelado.
 
-Sin memoria: "MegaCorp debe $340K"
-Con memoria: "MegaCorp debe $340K (recordá que suelen pagar tarde)"
+[Miércoles] María: "¿Cuánto nos debe MegaCorp?"
+→ María tampoco sabe lo que Juan aprendió. Cada uno en su burbuja.
 ```
 
-### Implementación
+### Approach: memoria por usuario, simple
 
-#### 4.1: Tabla `conversation_insights`
+Cada usuario tiene su libretita. Lo que Juan anota, solo Juan lo ve. Sin scopes, sin moderación, sin complejidad.
+
+```
+[Lunes]  Juan: "Recordá que MegaCorp siempre pide factura A"
+         Tuqui: "Anotado ✅"
+
+[Martes] Juan: "¿Cuánto le vendimos a MegaCorp?"
+         Tuqui busca memorias de Juan sobre "MegaCorp" → encuentra la nota
+         → "Le vendiste $2M. Recordá que siempre piden factura A."
+```
+
+> **Fase futura:** Si hace falta compartir memorias entre usuarios (scope empresa),
+> se agrega un campo `scope` a la tabla y un filtro en el query. No requiere refactor.
+
+### ¿Por qué memory como TOOL y no siempre inyectado?
+
+- **Company context** (~200 tokens): Siempre relevante → siempre inyectado. No cambia.
+- **Memorias** (variable, puede ser mucho): Solo relevante cuando el usuario menciona una entidad específica → el agente decide cuándo buscar.
+
+Si inyectás 50 memorias en cada request, estás gastando tokens al pedo el 90% del tiempo. Como tool, el agente solo busca cuando detecta una entidad:
+
+```
+Usuario: "¿Cuánto vendimos?"
+→ No busca memorias. No hay entidad específica.
+
+Usuario: "¿Cuánto le vendimos a MegaCorp?"
+→ Busca memorias de "MegaCorp" → encuentra notas → enriquece respuesta
+```
+
+### Cómo se guardan las memorias
+
+Dos mecanismos, ninguno bloquea la respuesta:
+
+**A) El usuario dicta explícitamente:**
+```
+Usuario: "Recordá que MegaCorp siempre pide factura A"
+→ Tuqui guarda y confirma: "Listo, anotado ✅"
+```
+
+**B) El LLM detecta automáticamente (post-respuesta, async):**
+```
+Usuario: "MegaCorp es nuestro cliente más difícil, siempre reclaman todo"
+→ Tuqui responde normalmente
+→ En background, analiza la conversación y extrae:
+   { entity: "MegaCorp", note: "Cliente difícil, reclaman mucho" }
+```
+
+La opción A es más simple y confiable. La opción B es más mágica pero puede guardar cosas incorrectas. **Recomendación: empezar con A, agregar B después.**
+
+### Plan de implementación
+
+#### F4.1: Tabla `memories` (~30 min)
 
 ```sql
--- supabase/migrations/201_conversation_memory.sql
-CREATE TABLE IF NOT EXISTS conversation_insights (
+-- supabase/migrations/203_memories.sql
+CREATE TABLE IF NOT EXISTS memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id),
-  user_id UUID REFERENCES users(id),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   
-  entity_type TEXT,      -- 'customer', 'product', 'supplier', 'general'
-  entity_name TEXT,      -- 'MegaCorp', 'iPhone 15', etc.
-  insight TEXT NOT NULL, -- 'Siempre paga tarde'
+  -- Contenido
+  entity_name TEXT,          -- 'MegaCorp', 'Producto X', null si es general
+  entity_type TEXT,          -- 'customer', 'product', 'supplier', 'general'
+  content TEXT NOT NULL,     -- 'Siempre pide factura A'
   
-  source_session_id UUID,
-  confidence FLOAT DEFAULT 0.8,
-  use_count INT DEFAULT 0,
-  
+  -- Metadata
+  use_count INT DEFAULT 0,   -- cuántas veces se usó en respuestas
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_insights_tenant ON conversation_insights(tenant_id);
-CREATE INDEX idx_insights_entity ON conversation_insights(entity_name);
+CREATE INDEX idx_memories_user ON memories(created_by);
+CREATE INDEX idx_memories_entity ON memories(entity_name);
 ```
 
-#### 4.2: Memory Tool
+#### F4.2: Tool `recall_memory` (~30 min)
 
 ```typescript
-// lib/tools/definitions/memory-tool.ts
+// lib/skills/memory/recall.ts (~50 líneas)
 
-export const memoryTool: Tool = {
-  name: 'get_relevant_memory',
-  description: `Busca notas y contexto de conversaciones anteriores sobre una entidad.
+export function createRecallMemoryTool(tenantId: string, userId: string) {
+  return {
+    name: 'recall_memory',
+    description: `Busca notas y contexto guardado sobre un cliente, producto o proveedor.
 
-USAR CUANDO: El usuario menciona un cliente, producto o proveedor específico 
-y querés saber si hay notas previas relevantes.
-
-NO USAR: Para datos de Odoo (ventas, stock) o información general.
+USAR CUANDO: El usuario menciona un cliente, producto o proveedor específico
+y querés saber si hay notas o contexto previo guardado.
+NO USAR: Para datos de Odoo (ventas, stock, deudas) — usá los skills de Odoo.
 
 PARÁMETROS:
-- entity_name: Nombre del cliente/producto/proveedor a buscar`,
+- entity_name: Nombre o parte del nombre a buscar (ej: "MegaCorp", "adhesivo")
+RETORNA: Lista de notas con fecha y quién la creó`,
 
-  parameters: {
-    type: 'object',
-    properties: {
-      entity_name: { type: 'string', description: 'Nombre de la entidad' }
-    },
-    required: ['entity_name']
-  },
+    execute: async ({ entity_name }) => {
+      const { data } = await db
+        .from('memories')
+        .select('entity_name, entity_type, content, created_at')
+        .eq('created_by', userId)
+        .ilike('entity_name', `%${entity_name}%`)
+        .order('use_count', { ascending: false })
+        .limit(5)
 
-  execute: async ({ entity_name }, context) => {
-    const { data } = await db
-      .from('conversation_insights')
-      .select('entity_type, insight, created_at')
-      .eq('tenant_id', context.tenantId)
-      .ilike('entity_name', `%${entity_name}%`)
-      .order('use_count', { ascending: false })
-      .limit(5)
-    
-    if (!data?.length) {
-      return { found: false, message: 'No hay notas previas sobre esta entidad' }
-    }
-    
-    // Incrementar use_count de las usadas
-    await db.from('conversation_insights')
-      .update({ use_count: db.raw('use_count + 1') })
-      .in('id', data.map(d => d.id))
-    
-    return {
-      found: true,
-      insights: data.map(d => ({
-        type: d.entity_type,
-        note: d.insight,
-        date: d.created_at
-      }))
+      if (!data?.length) return { found: false }
+
+      return { found: true, notes: data }
     }
   }
 }
 ```
 
-#### 4.3: Guardado de insights (async, no bloquea)
+#### F4.3: Tool `save_memory` (~30 min)
 
 ```typescript
-// lib/memory/insight-saver.ts
-// Se ejecuta después de cada conversación en background
+// lib/skills/memory/save.ts (~40 líneas)
 
-export async function extractAndSaveInsights(
-  tenantId: string,
-  userId: string,
-  messages: Message[]
-): Promise<void> {
-  // Patrones a detectar
-  const patterns = [
-    /(.+) siempre paga (tarde|temprano|bien)/i,
-    /(.+) es (buen|mal) (cliente|proveedor)/i,
-    /con (.+) (hay que|siempre|nunca) (.+)/i,
-  ]
-  
-  // Extraer insights del historial
-  for (const msg of messages) {
-    for (const pattern of patterns) {
-      const match = msg.content.match(pattern)
-      if (match) {
-        await db.from('conversation_insights').insert({
-          tenant_id: tenantId,
-          user_id: userId,
-          entity_name: match[1],
-          insight: msg.content,
-          entity_type: 'general'
-        })
-      }
+export function createSaveMemoryTool(tenantId: string, userId: string) {
+  return {
+    name: 'save_memory',
+    description: `Guarda una nota sobre un cliente, producto o proveedor para recordar después.
+
+USAR CUANDO: El usuario dice "recordá que...", "anotá que...", "tené en cuenta que..."
+o te da información relevante sobre una entidad del negocio.
+NO USAR: Para guardar datos temporales o de una sola vez.
+
+PARÁMETROS:
+- entity_name: Nombre del cliente/producto/proveedor
+- entity_type: 'customer' | 'product' | 'supplier' | 'general'
+- content: La nota a guardar (resumida, max 200 chars)
+RETORNA: Confirmación`,
+
+    execute: async ({ entity_name, entity_type, content }) => {
+      await db.from('memories').insert({
+        tenant_id: tenantId,
+        created_by: userId,
+        entity_name,
+        entity_type: entity_type || 'general',
+        content: content.slice(0, 200),
+      })
+      return { saved: true, message: `Anotado sobre ${entity_name} ✅` }
     }
   }
 }
 ```
+
+#### F4.4: Gestión de memorias (en el chat) (~30 min)
+
+El usuario puede gestionar sus memorias desde el chat:
+```
+Usuario: "¿Qué tenés anotado?"       → lista todas sus memorias
+Usuario: "Olvidate de MegaCorp"       → borra memorias de esa entidad
+Usuario: "Recordá que X pide factura A" → guarda
+```
+
+No hace falta UI dedicada por ahora. El LLM maneja todo conversacionalmente.
+
+#### F4.5: Registrar tools en agentes (~30 min)
+
+Agregar `recall_memory` y `save_memory` al array de tools de los agentes relevantes (odoo, tuqui) en la DB.
+
+#### F4.6: Tests (~1h)
+
+```typescript
+// tests/unit/memory.test.ts
+describe('Memory Tools', () => {
+  test('save_memory guarda para el usuario', ...)
+  test('recall_memory encuentra por entity_name', ...)
+  test('recall_memory no muestra memorias de otros usuarios', ...)
+  test('recall_memory retorna found:false si no hay memorias', ...)
+})
+```
+
+### Qué NO hacer en F4
+
+- ❌ Scope empresa / promover (agregar después si hace falta, es solo un campo + filtro)
+- ❌ Extracción automática de insights (fase posterior)
+- ❌ Embeddings/vector search (overkill para <1000 memorias, ILIKE alcanza)
+- ❌ Memorias que se inyectan siempre (gastan tokens)
+- ❌ UI dedicada de admin (el chat alcanza)
 
 ### Checklist F4
 
-- [ ] Migration `201_conversation_memory.sql` creada
-- [ ] `lib/tools/definitions/memory-tool.ts` implementado
-- [ ] `lib/memory/insight-saver.ts` implementado
-- [ ] Tool registrado en agentes relevantes
-- [ ] Tests pasan
+- [ ] Migration `203_memories.sql` creada
+- [ ] `lib/skills/memory/recall.ts` implementado
+- [ ] `lib/skills/memory/save.ts` implementado
+- [ ] Tools registrados en agentes relevantes (DB)
+- [ ] Tests unitarios
+- [ ] Evals no bajan
+
+### Estimación: ~4h
 
 ---
 

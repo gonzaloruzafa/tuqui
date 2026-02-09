@@ -528,19 +528,8 @@ export default function ChatPage() {
         }
     }
 
-    if (!agent) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-adhoc-violet" /></div>
-
     // Loading state
-    if (agent === undefined) {
-        return (
-            <div className="h-screen flex items-center justify-center bg-white">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-adhoc-violet" />
-                    <span className="text-gray-500">Cargando agente...</span>
-                </div>
-            </div>
-        )
-    }
+    if (agent === undefined) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-adhoc-violet" /></div>
 
     // Agent not found
     if (agent === null) {
