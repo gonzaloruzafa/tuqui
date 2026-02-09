@@ -81,7 +81,10 @@ export default function AdminAgentsPage() {
             const res = await fetch('/api/admin/agents', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({
+                    ...formData,
+                    ragEnabled: formData.tools.includes('knowledge_base')
+                })
             })
 
             if (res.ok) {
@@ -113,6 +116,7 @@ export default function AdminAgentsPage() {
         { id: 'web_search', name: 'Búsqueda Web', description: 'Tavily + Google Grounding' },
         { id: 'odoo', name: 'Odoo ERP', description: 'Consultar datos del ERP' },
         { id: 'memory', name: 'Memoria', description: 'Recordar notas entre conversaciones' },
+        { id: 'knowledge_base', name: 'Base de Conocimiento', description: 'Buscar en documentos subidos' },
     ]
 
     // Separate agents by type
@@ -248,6 +252,11 @@ export default function AdminAgentsPage() {
                                     {availableTools.map(tool => (
                                         <label key={tool.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-adhoc-lavender cursor-pointer transition-colors">
                                             <input type="checkbox" checked={formData.tools.includes(tool.id)} onChange={() => toggleTool(tool.id)} className="w-4 h-4 text-adhoc-violet rounded border-gray-300 focus:ring-adhoc-violet" />
+                                            {ToolIcons[tool.id] && (
+                                                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border ${ToolIcons[tool.id].bg}`}>
+                                                    {ToolIcons[tool.id].icon}
+                                                </span>
+                                            )}
                                             <div className="flex-1">
                                                 <p className="font-medium text-sm">{tool.name}</p>
                                                 <p className="text-xs text-gray-500">{tool.description}</p>
@@ -255,16 +264,6 @@ export default function AdminAgentsPage() {
                                         </label>
                                     ))}
                                 </div>
-                            </div>
-                            <div>
-                                <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-adhoc-lavender cursor-pointer transition-colors">
-                                    <input type="checkbox" checked={formData.ragEnabled} onChange={e => setFormData({ ...formData, ragEnabled: e.target.checked })} className="w-4 h-4 text-adhoc-violet rounded border-gray-300 focus:ring-adhoc-violet" />
-                                    <span className="text-xl">📚</span>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm">Base de conocimiento</p>
-                                        <p className="text-xs text-gray-500">Buscar en documentos subidos</p>
-                                    </div>
-                                </label>
                             </div>
                             <div className="flex gap-3 pt-4">
                                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancelar</button>

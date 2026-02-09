@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Save, Loader2, CheckCircle, Database, ShoppingBag, Brain, Globe } from 'lucide-react'
+import { Save, Loader2, CheckCircle } from 'lucide-react'
 
 interface ConfigField {
     name: string
@@ -13,7 +13,7 @@ interface ConfigField {
 interface ToolConfig {
     slug: string
     name: string
-    icon: string
+    icon: React.ReactNode
     description: string
     configFields: ConfigField[]
     envNote?: string
@@ -23,7 +23,7 @@ const TOOLS: ToolConfig[] = [
     {
         slug: 'odoo',
         name: 'Odoo ERP',
-        icon: 'Database',
+        icon: <img src="/logo-odoo.png" alt="Odoo" className="w-6 h-6 rounded-sm" />,
         description: 'Conexión XML-RPC para consultas de stock, ventas y clientes.',
         configFields: [
             { name: 'odoo_url', label: 'URL de Odoo', placeholder: 'https://tu-empresa.odoo.com', type: 'text' },
@@ -35,7 +35,7 @@ const TOOLS: ToolConfig[] = [
     {
         slug: 'web_search',
         name: 'Búsqueda Web Unificada',
-        icon: 'Globe',
+        icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" className="text-blue-500" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" className="text-blue-500" /></svg>,
         description: 'Búsqueda web inteligente TODO-EN-UNO. Combina Tavily (búsquedas generales) + Google Grounding (precios ecommerce, info actualizada). Elige automáticamente el mejor método.',
         configFields: [],
         envNote: 'Requiere: TAVILY_API_KEY y GOOGLE_GENERATIVE_AI_API_KEY'
@@ -43,18 +43,18 @@ const TOOLS: ToolConfig[] = [
     {
         slug: 'memory',
         name: 'Memoria',
-        icon: 'Brain',
+        icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.3 5.9-.4.3-.7.8-.7 1.3V17a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-.8c0-.5-.3-1-.7-1.3A7 7 0 0 1 12 2z" className="text-emerald-500" /><path d="M10 21h4" className="text-emerald-500" /></svg>,
         description: 'Permite a los agentes recordar notas sobre clientes, productos y proveedores entre conversaciones. Cada usuario tiene su propia memoria.',
         configFields: []
     },
+    {
+        slug: 'knowledge_base',
+        name: 'Base de Conocimiento',
+        icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" className="text-purple-500" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" className="text-purple-500" /></svg>,
+        description: 'Buscar en documentos subidos (manuales, catálogos, políticas). Se configura por agente.',
+        configFields: []
+    },
 ]
-
-const IconMap: Record<string, React.ReactNode> = {
-    'Database': <Database className="w-6 h-6" />,
-    'ShoppingBag': <ShoppingBag className="w-6 h-6" />,
-    'Brain': <Brain className="w-6 h-6" />,
-    'Globe': <Globe className="w-6 h-6" />,
-}
 
 interface ToolFormProps {
     tool: ToolConfig
