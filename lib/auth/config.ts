@@ -100,6 +100,11 @@ export const authConfig = {
                     session.tenant = tenant
                     session.isAdmin = await isUserAdmin(session.user.email)
                     
+                    // Expose auth UUID on session for tools that need it (e.g. memory)
+                    if (token?.sub) {
+                        session.user.id = token.sub
+                    }
+
                     // Store auth_user_id if we have it from the token (for password management)
                     // token.sub contains the auth.users.id from Supabase or Google
                     if (token?.sub) {

@@ -45,6 +45,7 @@ export async function POST(req: Request) {
                 const result = await processChatRequest({
                     tenantId,
                     userEmail: session.user.email!,
+                    userId: session.user.id,
                     agent,
                     messages,
                     channel: 'voice'
@@ -67,6 +68,7 @@ export async function POST(req: Request) {
                     const result = await processChatRequest({
                         tenantId,
                         userEmail: session.user.email!,
+                        userId: session.user.id,
                         agent,
                         messages,
                         channel: 'web',
