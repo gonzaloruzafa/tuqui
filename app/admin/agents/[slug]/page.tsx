@@ -13,7 +13,7 @@ import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
 
 async function getAgentDetails(tenantId: string, slug: string) {
     const db = await getTenantClient(tenantId)
-    const { data: agent, error } = await db.from('agents').select('*').eq('slug', slug).single()
+    const { data: agent, error } = await db.from('agents').select('*').eq('tenant_id', tenantId).eq('slug', slug).single()
     if (error || !agent) return null
 
     // Get linked docs (use Array, not Set - Sets don't serialize in RSC)
@@ -71,7 +71,7 @@ async function updateAgent(formData: FormData) {
     const db = await getTenantClient(session.tenant.id)
 
     // Get agent ID
-    const { data: agent } = await db.from('agents').select('id, master_agent_id').eq('slug', slug).single()
+    const { data: agent } = await db.from('agents').select('id, master_agent_id').eq('tenant_id', session.tenant.id).eq('slug', slug).single()
     if (!agent) return
 
     if (isBaseAgent) {
@@ -80,7 +80,7 @@ async function updateAgent(formData: FormData) {
             custom_instructions: customInstructions,
             is_active: isActive,
             rag_enabled: ragEnabled
-        }).eq('id', agent.id)
+        }).eq('tenant_id', session.tenant.id).eq('id', agent.id)
     } else {
         // CUSTOM AGENT: Update everything
         await db.from('agents').update({
@@ -89,7 +89,7 @@ async function updateAgent(formData: FormData) {
             rag_enabled: ragEnabled,
             is_active: isActive,
             tools: tools
-        }).eq('id', agent.id)
+        }).eq('tenant_id', session.tenant.id).eq('id', agent.id)
 
         // Update Agent Tools table (for backward compatibility)
         await db.from('agent_tools').delete().eq('agent_id', agent.id)

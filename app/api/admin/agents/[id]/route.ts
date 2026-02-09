@@ -28,6 +28,7 @@ export async function GET(
         const { data: agent, error } = await db
             .from('agents')
             .select('*')
+            .eq('tenant_id', tenantId)
             .eq('id', id)
             .single()
 
@@ -87,6 +88,7 @@ export async function PATCH(
         const { data: agent, error } = await db
             .from('agents')
             .update(updateData)
+            .eq('tenant_id', tenantId)
             .eq('id', id)
             .select()
             .single()
@@ -133,6 +135,7 @@ export async function DELETE(
         const { data: agent } = await db
             .from('agents')
             .select('master_agent_id, name')
+            .eq('tenant_id', tenantId)
             .eq('id', id)
             .single()
 
@@ -145,6 +148,7 @@ export async function DELETE(
         const { error } = await db
             .from('agents')
             .delete()
+            .eq('tenant_id', tenantId)
             .eq('id', id)
 
         if (error) {

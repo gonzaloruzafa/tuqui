@@ -107,7 +107,7 @@ export function ToolForm({ tool, initialConfig, initialActive }: ToolFormProps) 
         <div className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden group hover:border-adhoc-violet/30 transition-all duration-300">
             <div className="p-8 flex items-start gap-6">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${isActive ? 'bg-adhoc-lavender text-adhoc-violet scale-110' : 'bg-gray-50 text-gray-300'}`}>
-                    {IconMap[tool.icon]}
+                    {tool.icon}
                 </div>
                 <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">

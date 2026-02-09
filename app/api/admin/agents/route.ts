@@ -34,6 +34,7 @@ export async function GET() {
         const { data: agents, error } = await db
             .from('agents')
             .select('*')
+            .eq('tenant_id', tenantId)
             .order('name', { ascending: true })
 
         if (error) {
@@ -88,6 +89,7 @@ export async function POST(request: Request) {
             const { data: existing } = await db
                 .from('agents')
                 .select('id')
+                .eq('tenant_id', tenantId)
                 .eq('slug', slug)
                 .single()
 
