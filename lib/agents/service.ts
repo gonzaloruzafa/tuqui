@@ -256,6 +256,7 @@ export async function getAgentBySlug(tenantId: string, slug: string): Promise<Ag
     const { data: agent, error } = await db
         .from('agents')
         .select('*')
+        .eq('tenant_id', tenantId)
         .eq('slug', slug)
         .single()
     
