@@ -248,7 +248,6 @@ export default function AdminAgentsPage() {
                                     {availableTools.map(tool => (
                                         <label key={tool.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-adhoc-lavender cursor-pointer transition-colors">
                                             <input type="checkbox" checked={formData.tools.includes(tool.id)} onChange={() => toggleTool(tool.id)} className="w-4 h-4 text-adhoc-violet rounded border-gray-300 focus:ring-adhoc-violet" />
-                                            <span className="text-xl">{tool.icon}</span>
                                             <div className="flex-1">
                                                 <p className="font-medium text-sm">{tool.name}</p>
                                                 <p className="text-xs text-gray-500">{tool.description}</p>
