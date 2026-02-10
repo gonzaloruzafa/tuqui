@@ -82,9 +82,11 @@ function formatDate(date: Date): string {
 }
 
 function daysBetween(dateStr: string, today: Date): number {
-  const target = new Date(dateStr);
-  const diffMs = target.getTime() - today.getTime();
-  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  // Normalize both to UTC date-only to avoid timezone drift
+  const target = new Date(dateStr.slice(0, 10) + 'T00:00:00Z');
+  const todayUtc = new Date(today.toISOString().slice(0, 10) + 'T00:00:00Z');
+  const diffMs = target.getTime() - todayUtc.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
 
 function buildBuckets(products: ExpiringProduct[]): ExpirationBucket[] {
@@ -180,7 +182,7 @@ Los resultados se ordenan por fecha de vencimiento ASC (más urgente primero).`,
         {
           fields: ['name', 'product_id', 'expiration_date'],
           order: 'expiration_date asc',
-          limit: 500,
+          limit: 2000,
         }
       );
 
@@ -196,6 +198,7 @@ Los resultados se ordenan por fecha de vencimiento ASC (más urgente primero).`,
       const quantDomain: OdooDomain = [
         ['lot_id', 'in', lotIds],
         ['quantity', '>', 0],
+        ['location_id.usage', '=', 'internal'],
       ];
 
       if (input.warehouse_id) {
@@ -212,7 +215,7 @@ Los resultados se ordenan por fecha de vencimiento ASC (más urgente primero).`,
         quantDomain,
         {
           fields: ['lot_id', 'product_id', 'quantity', 'location_id'],
-          limit: 500,
+          limit: 2000,
         }
       );
 
