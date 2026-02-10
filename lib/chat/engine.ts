@@ -80,7 +80,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         system: systemPrompt,
         messages: messages as any,
         tools: hasTools ? tools : undefined,
-        maxSteps: 10,
+        maxSteps: 12,
         thinkingLevel: channel === 'voice' ? 'low' : 'medium',
         includeThoughts: params.streaming === true,
         onThinkingStep: params.onThinkingStep,
