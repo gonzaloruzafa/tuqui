@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2, KeyRound, Trash2, Plug, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2, KeyRound, Trash2, Wrench, RefreshCw, UserPlus } from 'lucide-react'
 
 interface TenantDetail {
     tenant: {
@@ -18,6 +18,7 @@ interface TenantDetail {
         email: string
         name: string | null
         is_admin: boolean
+        auth_user_id: string | null
         tokens_this_month: number
         requests_this_month: number
     }>
@@ -25,15 +26,13 @@ interface TenantDetail {
         slug: string
         name: string
         is_active: boolean
+        tools: string[]
         master_agent_id: string | null
         custom_instructions: string | null
         master_version_synced: number | null
         last_synced_at: string | null
     }>
-    integrations: Array<{
-        type: string
-        is_active: boolean
-    }>
+    tools: string[]
     usage: {
         totalTokens: number
         totalRequests: number
@@ -66,6 +65,14 @@ export default function TenantDetailPage() {
     const [passwordSaving, setPasswordSaving] = useState(false)
     const [passwordError, setPasswordError] = useState('')
     const [deletingTenant, setDeletingTenant] = useState(false)
+
+    // Create user state
+    const [createUserModal, setCreateUserModal] = useState(false)
+    const [newUserEmail, setNewUserEmail] = useState('')
+    const [newUserPassword, setNewUserPassword] = useState('')
+    const [newUserIsAdmin, setNewUserIsAdmin] = useState(false)
+    const [creatingUser, setCreatingUser] = useState(false)
+    const [createUserError, setCreateUserError] = useState('')
 
     const fetchDetail = async () => {
         setLoading(true)
@@ -155,32 +162,66 @@ export default function TenantDetailPage() {
         setPasswordSaving(false)
     }
 
-    const deleteUser = async (userId: string, email: string) => {
-        if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return
+    const createUser = async () => {
+        if (!newUserEmail.includes('@')) {
+            setCreateUserError('Email inválido')
+            return
+        }
+        if (newUserPassword.length < 6) {
+            setCreateUserError('Mínimo 6 caracteres')
+            return
+        }
+        setCreatingUser(true)
+        setCreateUserError('')
         try {
-            const res = await fetch(`/api/super-admin/tenants/${id}/users/${userId}`, { method: 'DELETE' })
-            if (res.ok) await fetchDetail()
-            else {
-                const data = await res.json()
-                alert(data.error || 'Error al eliminar usuario')
+            const res = await fetch(`/api/super-admin/tenants/${id}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: newUserEmail, password: newUserPassword, is_admin: newUserIsAdmin }),
+            })
+            if (!res.ok) {
+                const d = await res.json()
+                setCreateUserError(d.error || 'Error al crear usuario')
+            } else {
+                setCreateUserModal(false)
+                await fetchDetail()
             }
-        } catch { alert('Error de conexión') }
+        } catch {
+            setCreateUserError('Error de conexión')
+        }
+        setCreatingUser(false)
     }
 
-    const deleteTenant = async () => {
+    const deleteUser = (userId: string, email: string) => {
+        setTimeout(async () => {
+            if (!confirm(`¿Eliminar al usuario ${email}?\n\nSe elimina su acceso y cuenta. Las conversaciones y memorias se conservan.`)) return
+            try {
+                const res = await fetch(`/api/super-admin/tenants/${id}/users/${userId}`, { method: 'DELETE' })
+                if (res.ok) await fetchDetail()
+                else {
+                    const d = await res.json()
+                    alert(d.error || 'Error al eliminar usuario')
+                }
+            } catch { alert('Error de conexión') }
+        }, 0)
+    }
+
+    const deleteTenant = () => {
         if (!data) return
-        const confirmation = prompt(`Escribí "${data.tenant.name}" para confirmar la eliminación del tenant:`)
-        if (confirmation !== data.tenant.name) return
-        setDeletingTenant(true)
-        try {
-            const res = await fetch(`/api/super-admin/tenants/${id}`, { method: 'DELETE' })
-            if (res.ok) router.push('/super-admin/tenants')
-            else {
-                const json = await res.json()
-                alert(json.error || 'Error al eliminar tenant')
-            }
-        } catch { alert('Error de conexión') }
-        setDeletingTenant(false)
+        setTimeout(async () => {
+            const confirmation = prompt(`Escribí "${data.tenant.name}" para confirmar la eliminación.\n\nSe borran TODOS los datos: usuarios, agentes, conversaciones, documentos.`)
+            if (confirmation !== data.tenant.name) return
+            setDeletingTenant(true)
+            try {
+                const res = await fetch(`/api/super-admin/tenants/${id}`, { method: 'DELETE' })
+                if (res.ok) router.push('/super-admin/tenants')
+                else {
+                    const json = await res.json()
+                    alert(json.error || 'Error al eliminar tenant')
+                }
+            } catch { alert('Error de conexión') }
+            setDeletingTenant(false)
+        }, 0)
     }
 
         useEffect(() => { fetchDetail() }, [id])
@@ -202,7 +243,7 @@ export default function TenantDetailPage() {
         )
     }
 
-    const { tenant, users, agents, integrations, usage } = data
+    const { tenant, users, agents, tools, usage } = data
     const activeAgents = agents.filter(a => a.is_active)
 
     return (
@@ -289,9 +330,18 @@ export default function TenantDetailPage() {
 
             {/* Users section */}
             <section className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-gray-500" />
-                    <h2 className="font-semibold text-gray-900">Usuarios ({users.length})</h2>
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-gray-500" />
+                        <h2 className="font-semibold text-gray-900">Usuarios ({users.length})</h2>
+                    </div>
+                    <button
+                        onClick={() => { setCreateUserModal(true); setNewUserEmail(''); setNewUserPassword(''); setNewUserIsAdmin(false); setCreateUserError('') }}
+                        className="text-gray-400 hover:text-adhoc-violet transition-colors"
+                        title="Crear usuario"
+                    >
+                        <UserPlus className="w-4.5 h-4.5" />
+                    </button>
                 </div>
                 <div className="divide-y divide-gray-50">
                     {users.map(u => (
@@ -336,7 +386,7 @@ export default function TenantDetailPage() {
             </section>
 
             {/* Agents section */}
-            <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <section className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
                     <Bot className="w-5 h-5 text-gray-500" />
                     <h2 className="font-semibold text-gray-900">
@@ -375,22 +425,21 @@ export default function TenantDetailPage() {
                 </div>
             </section>
 
-            {/* Integrations section */}
+            {/* Tools section */}
             <section className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-                    <Plug className="w-5 h-5 text-gray-500" />
-                    <h2 className="font-semibold text-gray-900">Integraciones</h2>
+                    <Wrench className="w-5 h-5 text-gray-500" />
+                    <h2 className="font-semibold text-gray-900">Herramientas ({tools.length})</h2>
                 </div>
-                <div className="divide-y divide-gray-50">
-                    {integrations.length > 0 ? integrations.map(i => (
-                        <div key={i.type} className="px-6 py-3 flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-900 capitalize">{i.type}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${i.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                {i.is_active ? '✅ Configurado' : '❌ Inactivo'}
-                            </span>
+                <div className="px-6 py-4">
+                    {tools.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                            {tools.map(t => (
+                                <span key={t} className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg font-medium">{t}</span>
+                            ))}
                         </div>
-                    )) : (
-                        <p className="px-6 py-4 text-sm text-gray-400">Sin integraciones configuradas</p>
+                    ) : (
+                        <p className="text-sm text-gray-400">Sin herramientas configuradas</p>
                     )}
                 </div>
             </section>
@@ -410,6 +459,50 @@ export default function TenantDetailPage() {
                     Eliminar tenant
                 </button>
             </section>
+
+            {/* Create user modal */}
+            {createUserModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setCreateUserModal(false)}>
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="font-semibold text-gray-900 mb-1">Crear usuario</h3>
+                        <p className="text-sm text-gray-500 mb-4">{tenant.name}</p>
+                        <input
+                            type="email"
+                            value={newUserEmail}
+                            onChange={e => setNewUserEmail(e.target.value)}
+                            placeholder="Email"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 outline-none focus:border-adhoc-violet"
+                            autoFocus
+                        />
+                        <input
+                            type="password"
+                            value={newUserPassword}
+                            onChange={e => setNewUserPassword(e.target.value)}
+                            placeholder="Contraseña (mín. 6 caracteres)"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 outline-none focus:border-adhoc-violet"
+                            onKeyDown={e => { if (e.key === 'Enter') createUser() }}
+                        />
+                        <label className="flex items-center gap-2 text-sm text-gray-700 mb-2 cursor-pointer">
+                            <input type="checkbox" checked={newUserIsAdmin} onChange={e => setNewUserIsAdmin(e.target.checked)} className="rounded" />
+                            Administrador
+                        </label>
+                        {createUserError && <p className="text-xs text-red-500 mb-2">{createUserError}</p>}
+                        <div className="flex justify-end gap-2 mt-3">
+                            <button onClick={() => setCreateUserModal(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={createUser}
+                                disabled={creatingUser}
+                                className="px-4 py-1.5 bg-adhoc-violet text-white text-sm rounded-lg hover:bg-adhoc-violet/90 disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                                {creatingUser && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                Crear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Password change modal */}
             {passwordModal && (

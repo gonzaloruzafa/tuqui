@@ -1,6 +1,6 @@
 # Test Plan — F2.4 & F2.5 (Tenant Management)
 
-> Features: Password change, user delete, tenant delete, integrations view, agent sync info
+> Features: Password change, user create/delete, tenant delete, tools view, agent sync info
 
 ---
 
@@ -31,51 +31,77 @@
 
 | # | Test | Qué valida |
 |---|------|-----------|
-| 1 | GET detail: retorna integraciones | Response incluye array de integrations |
+| 1 | GET detail: retorna tools (unique across agents) | Response incluye array de tools |
 | 2 | GET detail: agentes incluyen sync info | Response tiene master_version_synced, last_synced_at |
 | 3 | GET detail: usage aggregation correct | Tokens y requests se suman bien |
+
+---
+
+## 📝 Endpoints API (solo backend, no tienen vistas propias)
+
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/super-admin/tenants/{id}` | GET | Detalle de tenant (users, agents, tools, usage) |
+| `/api/super-admin/tenants/{id}` | PATCH | Actualizar nombre/is_active |
+| `/api/super-admin/tenants/{id}` | DELETE | Eliminar tenant + cascade |
+| `/api/super-admin/tenants/{id}/users` | POST | Crear usuario (email, password, is_admin) |
+| `/api/super-admin/tenants/{id}/users/{userId}` | PATCH | Cambiar password |
+| `/api/super-admin/tenants/{id}/users/{userId}` | DELETE | Eliminar usuario |
+
+> Todos son API-only. La UI está en `/super-admin/tenants/{id}` (page.tsx).
 
 ---
 
 ## ✅ Tests Manuales (Checklist para ejecutar en staging/prod)
 
 ### Cambiar password de usuario
-- [ ] Ir a `/super-admin/tenants/{id}` → click ícono 🔑 en un usuario
-- [ ] Verificar que aparece modal con email correcto
-- [ ] Intentar guardar con menos de 6 chars → debe mostrar error
-- [ ] Guardar password válido → modal se cierra
-- [ ] Cerrar sesión → loguearse con el usuario usando la nueva password
-- [ ] Verificar que funciona
+- [Ok] Ir a `/super-admin/tenants/{id}` → click ícono 🔑 en un usuario
+- [Ok] Verificar que aparece modal con email correcto
+- [Ok] Intentar guardar con menos de 6 chars → debe mostrar error
+- [Ok] Guardar password válido → modal se cierra
+- [Ok] Cerrar sesión → loguearse con el usuario usando la nueva password
+- [Ok] Verificar que funciona
+
+### Crear usuario
+- [ ] Click ícono ➕ en sección usuarios → aparece modal
+- [ ] Ingresar email inválido → error
+- [ ] Ingresar password < 6 chars → error
+- [ ] Crear usuario válido → aparece en la lista
+- [ ] Crear usuario duplicado → error "Ya existe"
+- [ ] Nuevo usuario puede loguearse
 
 ### Eliminar usuario
-- [ ] Click ícono 🗑️ en usuario → confirm dialog aparece
-- [ ] Cancelar → nada pasa
-- [ ] Confirmar → usuario desaparece de la lista
-- [ ] Verificar que no puede loguearse más
-- [ ] Intentar eliminar el último admin → debe mostrar error
+- [Ok] Click ícono 🗑️ en usuario → confirm dialog aparece
+- [ ] Mensaje indica que conversaciones se conservan
+- [Ok] Cancelar → nada pasa
+- [Ok] Confirmar → usuario desaparece de la lista
+- [Ok] Verificar que no puede loguearse más
+- [Ok] Intentar eliminar el último admin → debe mostrar error
 
 ### Eliminar tenant
-- [ ] Scroll al fondo → sección roja "Zona peligrosa"
-- [ ] Click "Eliminar tenant" → prompt pide escribir nombre
-- [ ] Escribir nombre incorrecto → no pasa nada
-- [ ] Escribir nombre correcto → redirige a lista de tenants
-- [ ] Verificar que el tenant ya no aparece en la lista
-- [ ] Verificar que los usuarios del tenant no pueden loguearse
+- [Ok] Scroll al fondo → sección roja "Zona peligrosa"
+- [Ok] Click "Eliminar tenant" → prompt pide escribir nombre
+- [ ] Mensaje indica qué se borra (usuarios, agentes, conversaciones, documentos)
+- [Ok] Escribir nombre incorrecto → no pasa nada
+- [Ok] Escribir nombre correcto → redirige a lista de tenants
+- [Ok] Verificar que el tenant ya no aparece en la lista
+- [Ok] Verificar que los usuarios del tenant no pueden loguearse
 
-### Integrations section
-- [ ] Tenant con integraciones → muestra tipo + estado (✅/❌)
-- [ ] Tenant sin integraciones → muestra "Sin integraciones configuradas"
+### Herramientas (antes "Integraciones")
+- [ ] Tenant con agentes que tienen tools → muestra badges con nombres
+- [ ] Tenant sin tools → muestra "Sin herramientas configuradas"
+- [ ] Tools son únicas (sin duplicados entre agentes)
 
 ### Agent sync info
-- [ ] Agentes con `last_synced_at` → muestra fecha de último sync
-- [ ] Agentes con `custom_instructions` → muestra badge "📝 custom prompt"
-- [ ] Agentes sin master_agent_id → muestra badge "custom"
-- [ ] Agentes con master_agent_id → muestra badge "base"
+- [ ] Agentes con `last_synced_at` → muestra fecha de último sync con ícono 🔄
+- [Ok] Agentes con `custom_instructions` → muestra badge "📝 custom prompt"
+- [Ok] Agentes sin master_agent_id → muestra badge "custom"
+- [Ok] Agentes con master_agent_id → muestra badge "base"
 
 ### Tenant isolation (regresión)
-- [ ] Login como gonza@logos.com → NO debe ver datos de Cedent
-- [ ] Login como martin@cedent.com.ar → NO debe ver datos de Logos
-- [ ] Verificar documentos, integraciones, agentes son del tenant correcto
+- [Ok] Login como gonza@logos.com → NO debe ver datos de Cedent
+- [Ok] Login como martin@cedent.com.ar → NO debe ver datos de Logos
+- [Ok] Verificar documentos, agentes son del tenant correcto
 
 ---
 
