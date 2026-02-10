@@ -211,6 +211,7 @@ export async function getAgentsForTenant(tenantId: string): Promise<Agent[]> {
     const { data, error } = await db
         .from('agents')
         .select('*')
+        .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .order('name', { ascending: true })
     
@@ -234,6 +235,7 @@ export async function getAvailableAgentSlugs(tenantId: string): Promise<string[]
     const { data, error } = await db
         .from('agents')
         .select('slug')
+        .eq('tenant_id', tenantId)
         .eq('is_active', true)
     
     if (error) {
@@ -322,6 +324,7 @@ export async function updateAgentCustomInstructions(
             updated_at: new Date().toISOString()
         })
         .eq('slug', agentSlug)
+        .eq('tenant_id', tenantId)
     
     if (error) {
         console.error('[Agents] Error updating custom instructions:', error)
@@ -348,6 +351,7 @@ export async function toggleAgentActive(
             updated_at: new Date().toISOString()
         })
         .eq('slug', agentSlug)
+        .eq('tenant_id', tenantId)
     
     return !error
 }

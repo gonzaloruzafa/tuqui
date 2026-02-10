@@ -9,7 +9,7 @@ export async function GET() {
     }
 
     const db = await getTenantClient(session.tenant.id)
-    const { data, error } = await db.from('integrations').select('*')
+    const { data, error } = await db.from('integrations').select('*').eq('tenant_id', session.tenant.id)
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
@@ -39,6 +39,7 @@ export async function POST(req: Request) {
         .from('integrations')
         .select('id, config')
         .eq('type', type)
+        .eq('tenant_id', tenantId)
         .single()
 
     if (existing) {
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
                 config: mergedConfig
             })
             .eq('type', type)
+            .eq('tenant_id', tenantId)
 
         if (error) {
             console.error('Update error:', error)

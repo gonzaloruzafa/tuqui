@@ -28,7 +28,7 @@ async function getCompanyContextData(tenantId: string) {
 async function getAllDocuments(tenantId: string) {
   try {
     const db = await getTenantClient(tenantId)
-    const { data } = await db.from('documents').select('id, title, metadata').order('created_at', { ascending: false })
+    const { data } = await db.from('documents').select('id, title, metadata').eq('tenant_id', tenantId).order('created_at', { ascending: false })
     return data || []
   } catch { return [] }
 }

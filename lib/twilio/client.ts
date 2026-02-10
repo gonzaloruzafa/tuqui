@@ -18,6 +18,7 @@ export async function getTwilioClientForTenant(tenantId: string) {
         .from('integrations')
         .select('*')
         .eq('type', 'twilio')
+        .eq('tenant_id', tenantId)
         .single()
 
     if (!config || !config.is_active || !config.config) return null
@@ -32,6 +33,7 @@ export async function getTwilioConfig(tenantId: string) {
         .from('integrations')
         .select('*')
         .eq('type', 'twilio')
+        .eq('tenant_id', tenantId)
         .single()
 
     return config?.config || null

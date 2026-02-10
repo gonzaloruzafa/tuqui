@@ -243,6 +243,7 @@ export async function getOdooClient(tenantId: string) {
         .from('integrations')
         .select('*')
         .eq('type', 'odoo')
+        .eq('tenant_id', tenantId)
         .single()
 
     if (!integration || !integration.is_active || !integration.config) {

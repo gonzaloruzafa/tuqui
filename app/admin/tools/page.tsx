@@ -9,7 +9,7 @@ import { ToolsList } from '@/components/admin/ToolsForm'
 
 async function getIntegrations(tenantId: string) {
     const db = await getTenantClient(tenantId)
-    const { data, error } = await db.from('integrations').select('*')
+    const { data, error } = await db.from('integrations').select('*').eq('tenant_id', tenantId)
     if (error) {
         console.error('Error fetching integrations:', error)
         return []

@@ -63,6 +63,7 @@ async function processTenantTasks(tenantId: string) {
     const { data: tasks } = await db
         .from('prometeo_tasks')
         .select('*')
+        .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .lte('next_run', now)
 
@@ -98,6 +99,7 @@ async function executeTask(tenantId: string, task: PrometeoTask) {
             .from('agents')
             .select('id, name, slug, system_prompt')
             .eq('id', task.agent_id)
+            .eq('tenant_id', tenantId)
             .single()
         
         if (!agent) {
@@ -199,7 +201,7 @@ Genera una notificación concisa (máximo 200 caracteres) con la información so
             last_run: new Date().toISOString(),
             next_run: nextRun.toISOString(),
             last_result: execution.status
-        }).eq('id', task.id)
+        }).eq('id', task.id).eq('tenant_id', tenantId)
 
         // 6. Log execution
         await db.from('prometeo_executions').insert(execution)
@@ -220,7 +222,7 @@ Genera una notificación concisa (máximo 200 caracteres) con la información so
         await db.from('prometeo_tasks').update({
             last_run: new Date().toISOString(),
             last_result: 'error'
-        }).eq('id', task.id)
+        }).eq('id', task.id).eq('tenant_id', tenantId)
 
         // Log execution with error
         try {
@@ -261,6 +263,7 @@ export async function getTaskExecutions(
         .from('prometeo_executions')
         .select('*')
         .eq('task_id', taskId)
+        .eq('tenant_id', tenantId)
         .order('executed_at', { ascending: false })
         .limit(limit)
     

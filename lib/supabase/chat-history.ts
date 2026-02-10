@@ -14,6 +14,7 @@ export async function getOrCreateWhatsAppSession(tenantId: string, agentId: stri
         .select('id')
         .eq('agent_id', agentId)
         .eq('user_email', userEmail)
+        .eq('tenant_id', tenantId)
         .order('updated_at', { ascending: false })
         .limit(1)
         .single()
@@ -46,6 +47,7 @@ export async function getSessionMessages(tenantId: string, sessionId: string, li
         .from('chat_messages')
         .select('role, content')
         .eq('session_id', sessionId)
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: true })
         .limit(limit)
 
@@ -73,6 +75,7 @@ export async function getRecentUserMessages(tenantId: string, userEmail: string,
             chat_sessions!inner(user_email)
         `)
         .eq('chat_sessions.user_email', userEmail)
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(limit)
 
@@ -119,6 +122,7 @@ export async function saveMessage(
         .from('chat_sessions')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', sessionId)
+        .eq('tenant_id', tenantId)
 
     if (msgError) {
         console.error('[ChatHistory] Error saving message:', msgError)

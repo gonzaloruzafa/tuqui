@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
                 agents:agent_id (name, slug)
             `)
             .eq('user_email', session.user.email)
+            .eq('tenant_id', session.tenant.id)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1)
 
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
 
         const db = await getTenantClient(session.tenant.id)
         
-        await markAllAsRead(db, session.user.email)
+        await markAllAsRead(db, session.tenant.id, session.user.email)
 
         return NextResponse.json({ success: true })
 

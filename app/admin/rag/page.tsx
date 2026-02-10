@@ -10,7 +10,7 @@ import { DeleteDocumentForm } from '@/components/admin/DeleteDocumentButton'
 
 async function getDocuments(tenantId: string) {
     const db = await getTenantClient(tenantId)
-    const { data } = await db.from('documents').select('*').order('created_at', { ascending: false })
+    const { data } = await db.from('documents').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false })
     return data || []
 }
 

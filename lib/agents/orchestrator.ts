@@ -45,6 +45,7 @@ export async function getAvailableAgents(tenantId: string): Promise<AvailableAge
   const { data: agents, error } = await db
     .from('agents')
     .select('id, slug, name, description, tools')
+    .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .order('name')
 
