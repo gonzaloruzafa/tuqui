@@ -63,11 +63,11 @@
 - [Ok] Verificar que funciona
 
 ### Crear usuario
-- [ ] Click ícono ➕ en sección usuarios → aparece modal
-- [ ] Ingresar email inválido → error
-- [ ] Ingresar password < 6 chars → error
-- [ ] Crear usuario válido → aparece en la lista
-- [ ] Crear usuario duplicado → error "Ya existe"
+- [Ok] Click ícono ➕ en sección usuarios → aparece modal
+- [Ok] Ingresar email inválido → error
+- [Ok] Ingresar password < 6 chars → error
+- [Ok] Crear usuario válido → aparece en la lista
+- [Ok] Crear usuario duplicado → error "Ya existe"
 - [ ] Nuevo usuario puede loguearse
 
 ### Eliminar usuario
