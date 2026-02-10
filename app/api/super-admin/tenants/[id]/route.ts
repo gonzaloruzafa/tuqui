@@ -14,11 +14,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const currentMonth = new Date().toISOString().slice(0, 7)
 
     try {
-        const [tenantResult, usersResult, agentsResult, usageResult] = await Promise.all([
+        const [tenantResult, usersResult, agentsResult, usageResult, integrationsResult] = await Promise.all([
             supabase.from('tenants').select('*').eq('id', id).single(),
             supabase.from('users').select('id, email, name, is_admin, auth_user_id, created_at').eq('tenant_id', id).order('is_admin', { ascending: false }),
-            supabase.from('agents').select('slug, name, is_active, tools, master_agent_id, custom_instructions, master_version_synced, last_synced_at').eq('tenant_id', id).order('name'),
+            supabase.from('agents').select('slug, name, is_active, master_agent_id, custom_instructions, master_version_synced, last_synced_at').eq('tenant_id', id).order('name'),
             supabase.from('usage_stats').select('user_email, total_tokens, total_requests').eq('tenant_id', id).eq('year_month', currentMonth),
+            supabase.from('integrations').select('type, is_active').eq('tenant_id', id),
         ])
 
         if (tenantResult.error || !tenantResult.data) {
@@ -37,14 +38,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const totalTokens = Object.values(usageByEmail).reduce((sum, u) => sum + u.tokens, 0)
         const totalRequests = Object.values(usageByEmail).reduce((sum, u) => sum + u.requests, 0)
 
-        // Compute unique tools across all agents
-        const allTools = new Set<string>()
-        for (const agent of agentsResult.data || []) {
-            for (const tool of agent.tools || []) {
-                allTools.add(tool)
-            }
-        }
-
         return NextResponse.json({
             tenant: tenantResult.data,
             users: (usersResult.data || []).map(u => ({
@@ -53,7 +46,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
                 requests_this_month: usageByEmail[u.email]?.requests || 0,
             })),
             agents: agentsResult.data || [],
-            tools: Array.from(allTools).sort(),
+            integrations: integrationsResult.data || [],
             usage: { totalTokens, totalRequests },
         })
     } catch (err: any) {

@@ -1,6 +1,6 @@
 # Test Plan — F2.4 & F2.5 (Tenant Management)
 
-> Features: Password change, user create/delete, tenant delete, tools view, agent sync info
+> Features: Password change, user create/delete, tenant delete, integrations view, agent sync info
 
 ---
 
@@ -31,7 +31,7 @@
 
 | # | Test | Qué valida |
 |---|------|-----------|
-| 1 | GET detail: retorna tools (unique across agents) | Response incluye array de tools |
+| 1 | GET detail: retorna integraciones del tenant | Response incluye array de integrations |
 | 2 | GET detail: agentes incluyen sync info | Response tiene master_version_synced, last_synced_at |
 | 3 | GET detail: usage aggregation correct | Tokens y requests se suman bien |
 
@@ -41,7 +41,7 @@
 
 | Endpoint | Método | Descripción |
 |----------|--------|-------------|
-| `/api/super-admin/tenants/{id}` | GET | Detalle de tenant (users, agents, tools, usage) |
+| `/api/super-admin/tenants/{id}` | GET | Detalle de tenant (users, agents, integrations, usage) |
 | `/api/super-admin/tenants/{id}` | PATCH | Actualizar nombre/is_active |
 | `/api/super-admin/tenants/{id}` | DELETE | Eliminar tenant + cascade |
 | `/api/super-admin/tenants/{id}/users` | POST | Crear usuario (email, password, is_admin) |
@@ -87,10 +87,10 @@
 - [Ok] Verificar que el tenant ya no aparece en la lista
 - [Ok] Verificar que los usuarios del tenant no pueden loguearse
 
-### Herramientas (antes "Integraciones")
-- [ ] Tenant con agentes que tienen tools → muestra badges con nombres
-- [ ] Tenant sin tools → muestra "Sin herramientas configuradas"
-- [ ] Tools son únicas (sin duplicados entre agentes)
+### Integraciones
+- [ ] Tenant con integraciones (ej: Cedent) → muestra tipo + estado (Activa/Inactiva)
+- [ ] Tenant sin integraciones → muestra "Sin integraciones configuradas"
+- [ ] Odoo muestra "Activa" (ya está configurado en Cedent)
 
 ### Agent sync info
 - [ ] Agentes con `last_synced_at` → muestra fecha de último sync con ícono 🔄

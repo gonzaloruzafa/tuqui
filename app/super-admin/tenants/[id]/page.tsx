@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2, KeyRound, Trash2, Wrench, RefreshCw, UserPlus } from 'lucide-react'
+import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2, KeyRound, Trash2, Plug, RefreshCw, UserPlus } from 'lucide-react'
 
 interface TenantDetail {
     tenant: {
@@ -26,13 +26,15 @@ interface TenantDetail {
         slug: string
         name: string
         is_active: boolean
-        tools: string[]
         master_agent_id: string | null
         custom_instructions: string | null
         master_version_synced: number | null
         last_synced_at: string | null
     }>
-    tools: string[]
+    integrations: Array<{
+        type: string
+        is_active: boolean
+    }>
     usage: {
         totalTokens: number
         totalRequests: number
@@ -243,7 +245,7 @@ export default function TenantDetailPage() {
         )
     }
 
-    const { tenant, users, agents, tools, usage } = data
+    const { tenant, users, agents, integrations, usage } = data
     const activeAgents = agents.filter(a => a.is_active)
 
     return (
@@ -425,21 +427,22 @@ export default function TenantDetailPage() {
                 </div>
             </section>
 
-            {/* Tools section */}
+            {/* Integrations section */}
             <section className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-                    <Wrench className="w-5 h-5 text-gray-500" />
-                    <h2 className="font-semibold text-gray-900">Herramientas ({tools.length})</h2>
+                    <Plug className="w-5 h-5 text-gray-500" />
+                    <h2 className="font-semibold text-gray-900">Integraciones ({integrations.length})</h2>
                 </div>
-                <div className="px-6 py-4">
-                    {tools.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                            {tools.map(t => (
-                                <span key={t} className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg font-medium">{t}</span>
-                            ))}
+                <div className="divide-y divide-gray-50">
+                    {integrations.length > 0 ? integrations.map(i => (
+                        <div key={i.type} className="px-6 py-3 flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-900 capitalize">{i.type.replace('_', ' ')}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${i.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                {i.is_active ? 'Activa' : 'Inactiva'}
+                            </span>
                         </div>
-                    ) : (
-                        <p className="text-sm text-gray-400">Sin herramientas configuradas</p>
+                    )) : (
+                        <p className="px-6 py-4 text-sm text-gray-400">Sin integraciones configuradas</p>
                     )}
                 </div>
             </section>
