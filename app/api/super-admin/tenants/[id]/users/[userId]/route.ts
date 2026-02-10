@@ -91,6 +91,26 @@ export async function DELETE(req: Request, { params }: Params) {
         }
     }
 
+    // Delete user's data: conversations, memories, notifications, etc.
+    const userEmail = user.email
+    const tablesToClean = [
+        { table: 'chat_sessions', column: 'user_email', value: userEmail },
+        { table: 'usage_stats', column: 'user_email', value: userEmail },
+        { table: 'push_subscriptions', column: 'user_email', value: userEmail },
+        { table: 'notifications', column: 'user_email', value: userEmail },
+    ]
+
+    for (const { table, column, value } of tablesToClean) {
+        const { error } = await supabase.from(table).delete().eq(column, value).eq('tenant_id', tenantId)
+        if (error) console.error(`[SuperAdmin] Failed to clean ${table} for user ${userEmail}:`, error)
+    }
+
+    // Delete memories (uses created_by UUID, not email)
+    if (user.auth_user_id) {
+        const { error } = await supabase.from('memories').delete().eq('created_by', user.auth_user_id).eq('tenant_id', tenantId)
+        if (error) console.error(`[SuperAdmin] Failed to clean memories for user ${userEmail}:`, error)
+    }
+
     // Delete from public.users first
     const { error: deleteError } = await supabase
         .from('users')

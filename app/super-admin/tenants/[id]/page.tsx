@@ -192,7 +192,7 @@ export default function TenantDetailPage() {
 
     const deleteUser = (userId: string, email: string) => {
         setTimeout(async () => {
-            if (!confirm(`¿Eliminar al usuario ${email}?\n\nSe elimina su acceso y cuenta. Las conversaciones y memorias se conservan.`)) return
+            if (!confirm(`¿Eliminar al usuario ${email}?\n\nSe borran todas sus conversaciones, memorias y datos asociados.`)) return
             try {
                 const res = await fetch(`/api/super-admin/tenants/${id}/users/${userId}`, { method: 'DELETE' })
                 if (res.ok) await fetchDetail()

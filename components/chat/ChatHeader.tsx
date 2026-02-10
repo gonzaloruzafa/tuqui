@@ -25,13 +25,15 @@ export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
                 </div>
                 <div className="flex items-center gap-2">
                     {session?.user && <UserMenu user={session.user} />}
-                    <a
-                        href="/admin"
-                        className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors"
-                        title="Configuración"
-                    >
-                        <Settings className="w-5 h-5" />
-                    </a>
+                    {session?.isAdmin && (
+                        <a
+                            href="/admin"
+                            className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors"
+                            title="Configuración"
+                        >
+                            <Settings className="w-5 h-5" />
+                        </a>
+                    )}
                 </div>
             </header>
         </div>
