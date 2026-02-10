@@ -86,3 +86,65 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     return NextResponse.json(data)
 }
+
+/**
+ * DELETE /api/super-admin/tenants/[id]
+ * Delete a tenant and all its data (super-admin only)
+ * Cascade: auth users → public.users → agents → conversations → tenant
+ */
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await auth()
+    if (!await isPlatformAdmin(session?.user?.email)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    const { id } = await params
+    const supabase = supabaseAdmin()
+
+    // Verify tenant exists
+    const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .eq('id', id)
+        .single()
+
+    if (tenantError || !tenant) {
+        return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+    }
+
+    // Get all users to delete from auth
+    const { data: users } = await supabase
+        .from('users')
+        .select('auth_user_id')
+        .eq('tenant_id', id)
+
+    // Delete auth users (best-effort, don't fail if some fail)
+    for (const user of users || []) {
+        if (user.auth_user_id) {
+            const { error } = await supabase.auth.admin.deleteUser(user.auth_user_id)
+            if (error) console.error(`[SuperAdmin] Failed to delete auth user ${user.auth_user_id}:`, error)
+        }
+    }
+
+    // Delete tenant data in order (FK constraints)
+    // Conversations/messages, usage_stats, documents, integrations, push_subscriptions, users, agents, tenant
+    const tablesToClean = [
+        'conversation_messages', 'conversations', 'usage_stats',
+        'documents', 'integrations', 'push_subscriptions',
+        'notifications', 'users', 'agents',
+    ]
+
+    for (const table of tablesToClean) {
+        const { error } = await supabase.from(table).delete().eq('tenant_id', id)
+        if (error) console.error(`[SuperAdmin] Failed to clean ${table} for tenant ${id}:`, error)
+    }
+
+    // Finally delete the tenant itself
+    const { error: deleteError } = await supabase.from('tenants').delete().eq('id', id)
+
+    if (deleteError) {
+        return NextResponse.json({ error: `Failed to delete tenant: ${deleteError.message}` }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, deleted: tenant.name })
+}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2 } from 'lucide-react'
+import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2, KeyRound, Trash2 } from 'lucide-react'
 
 interface TenantDetail {
     tenant: {
@@ -53,6 +53,13 @@ export default function TenantDetailPage() {
     const [editingName, setEditingName] = useState(false)
     const [nameValue, setNameValue] = useState('')
     const [saving, setSaving] = useState(false)
+
+    // User management state
+    const [passwordModal, setPasswordModal] = useState<{ userId: string; email: string } | null>(null)
+    const [newPassword, setNewPassword] = useState('')
+    const [passwordSaving, setPasswordSaving] = useState(false)
+    const [passwordError, setPasswordError] = useState('')
+    const [deletingTenant, setDeletingTenant] = useState(false)
 
     const fetchDetail = async () => {
         setLoading(true)
@@ -114,6 +121,60 @@ export default function TenantDetailPage() {
 
         // Defer confirm() off the click handler to avoid blocking INP
         setTimeout(doToggle, 0)
+    }
+
+    const changePassword = async () => {
+        if (!passwordModal || newPassword.length < 6) {
+            setPasswordError('Mínimo 6 caracteres')
+            return
+        }
+        setPasswordSaving(true)
+        setPasswordError('')
+        try {
+            const res = await fetch(`/api/super-admin/tenants/${id}/users/${passwordModal.userId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: newPassword }),
+            })
+            if (!res.ok) {
+                const data = await res.json()
+                setPasswordError(data.error || 'Error al cambiar contraseña')
+            } else {
+                setPasswordModal(null)
+                setNewPassword('')
+            }
+        } catch {
+            setPasswordError('Error de conexión')
+        }
+        setPasswordSaving(false)
+    }
+
+    const deleteUser = async (userId: string, email: string) => {
+        if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return
+        try {
+            const res = await fetch(`/api/super-admin/tenants/${id}/users/${userId}`, { method: 'DELETE' })
+            if (res.ok) await fetchDetail()
+            else {
+                const data = await res.json()
+                alert(data.error || 'Error al eliminar usuario')
+            }
+        } catch { alert('Error de conexión') }
+    }
+
+    const deleteTenant = async () => {
+        if (!data) return
+        const confirmation = prompt(`Escribí "${data.tenant.name}" para confirmar la eliminación del tenant:`)
+        if (confirmation !== data.tenant.name) return
+        setDeletingTenant(true)
+        try {
+            const res = await fetch(`/api/super-admin/tenants/${id}`, { method: 'DELETE' })
+            if (res.ok) router.push('/super-admin/tenants')
+            else {
+                const json = await res.json()
+                alert(json.error || 'Error al eliminar tenant')
+            }
+        } catch { alert('Error de conexión') }
+        setDeletingTenant(false)
     }
 
         useEffect(() => { fetchDetail() }, [id])
@@ -235,14 +296,30 @@ export default function TenantDetailPage() {
                                     <span className="ml-2 text-[10px] bg-adhoc-violet/10 text-adhoc-violet px-1.5 py-0.5 rounded font-medium">admin</span>
                                 )}
                             </div>
-                            <div className="text-xs text-gray-400 font-mono flex items-center gap-3">
-                                <span>{u.tokens_this_month > 0 ? `${formatTokens(u.tokens_this_month)} tokens` : '—'}</span>
-                                {u.requests_this_month > 0 && (
-                                    <span className="text-gray-300">·</span>
-                                )}
-                                {u.requests_this_month > 0 && (
-                                    <span>{u.requests_this_month} msgs</span>
-                                )}
+                            <div className="flex items-center gap-3">
+                                <div className="text-xs text-gray-400 font-mono flex items-center gap-3">
+                                    <span>{u.tokens_this_month > 0 ? `${formatTokens(u.tokens_this_month)} tokens` : '—'}</span>
+                                    {u.requests_this_month > 0 && (
+                                        <span className="text-gray-300">·</span>
+                                    )}
+                                    {u.requests_this_month > 0 && (
+                                        <span>{u.requests_this_month} msgs</span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => { setPasswordModal({ userId: u.id, email: u.email }); setNewPassword(''); setPasswordError('') }}
+                                    className="text-gray-400 hover:text-adhoc-violet transition-colors"
+                                    title="Cambiar contraseña"
+                                >
+                                    <KeyRound className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => deleteUser(u.id, u.email)}
+                                    className="text-gray-400 hover:text-red-500 transition-colors"
+                                    title="Eliminar usuario"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -285,6 +362,55 @@ export default function TenantDetailPage() {
                     )}
                 </div>
             </section>
+
+            {/* Danger zone */}
+            <section className="mt-8 border border-red-200 rounded-2xl p-6">
+                <h3 className="text-sm font-semibold text-red-700 mb-2">Zona peligrosa</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                    Eliminar el tenant borra todos los datos asociados: usuarios, agentes, conversaciones, documentos e integraciones.
+                </p>
+                <button
+                    onClick={deleteTenant}
+                    disabled={deletingTenant}
+                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                >
+                    {deletingTenant ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Eliminar tenant
+                </button>
+            </section>
+
+            {/* Password change modal */}
+            {passwordModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setPasswordModal(null)}>
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="font-semibold text-gray-900 mb-1">Cambiar contraseña</h3>
+                        <p className="text-sm text-gray-500 mb-4">{passwordModal.email}</p>
+                        <input
+                            type="password"
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            placeholder="Nueva contraseña (mín. 6 caracteres)"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 outline-none focus:border-adhoc-violet"
+                            autoFocus
+                            onKeyDown={e => { if (e.key === 'Enter') changePassword() }}
+                        />
+                        {passwordError && <p className="text-xs text-red-500 mb-2">{passwordError}</p>}
+                        <div className="flex justify-end gap-2 mt-3">
+                            <button onClick={() => setPasswordModal(null)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={changePassword}
+                                disabled={passwordSaving}
+                                className="px-4 py-1.5 bg-adhoc-violet text-white text-sm rounded-lg hover:bg-adhoc-violet/90 disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                                {passwordSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

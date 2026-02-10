@@ -3,7 +3,7 @@
 > **Filosofía:** Código mínimo, tests máximos, escalable sin prompts monstruosos  
 > **Principio:** La inteligencia viene de buenas descripciones, no de prompts enormes  
 > **Para:** Un founder que no es developer pero controla calidad via tests y LLMs  
-> **Última actualización:** 2026-02-08
+> **Última actualización:** 2026-02-09
 
 ---
 
@@ -161,16 +161,18 @@ DEFAULT: mes actual si no se especifica período
 
 | Campo | Valor |
 |-------|-------|
-| Fase actual | F3 completada → F4 Memory siguiente |
-| Branch actual | `feat/tenant-management` |
+| Fase actual | F4 completada → F5 siguiente |
+| Branch actual | `feat/memory` (PR #11) |
 | Último merge | PR #10 — Phase 3 F3.1→F3.5 |
-| Unit tests | 310 passing (~1.4s) |
+| Unit tests | ~337 passing (~1.5s) |
 | Eval test cases | 75 (67 originales + 8 quality) |
 | Baseline L1→L5 | 98.5% (66/67) |
 | Quality baseline | 100% corrección, 75% insights |
 | Modelo | gemini-3-flash-preview |
 | Engine | llm-engine.ts (V2, V1 eliminado) |
 | Skills Odoo | 36 |
+| Memory Skills | 2 (recall_memory, save_memory) |
+| Tenant Isolation | ✅ Fix dd4b223 (23 archivos, ~45 queries) |
 
 ### Progreso General
 
@@ -187,9 +189,17 @@ DEFAULT: mes actual si no se especifica período
 │       ├─ F3.4: Deprecar V1               ✅ (native-gemini → llm-engine)   │
 │       ├─ F3.5: RAG Cleanup               ✅ (rag_enabled eliminado)        │
 │       └─ F3.6: Quality Evals             ✅ (insightScore + 8 test cases)  │
+│   └─ F4: Memory Tool                 [x] ██████████ 100%                   │
+│       ├─ F4.1: Tabla memories             ✅ (203 + 204 migrations)        │
+│       ├─ F4.2: recall_memory              ✅ (ILIKE search, user-scoped)   │
+│       ├─ F4.3: save_memory                ✅ (auth UUID fix)               │
+│       ├─ F4.4: Wired into executor        ✅ (memory tool in catalog)      │
+│       ├─ F4.5: Admin UI                   ✅ (real icons, knowledge_base)  │
+│       └─ F4.6: Tests + UX                 ✅ (27 tests, friendly errors)   │
+│   └─ F4.7: Tenant Isolation Fix       [x] ██████████ 100%                   │
+│       └─ 23 archivos, ~45 queries con .eq('tenant_id') explícito            │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ 🔜 SIGUIENTE                                                                │
-│   └─ F4: Memory Tool                 [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F5: User Credentials & Onboard  [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F6: Infraestructura (PWA/Push)  [ ] ⬜⬜⬜⬜⬜ 0%                      │
 │   └─ F7: Features (Briefings/Alertas)[ ] ⬜⬜⬜⬜⬜ 0%                      │
@@ -304,12 +314,12 @@ DEFAULT: mes actual si no se especifica período
 | F1 | 3h | Orquestador LLM - Reemplazar router | ✅ Completado |
 | F2 | 3h | Company Context - Tuqui conoce la empresa | ✅ Completado |
 | F3 | ~15h | Skills & Inteligencia (6 sub-fases) | ✅ Completado |
-| F4 | 4h | Memory Tool - Memoria conversacional | 🔜 Siguiente |
-| F5 | 8h | User Credentials & Onboarding | ⬜ Pendiente |
+| F4 | ~6h | Memory + Tenant Isolation + UX | ✅ Completado |
+| F5 | 8h | User Credentials & Onboarding | 🔜 Siguiente |
 | F6 | 6h | Infraestructura - PWA, Push | ⬜ Pendiente |
 | F7 | 6h | Features - Briefings, Alertas | ⬜ Pendiente |
 
-**Total estimado: ~36 horas** | **Completado: ~23 horas** | **36 skills, 310 tests, 75 evals**
+**Total estimado: ~36 horas** | **Completado: ~29 horas** | **36 skills + 2 memory, ~337 tests, 75 evals**
 
 ---
 
@@ -600,8 +610,9 @@ describe('Skill Selection', () => {
 
 ---
 
-## ⬜ FASE 4: MEMORY (~6 horas)
+## ✅ FASE 4: MEMORY + TENANT ISOLATION — COMPLETADA
 
+> **Completado:** 2026-02-09. PR #11 en `feat/memory`. Verificado en producción (save + recall).
 > **Objetivo:** Que Tuqui recuerde cosas entre conversaciones y las use para dar mejores respuestas
 
 ### El problema
@@ -797,22 +808,93 @@ describe('Memory Tools', () => {
 - ❌ Memorias que se inyectan siempre (gastan tokens)
 - ❌ UI dedicada de admin (el chat alcanza)
 
+### Lo que se implementó
+
+| Componente | Archivo | Descripción |
+|------------|---------|-------------|
+| Migration memories | `supabase/migrations/203_memories.sql` | Tabla + RLS policies |
+| Migration tool | `supabase/migrations/204_add_memory_tool.sql` | Registra tool 'memory' con 2 skills |
+| Migration dedup | `supabase/migrations/205_fix_duplicate_agents.sql` | UNIQUE constraint tenant+slug |
+| Memory index | `lib/skills/memory/index.ts` | Factory de memory tools |
+| Recall skill | `lib/skills/memory/recall.ts` | Búsqueda ILIKE por entity_name, user-scoped |
+| Save skill | `lib/skills/memory/save.ts` | Guarda nota con entity_name/type/content |
+| Tool defs | `lib/skills/memory/tools.ts` | Definiciones para Gemini |
+| Executor | `lib/tools/executor.ts` | Wiring de memory tools, separa userId/userEmail |
+| Auth fix | `lib/auth/config.ts` | Expone token.sub como session.user.id (UUID) |
+| Friendly errors | `lib/errors/friendly-messages.ts` | Mapeo de errores técnicos → mensajes amigables |
+| Streaming fix | `app/api/chat/route.ts` | Errores en stream ahora muestran mensaje friendly |
+| Admin UI | `components/admin/ToolsForm.tsx` | Iconos reales (SVG), knowledge_base en catálogo |
+
+### Commits (feat/memory)
+
+```
+dd4b223 fix: add tenant_id filtering to all cross-tenant unsafe queries
+3047de0 fix: send friendly error message on token limit in streaming
+f48d660 fix: memory save_memory used email instead of auth UUID
+c60a5d9 feat: real icons in admin tools UI + knowledge_base in catalog
+d975e90 feat: add delete agent functionality for custom agents
+1c2bd6d fix: replace whatsapp with memory in tools catalog, add brain icon
+4b2adb8 fix: prevent duplicate agents per tenant (UNIQUE constraint)
+0e14977 feat: add memory tool to admin UI
+2ff102e feat: add memory tool with recall and save skills
+```
+
+### Bugs encontrados y resueltos
+
+| Bug | Causa raíz | Fix |
+|-----|-----------|-----|
+| `invalid input syntax for type uuid` en save_memory | `engine.ts` pasaba email como userId, pero `memories.created_by` es UUID | Separar `userEmail` (Odoo) de `userId` (auth UUID) |
+| Token limit muestra "API Error" genérico | Streaming catch hacía `controller.error()` sin mensaje | Usa `getFriendlyError()` y envía texto amigable por el stream |
+| Agentes duplicados en admin | Queries no filtraban por tenant_id | Agregar `.eq('tenant_id')` + UNIQUE constraint |
+| Cross-tenant data leak | ~45 queries sin `.eq('tenant_id')` explícito | Fix masivo en 23 archivos (dd4b223) |
+
+### Tenant Isolation Fix (dd4b223)
+
+| Área | Riesgo | Archivos |
+|------|--------|----------|
+| Credenciales Odoo/Twilio | Tenant A veía credenciales de B | 4 archivos |
+| Documentos RAG | Docs de Cedent aparecían en Logos | 4 archivos |
+| Agentes | Agentes de otro tenant cargándose | 2 archivos |
+| Chat/Mensajes | Historial de otro tenant legible | 2 archivos |
+| Prometeo tasks | Tasks editables cross-tenant | 4 archivos |
+| Notificaciones | Notificaciones leakeaban | 4 archivos |
+| Billing/Push | Usage stats y push subs mezclados | 3 archivos |
+
+> **Nota:** Este fix es prerequisito y compatible con F5 (user credentials).
+> Cuando se migre a `user_credentials`, se agrega `.eq('user_id', userId)` además del `.eq('tenant_id')` que ya está.
+
+### Verificación en producción
+
+```
+✅ save_memory: "recordá que Juan Pérez siempre pide descuento del 10%" → guardado
+✅ recall_memory: "Qué sabés de Juan Pérez?" → "Tengo anotado que es un cliente
+   que siempre pide un 10% de descuento"
+✅ Token limit: muestra "⚠️ Límite mensual de tokens alcanzado" con detalle de uso
+✅ Tenant isolation: queries con .eq('tenant_id') explícito en 23 archivos
+```
+
 ### Checklist F4
 
-- [ ] Migration `203_memories.sql` creada
-- [ ] `lib/skills/memory/recall.ts` implementado
-- [ ] `lib/skills/memory/save.ts` implementado
-- [ ] Tools registrados en agentes relevantes (DB)
-- [ ] Tests unitarios
-- [ ] Evals no bajan
-
-### Estimación: ~4h
+- [x] Migration `203_memories.sql` creada
+- [x] Migration `204_add_memory_tool.sql` creada
+- [x] `lib/skills/memory/recall.ts` implementado
+- [x] `lib/skills/memory/save.ts` implementado
+- [x] Tools registrados en agentes relevantes (DB + admin UI)
+- [x] Tests unitarios (14 memory + 13 friendly-messages = 27 nuevos)
+- [x] Evals no bajan
+- [x] Auth UUID fix (email → session.user.id)
+- [x] Friendly error messages en streaming
+- [x] Admin UI con iconos reales + knowledge_base
+- [x] Tenant isolation fix (~45 queries en 23 archivos)
+- [x] Verificado en producción
 
 ---
 
 ## ⬜ FASE 5: USER CREDENTIALS & ONBOARDING (~8 horas)
 
 > **Objetivo:** Cada usuario aporta sus propias credenciales. Los permisos vienen de su cuenta, no compartidos.
+> **Prerequisito:** ✅ Tenant isolation fix (dd4b223) — todos los queries ya tienen `.eq('tenant_id')`. Migrar a per-user es agregar `.eq('user_id')` encima.
+> **Ver también:** `TENANT_MANAGEMENT_PLAN.md` para el plan de Super Admin UI (solapamiento parcial con F5.4)
 
 ### ¿Por qué es importante?
 
@@ -1208,12 +1290,15 @@ export async function GET(request: Request) {
 | Métrica | Baseline | Actual | Target | Cómo medir |
 |---------|----------|--------|--------|------------|
 | Agent Evals | 46.2% | 98.5% | ≥85% | `npx vitest run tests/evals/` |
-| Unit Tests | 0 | 310 | ≥250 | `npx vitest run tests/unit/` (~1.4s) |
+| Unit Tests | 0 | ~337 | ≥250 | `npx vitest run tests/unit/` (~1.5s) |
 | Eval Test Cases | 67 | 75 | 80+ | test-cases.ts |
 | Odoo Skills | 20 | 36 | 40+ | `odooSkills.length` |
+| Memory Skills | 0 | 2 | 2 | recall_memory + save_memory |
 | Quality Insights | N/A | 75% | ≥80% | qualityPatterns match rate |
 | Orquestador | ~400 líneas | ~155 líneas | ~100 | `wc -l orchestrator.ts` |
 | Rate limit issues | Muchos | Mitigados | 0 | Observar en tests |
+| Error UX | Genérico | Friendly | Friendly | getFriendlyError() |
+| Tenant Isolation | 0 queries safe | ~45 queries | 100% | `.eq('tenant_id')` explícito |
 
 ---
 
@@ -1261,7 +1346,8 @@ lib/chat/build-system-prompt.ts     # ✅ Completado (7 capas)
 lib/tools/llm-engine.ts             # ✅ Engine único (V2, ex native-gemini-v2)
 lib/improvement/auditor.ts          # ✅ 5 dimensiones (incl insightScore)
 lib/improvement/loop.ts             # ✅ Progressive L1→L5
-lib/tools/definitions/memory-tool.ts # 🔜 F4
+lib/skills/memory/                  # ✅ F4 (index, recall, save, tools)
+lib/errors/friendly-messages.ts     # ✅ F4 (mapeo errores → mensajes amigables)
 lib/push/sender.ts                  # F6 (~50 líneas)
 lib/briefings/generator.ts          # F7
 lib/alerts/evaluator.ts             # F7
@@ -1291,7 +1377,8 @@ lib/alerts/evaluator.ts             # F7
 
 ---
 
-*Última actualización: 2026-02-08*  
+*Última actualización: 2026-02-09*  
 *PRs mergeados: #2 (RAG), #3 (Orchestrator), #4 (Accounting), #5-#9 (pipeline/skills), #10 (Phase 3)*  
-*Fases completadas: F0, F1, F2, F3 (6 sub-fases) — Siguiente: F4 Memory*  
+*PR abierto: #11 (Memory + Admin UI + Friendly Errors + Tenant Isolation) en `feat/memory`*  
+*Fases completadas: F0, F1, F2, F3 (6 sub-fases), F4 (Memory + Tenant Isolation) — Siguiente: F5 User Credentials*  
 *Filosofía: Simple > Complejo, Tests > Features, Descripciones > Prompts*
