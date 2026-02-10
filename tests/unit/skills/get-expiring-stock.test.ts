@@ -217,7 +217,7 @@ describe('Skill: get_expiring_stock', () => {
       }
     });
 
-    it('aggregates quantity from multiple quants for same lot', async () => {
+    it('aggregates quantity from multiple internal locations for same lot', async () => {
       mockOdooClient.searchRead.mockResolvedValueOnce([
         {
           id: 1,
@@ -227,10 +227,10 @@ describe('Skill: get_expiring_stock', () => {
         },
       ]);
 
-      // Same lot in 2 locations
+      // Same lot in 2 internal locations (filter is in domain, mock returns only internal)
       mockOdooClient.searchRead.mockResolvedValueOnce([
         { lot_id: [1, 'LOT-001'], product_id: [10, 'Leche'], quantity: 30, location_id: [5, 'WH/Stock'] },
-        { lot_id: [1, 'LOT-001'], product_id: [10, 'Leche'], quantity: 20, location_id: [6, 'WH/Output'] },
+        { lot_id: [1, 'LOT-001'], product_id: [10, 'Leche'], quantity: 20, location_id: [6, 'WH/Stock/Shelf 1'] },
       ]);
 
       const result = await getExpiringStock.execute(
@@ -390,6 +390,52 @@ describe('Skill: get_expiring_stock', () => {
       expect(hasWarehouseFilter).toBe(true);
     });
 
+    it('always filters quant domain by location_id.usage = internal', async () => {
+      mockOdooClient.searchRead.mockResolvedValueOnce([
+        { id: 1, name: 'L1', product_id: [1, 'P1'], expiration_date: '2026-02-20' },
+      ]);
+      mockOdooClient.searchRead.mockResolvedValueOnce([]);
+
+      await getExpiringStock.execute(
+        { days_ahead: 30, include_expired: false, limit: 30 },
+        mockContext
+      );
+
+      const quantCall = mockOdooClient.searchRead.mock.calls[1];
+      const domain = quantCall[1] as any[];
+      const hasInternalFilter = domain.some(
+        (d: any) => Array.isArray(d) && d[0] === 'location_id.usage' && d[1] === '=' && d[2] === 'internal'
+      );
+      expect(hasInternalFilter).toBe(true);
+    });
+
+    it('normalizes dates to UTC date-only avoiding timezone drift', async () => {
+      // Even with datetime strings from Odoo (with time portion), days should be exact
+      mockOdooClient.searchRead.mockResolvedValueOnce([
+        {
+          id: 1,
+          name: 'LOT-TZ',
+          product_id: [10, 'Producto TZ'],
+          expiration_date: '2026-02-15 00:00:00', // datetime format from Odoo
+        },
+      ]);
+
+      mockOdooClient.searchRead.mockResolvedValueOnce([
+        { lot_id: [1, 'LOT-TZ'], product_id: [10, 'Producto TZ'], quantity: 100, location_id: [5, 'WH'] },
+      ]);
+
+      const result = await getExpiringStock.execute(
+        { days_ahead: 30, include_expired: false, limit: 30 },
+        mockContext
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // Feb 15 - Feb 8 = exactly 7 days regardless of time portion
+        expect(result.data.products[0].daysUntilExpiry).toBe(7);
+      }
+    });
+
     it('handles API errors gracefully', async () => {
       mockOdooClient.searchRead.mockRejectedValue(new Error('❌ Server error'));
 
@@ -402,6 +448,26 @@ describe('Skill: get_expiring_stock', () => {
       if (!result.success) {
         expect(result.error.code).toBe('API_ERROR');
       }
+    });
+
+    it('uses limit of 2000 for lot and quant queries', async () => {
+      mockOdooClient.searchRead.mockResolvedValueOnce([
+        { id: 1, name: 'L1', product_id: [1, 'P1'], expiration_date: '2026-02-20' },
+      ]);
+      mockOdooClient.searchRead.mockResolvedValueOnce([]);
+
+      await getExpiringStock.execute(
+        { days_ahead: 30, include_expired: false, limit: 30 },
+        mockContext
+      );
+
+      // stock.lot query
+      const lotCall = mockOdooClient.searchRead.mock.calls[0];
+      expect(lotCall[2].limit).toBe(2000);
+
+      // stock.quant query
+      const quantCall = mockOdooClient.searchRead.mock.calls[1];
+      expect(quantCall[2].limit).toBe(2000);
     });
   });
 
