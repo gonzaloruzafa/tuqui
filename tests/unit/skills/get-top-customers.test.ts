@@ -97,15 +97,15 @@ describe('Skill: get_top_customers', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.customers).toEqual([]);
-        expect(result.data.totalRevenue).toBe(0);
+        expect(result.data.totalRevenueWithTax).toBe(0);
       }
     });
 
     it('returns customers sorted by total sales', async () => {
       mockOdooClient.readGroup.mockResolvedValue([
-        { partner_id: [1, 'Cliente Top'], amount_total: 50000, __count: 10 },
-        { partner_id: [2, 'Cliente Medio'], amount_total: 25000, __count: 5 },
-        { partner_id: [3, 'Cliente Bajo'], amount_total: 10000, __count: 2 },
+        { partner_id: [1, 'Cliente Top'], amount_total: 50000, amount_untaxed: 41322, __count: 10 },
+        { partner_id: [2, 'Cliente Medio'], amount_total: 25000, amount_untaxed: 20661, __count: 5 },
+        { partner_id: [3, 'Cliente Bajo'], amount_total: 10000, amount_untaxed: 8264, __count: 2 },
       ]);
 
       const result = await getTopCustomers.execute(
@@ -117,7 +117,7 @@ describe('Skill: get_top_customers', () => {
       if (result.success) {
         expect(result.data.customers).toHaveLength(3);
         expect(result.data.customers[0].customerName).toBe('Cliente Top');
-        expect(result.data.totalRevenue).toBe(85000);
+        expect(result.data.totalRevenueWithTax).toBe(85000);
       }
     });
   });

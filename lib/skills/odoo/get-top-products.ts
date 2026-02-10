@@ -22,12 +22,16 @@ export interface TopProduct {
   productId: number;
   productName: string;
   quantitySold: number;
-  revenue: number;
+  /** Revenue with taxes */
+  revenueWithTax: number;
+  /** Revenue without taxes */
+  revenueWithoutTax: number;
 }
 
 export interface TopProductsOutput {
   products: TopProduct[];
-  totalRevenue: number;
+  totalRevenueWithTax: number;
+  totalRevenueWithoutTax: number;
   totalQuantity: number;
   period: z.infer<typeof PeriodSchema>;
 }
@@ -70,7 +74,7 @@ Para: "top products", "best sellers", "productos más vendidos", "qué se vende 
       const grouped = await odoo.readGroup(
         'sale.order.line',
         domain,
-        ['product_id', 'product_uom_qty:sum', 'price_total:sum'],
+        ['product_id', 'product_uom_qty:sum', 'price_total:sum', 'price_subtotal:sum'],
         ['product_id'],
         { limit: input.limit, orderBy: `${orderByField} desc` }
       );
@@ -81,12 +85,14 @@ Para: "top products", "best sellers", "productos más vendidos", "qué se vende 
           productId: (g.product_id as [number, string])[0],
           productName: (g.product_id as [number, string])[1],
           quantitySold: g.product_uom_qty || 0,
-          revenue: g.price_total || 0,
+          revenueWithTax: g.price_total || 0,
+          revenueWithoutTax: g.price_subtotal || 0,
         }));
 
       return success({
         products,
-        totalRevenue: products.reduce((sum, p) => sum + p.revenue, 0),
+        totalRevenueWithTax: products.reduce((sum, p) => sum + p.revenueWithTax, 0),
+        totalRevenueWithoutTax: products.reduce((sum, p) => sum + p.revenueWithoutTax, 0),
         totalQuantity: products.reduce((sum, p) => sum + p.quantitySold, 0),
         period,
       });

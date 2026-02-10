@@ -44,14 +44,18 @@ export type CompareSalesPeriodsInput = z.infer<typeof CompareSalesPeriodsInputSc
 // ============================================
 
 export interface PeriodSummary {
-  /** Total sales amount */
-  totalSales: number
+  /** Total sales with taxes */
+  totalSalesWithTax: number
+  /** Total sales without taxes */
+  totalSalesWithoutTax: number
   /** Number of orders */
   orderCount: number
   /** Number of unique customers */
   customerCount: number
-  /** Average order value */
-  avgOrderValue: number
+  /** Average order value (with tax) */
+  avgOrderValueWithTax: number
+  /** Average order value (without tax) */
+  avgOrderValueWithoutTax: number
   /** Period description */
   periodLabel: string
 }
@@ -76,13 +80,13 @@ export interface CompareSalesPeriodsOutput {
   current: PeriodSummary
   /** Previous period summary */
   previous: PeriodSummary
-  /** Absolute change in sales */
+  /** Absolute change in sales (with tax) */
   salesChange: number
-  /** Percentage change in sales */
+  /** Percentage change in sales (with tax) */
   salesChangePercent: number | null
   /** Change in order count */
   orderCountChange: number
-  /** Change in average order value */
+  /** Change in average order value (with tax) */
   avgOrderValueChange: number
   /** Trend direction */
   trend: 'up' | 'down' | 'stable'
@@ -158,11 +162,12 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
         }
 
         // Get totals
-        const totals = await odoo.readGroup('sale.order', domain, ['amount_total', 'partner_id'], [], {
+        const totals = await odoo.readGroup('sale.order', domain, ['amount_total', 'amount_untaxed', 'partner_id'], [], {
           limit: 1,
         })
 
-        const totalSales = totals[0]?.amount_total || 0
+        const totalSalesWithTax = totals[0]?.amount_total || 0
+        const totalSalesWithoutTax = totals[0]?.amount_untaxed || 0
 
         // Get order count and unique customers
         const orders = await odoo.searchRead('sale.order', domain, {
@@ -176,10 +181,12 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
         )
 
         return {
-          totalSales,
+          totalSalesWithTax,
+          totalSalesWithoutTax,
           orderCount,
           customerCount: uniqueCustomers.size,
-          avgOrderValue: orderCount > 0 ? Math.round(totalSales / orderCount) : 0,
+          avgOrderValueWithTax: orderCount > 0 ? Math.round(totalSalesWithTax / orderCount) : 0,
+          avgOrderValueWithoutTax: orderCount > 0 ? Math.round(totalSalesWithoutTax / orderCount) : 0,
           periodLabel: formatPeriodLabel(period),
         }
       }
@@ -191,10 +198,10 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
       ])
 
       // Calculate changes
-      const salesChange = current.totalSales - previous.totalSales
-      const salesChangePercent = calculateChangePercent(current.totalSales, previous.totalSales)
+      const salesChange = current.totalSalesWithTax - previous.totalSalesWithTax
+      const salesChangePercent = calculateChangePercent(current.totalSalesWithTax, previous.totalSalesWithTax)
       const orderCountChange = current.orderCount - previous.orderCount
-      const avgOrderValueChange = current.avgOrderValue - previous.avgOrderValue
+      const avgOrderValueChange = current.avgOrderValueWithTax - previous.avgOrderValueWithTax
 
       // Determine trend
       let trend: 'up' | 'down' | 'stable' = 'stable'
@@ -215,16 +222,16 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
           odoo.readGroup(
             'sale.order.line',
             combineDomains(currentDateDomain, stateOnOrder),
-            ['product_id', 'price_subtotal'],
+            ['product_id', 'price_total', 'price_subtotal'],
             ['product_id'],
-            { orderBy: 'price_subtotal desc', limit: input.limit }
+            { orderBy: 'price_total desc', limit: input.limit }
           ),
           odoo.readGroup(
             'sale.order.line',
             combineDomains(previousDateDomain, stateOnOrder),
-            ['product_id', 'price_subtotal'],
+            ['product_id', 'price_total', 'price_subtotal'],
             ['product_id'],
-            { orderBy: 'price_subtotal desc', limit: input.limit }
+            { orderBy: 'price_total desc', limit: input.limit }
           ),
         ])
 
@@ -232,13 +239,13 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
         const previousMap = new Map<number, number>()
         previousProducts.forEach((p: any) => {
           const id = Array.isArray(p.product_id) ? p.product_id[0] : p.product_id
-          previousMap.set(id, p.price_subtotal || 0)
+          previousMap.set(id, p.price_total || 0)
         })
 
         productComparison = currentProducts.map((p: any) => {
           const id = Array.isArray(p.product_id) ? p.product_id[0] : p.product_id
           const name = Array.isArray(p.product_id) ? p.product_id[1] : 'Producto'
-          const currentSales = p.price_subtotal || 0
+          const currentSales = p.price_total || 0
           const previousSales = previousMap.get(id) || 0
           const change = currentSales - previousSales
 

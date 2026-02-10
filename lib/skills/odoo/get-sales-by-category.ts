@@ -26,15 +26,20 @@ export type GetSalesByCategoryInput = z.infer<typeof GetSalesByCategoryInputSche
 export interface CategorySales {
   categoryId: number;
   categoryName: string;
-  totalAmount: number;
+  /** Total with taxes */
+  totalWithTax: number;
+  /** Total without taxes */
+  totalWithoutTax: number;
   quantitySold: number;
   orderCount: number;
+  /** Percentage of grand total (with tax) */
   percentage: number;
 }
 
 export interface SalesByCategoryOutput {
   categories: CategorySales[];
-  grandTotal: number;
+  grandTotalWithTax: number;
+  grandTotalWithoutTax: number;
   totalQuantity: number;
   categoryCount: number;
   period: z.infer<typeof PeriodSchema>;
@@ -83,35 +88,39 @@ RETORNA: lista con categoryName, totalAmount, quantitySold, percentage del total
       const grouped = await odoo.readGroup(
         'sale.order.line',
         domain,
-        ['product_id.categ_id', 'product_uom_qty:sum', 'price_total:sum', 'order_id:count_distinct'],
+        ['product_id.categ_id', 'product_uom_qty:sum', 'price_total:sum', 'price_subtotal:sum', 'order_id:count_distinct'],
         ['product_id.categ_id'],
         { limit: input.limit, orderBy: 'price_total desc' }
       );
 
       // Calculate grand total first for percentages
-      const grandTotal = grouped.reduce((sum, g) => sum + (g.price_total || 0), 0);
+      const grandTotalWithTax = grouped.reduce((sum, g) => sum + (g.price_total || 0), 0);
+      const grandTotalWithoutTax = grouped.reduce((sum, g) => sum + (g.price_subtotal || 0), 0);
 
       const categories: CategorySales[] = grouped
         .filter((g) => g['product_id.categ_id'] && Array.isArray(g['product_id.categ_id']))
         .map((g) => {
           const [categoryId, categoryName] = g['product_id.categ_id'] as [number, string];
-          const totalAmount = g.price_total || 0;
+          const totalWithTax = g.price_total || 0;
+          const totalWithoutTax = g.price_subtotal || 0;
           const quantitySold = g.product_uom_qty || 0;
           const orderCount = (g as any).order_id_count || (g as any).order_id || 1;
 
           return {
             categoryId,
             categoryName,
-            totalAmount,
+            totalWithTax,
+            totalWithoutTax,
             quantitySold,
             orderCount,
-            percentage: grandTotal > 0 ? Math.round((totalAmount / grandTotal) * 10000) / 100 : 0,
+            percentage: grandTotalWithTax > 0 ? Math.round((totalWithTax / grandTotalWithTax) * 10000) / 100 : 0,
           };
         });
 
       return success({
         categories,
-        grandTotal,
+        grandTotalWithTax,
+        grandTotalWithoutTax,
         totalQuantity: categories.reduce((sum, c) => sum + c.quantitySold, 0),
         categoryCount: categories.length,
         period,

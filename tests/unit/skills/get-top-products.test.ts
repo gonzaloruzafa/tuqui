@@ -104,9 +104,9 @@ describe('Skill: get_top_products', () => {
 
     it('returns products sorted by sales amount', async () => {
       mockOdooClient.readGroup.mockResolvedValue([
-        { product_id: [1, '[SKU001] Producto Top'], price_subtotal: 80000, product_uom_qty: 100 },
-        { product_id: [2, '[SKU002] Producto Medio'], price_subtotal: 40000, product_uom_qty: 200 },
-        { product_id: [3, '[SKU003] Producto Bajo'], price_subtotal: 20000, product_uom_qty: 50 },
+        { product_id: [1, '[SKU001] Producto Top'], price_total: 96800, price_subtotal: 80000, product_uom_qty: 100 },
+        { product_id: [2, '[SKU002] Producto Medio'], price_total: 48400, price_subtotal: 40000, product_uom_qty: 200 },
+        { product_id: [3, '[SKU003] Producto Bajo'], price_total: 24200, price_subtotal: 20000, product_uom_qty: 50 },
       ]);
 
       const result = await getTopProducts.execute(
