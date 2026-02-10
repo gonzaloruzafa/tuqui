@@ -50,6 +50,14 @@ describe('Skill: get_journal_entries', () => {
       expect(GetJournalEntriesInputSchema.safeParse({ accountCode: '5.1' }).success).toBe(true);
     });
 
+    it('accepts customerName filter', () => {
+      expect(GetJournalEntriesInputSchema.safeParse({ customerName: 'Fundacion Instituto' }).success).toBe(true);
+    });
+
+    it('accepts partnerId filter', () => {
+      expect(GetJournalEntriesInputSchema.safeParse({ partnerId: 2717 }).success).toBe(true);
+    });
+
     it('rejects invalid moveType', () => {
       expect(GetJournalEntriesInputSchema.safeParse({ moveType: 'invalid' }).success).toBe(false);
     });
@@ -114,6 +122,42 @@ describe('Skill: get_journal_entries', () => {
       const result = await getJournalEntries.execute({ state: 'posted', limit: 50 }, mockContext);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('API_ERROR');
+    });
+
+    it('adds customerName filter to domain', async () => {
+      mockOdoo.searchRead.mockResolvedValue([]);
+
+      await getJournalEntries.execute(
+        { state: 'posted', limit: 50, customerName: 'Fundacion Instituto' },
+        mockContext
+      );
+
+      const domain = mockOdoo.searchRead.mock.calls[0][1];
+      expect(domain).toContainEqual(['partner_id.name', 'ilike', 'Fundacion Instituto']);
+    });
+
+    it('adds partnerId filter to domain', async () => {
+      mockOdoo.searchRead.mockResolvedValue([]);
+
+      await getJournalEntries.execute(
+        { state: 'posted', limit: 50, partnerId: 2717 },
+        mockContext
+      );
+
+      const domain = mockOdoo.searchRead.mock.calls[0][1];
+      expect(domain).toContainEqual(['partner_id', '=', 2717]);
+    });
+
+    it('does not add customer filter when not provided', async () => {
+      mockOdoo.searchRead.mockResolvedValue([]);
+
+      await getJournalEntries.execute({ state: 'posted', limit: 50 }, mockContext);
+
+      const domain = mockOdoo.searchRead.mock.calls[0][1];
+      const hasCustomerFilter = domain.some(
+        (d: any) => Array.isArray(d) && (d[0] === 'partner_id.name' || (d[0] === 'partner_id' && d[1] === '='))
+      );
+      expect(hasCustomerFilter).toBe(false);
     });
   });
 

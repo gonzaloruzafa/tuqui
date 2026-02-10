@@ -75,7 +75,9 @@ export const getOverdueInvoices: Skill<
   name: 'get_overdue_invoices',
   description: `Facturas vencidas de clientes. Puede filtrar por UN cliente específico con customerName.
 USAR PARA: "facturas vencidas", "pagos atrasados", "overdue invoices", "late payments",
-"facturas vencidas de Cliente X", "deudores morosos", "debt collection".`,
+"facturas vencidas de Cliente X", "deudores morosos", "número de factura vencida".
+RETORNA: invoiceNumber (ej FAC-A 00001-00000123), monto total, monto pendiente, fecha vencimiento, días de atraso.
+Si necesitás el NÚMERO de una factura vencida, esta es la herramienta correcta.`,
   tool: 'odoo',
   tags: ['invoices', 'debt', 'collections', 'accounting'],
   inputSchema: GetOverdueInvoicesInputSchema,

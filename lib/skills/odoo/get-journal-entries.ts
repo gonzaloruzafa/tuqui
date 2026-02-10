@@ -34,6 +34,10 @@ export const GetJournalEntriesInputSchema = z.object({
   moveType: z.union([MoveTypeEnum, z.array(MoveTypeEnum)]).optional(),
   /** Filter by account code prefix in lines (e.g. "5.1" for expenses) */
   accountCode: z.string().optional(),
+  /** Filter by customer/partner name (partial match via ilike) */
+  customerName: z.string().optional(),
+  /** Filter by exact partner ID */
+  partnerId: z.number().int().positive().optional(),
   state: z.enum(['all', 'posted', 'draft']).default('posted'),
   limit: z.number().min(1).max(100).default(50),
 });
@@ -69,10 +73,10 @@ export interface GetJournalEntriesOutput {
 export const getJournalEntries: Skill<typeof GetJournalEntriesInputSchema, GetJournalEntriesOutput> = {
   name: 'get_journal_entries',
 
-  description: `Asientos contables / journal entries.
-USAR PARA: "asientos contables", "journal entries", "notas de crédito", "movimientos contables", "asientos de la cuenta X".
-Filtra por tipo (factura, NC, asiento manual), cuenta contable (prefix), período y estado.
-Retorna: lista de asientos con monto, partner, diario.`,
+  description: `Asientos contables / journal entries. Puede filtrar por cliente con customerName.
+USAR PARA: "asientos contables", "notas de crédito", "movimientos contables", "asientos de la cuenta X",
+"facturas de Cliente X" (con moveType=out_invoice + customerName).
+RETORNA: name (número de factura/asiento, ej FAC-A 00001-00000123), monto, partner, diario.`,
 
   tool: 'odoo',
   inputSchema: GetJournalEntriesInputSchema,
@@ -100,6 +104,14 @@ Retorna: lista de asientos con monto, partner, diario.`,
       if (input.moveType) {
         const types = Array.isArray(input.moveType) ? input.moveType : [input.moveType];
         domain = [...domain, ['move_type', 'in', types]];
+      }
+
+      // Customer/partner filter
+      if (input.customerName) {
+        domain = [...domain, ['partner_id.name', 'ilike', input.customerName]];
+      }
+      if (input.partnerId) {
+        domain = [...domain, ['partner_id', '=', input.partnerId]];
       }
 
       // Account code filter: find move IDs that have lines matching the account
