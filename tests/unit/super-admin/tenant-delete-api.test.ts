@@ -69,7 +69,7 @@ describe('DELETE /api/super-admin/tenants/[id] — Delete Tenant', () => {
         // Mock the users query to return users with auth_user_ids
         const origFrom = mockFrom
         let usersReturned = false
-        mockFrom.mockImplementation((table: string) => {
+        mockFrom.mockImplementation((table: string): any => {
             if (table === 'users' && !usersReturned) {
                 usersReturned = true
                 return {
@@ -99,7 +99,7 @@ describe('DELETE /api/super-admin/tenants/[id] — Delete Tenant', () => {
 
     test('cascade deletes all required tables', async () => {
         // Reset mock to handle the full flow
-        mockFrom.mockImplementation((table: string) => {
+        mockFrom.mockImplementation((table: string): any => {
             if (table === 'tenants') {
                 return {
                     select: vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { id: 'tenant-1', name: 'Test' }, error: null }) })) })),
