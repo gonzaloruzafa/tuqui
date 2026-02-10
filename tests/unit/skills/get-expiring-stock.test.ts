@@ -2,7 +2,7 @@
  * Tests for get_expiring_stock skill
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getExpiringStock,
   GetExpiringStockInputSchema,

@@ -1,18 +1,42 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
+import { supabaseAdmin } from '@/lib/supabase'
 
-const PLATFORM_ADMIN_EMAILS = (process.env.PLATFORM_ADMIN_EMAILS || 'gr@adhoc.inc')
+/** Env var fallback — for bootstrap before first DB user exists */
+const BOOTSTRAP_ADMIN_EMAILS = (process.env.PLATFORM_ADMIN_EMAILS || 'gr@adhoc.inc')
   .split(',')
   .map(e => e.trim().toLowerCase())
 
-export function isPlatformAdmin(email: string | null | undefined): boolean {
+/**
+ * Checks if email is a platform admin.
+ * Source of truth: `users.is_platform_admin` in DB.
+ * Falls back to PLATFORM_ADMIN_EMAILS env var for bootstrap.
+ */
+export async function isPlatformAdmin(email: string | null | undefined): Promise<boolean> {
   if (!email) return false
-  return PLATFORM_ADMIN_EMAILS.includes(email.toLowerCase())
+
+  const supabase = supabaseAdmin()
+  const { data } = await supabase
+    .from('users')
+    .select('is_platform_admin')
+    .eq('email', email.toLowerCase())
+    .eq('is_platform_admin', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (data?.is_platform_admin) return true
+
+  // Fallback: env var (bootstrap / before migration runs)
+  return BOOTSTRAP_ADMIN_EMAILS.includes(email.toLowerCase())
 }
 
 export async function requirePlatformAdmin() {
   const session = await auth()
-  if (!session?.user?.email || !isPlatformAdmin(session.user.email)) {
+  const email = session?.user?.email
+  const isAdmin = await isPlatformAdmin(email)
+  
+  if (!email || !isAdmin) {
+    console.warn(`[PlatformAdmin] Access denied for ${email || 'no-email'} (isAdmin=${isAdmin})`)
     redirect('/')
   }
   return session

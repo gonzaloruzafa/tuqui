@@ -35,7 +35,7 @@ export function UserMenu({ user }: UserMenuProps) {
                 {user.image ? (
                     <img src={user.image} alt="" className="w-8 h-8 rounded-full border border-gray-200" />
                 ) : (
-                    <div className="w-8 h-8 rounded-full bg-adhoc-lavender flex items-center justify-center text-adhoc-violet">
+                    <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500">
                         <User className="w-5 h-5" />
                     </div>
                 )}

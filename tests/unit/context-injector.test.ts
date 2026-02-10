@@ -201,11 +201,13 @@ describe('Context Injector', () => {
       if (table === 'documents') {
         return {
           select: vi.fn().mockReturnValue({
-            in: vi.fn().mockResolvedValue({
-              data: [
-                { title: 'Política', content: 'Política de devoluciones: 30 días.' },
-                { title: 'FAQ', content: 'Preguntas frecuentes sobre envíos.' },
-              ],
+            in: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  { title: 'Política', content: 'Política de devoluciones: 30 días.' },
+                  { title: 'FAQ', content: 'Preguntas frecuentes sobre envíos.' },
+                ],
+              }),
             }),
             eq: vi.fn().mockReturnValue({
               single: vi.fn(),

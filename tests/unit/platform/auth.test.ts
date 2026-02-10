@@ -1,6 +1,16 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
-// Mock next-auth dependency chain
+const mockMaybeSingle = vi.fn()
+const mockLimit = vi.fn(() => ({ maybeSingle: mockMaybeSingle }))
+const mockEqAdmin = vi.fn(() => ({ limit: mockLimit }))
+const mockEqEmail = vi.fn(() => ({ eq: mockEqAdmin }))
+const mockSelect = vi.fn(() => ({ eq: mockEqEmail }))
+const mockFrom = vi.fn(() => ({ select: mockSelect }))
+
+vi.mock('@/lib/supabase', () => ({
+  supabaseAdmin: () => ({ from: mockFrom }),
+}))
+
 vi.mock('@/lib/auth/config', () => ({
   auth: vi.fn(),
 }))
@@ -13,36 +23,37 @@ describe('isPlatformAdmin', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.unstubAllEnvs()
+    mockMaybeSingle.mockReset()
   })
 
-  test('returns true for configured admin email', async () => {
-    vi.stubEnv('PLATFORM_ADMIN_EMAILS', 'admin@test.com,other@test.com')
+  test('returns true when user has is_platform_admin in DB', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { is_platform_admin: true } })
     const { isPlatformAdmin } = await import('@/lib/platform/auth')
-    expect(isPlatformAdmin('admin@test.com')).toBe(true)
+    expect(await isPlatformAdmin('admin@test.com')).toBe(true)
   })
 
-  test('returns true case-insensitive', async () => {
-    vi.stubEnv('PLATFORM_ADMIN_EMAILS', 'admin@test.com')
+  test('returns true via env var fallback when not in DB', async () => {
+    vi.stubEnv('PLATFORM_ADMIN_EMAILS', 'fallback@test.com')
+    mockMaybeSingle.mockResolvedValue({ data: null })
     const { isPlatformAdmin } = await import('@/lib/platform/auth')
-    expect(isPlatformAdmin('ADMIN@TEST.COM')).toBe(true)
+    expect(await isPlatformAdmin('fallback@test.com')).toBe(true)
   })
 
   test('returns false for non-admin email', async () => {
-    vi.stubEnv('PLATFORM_ADMIN_EMAILS', 'admin@test.com')
+    mockMaybeSingle.mockResolvedValue({ data: null })
     const { isPlatformAdmin } = await import('@/lib/platform/auth')
-    expect(isPlatformAdmin('user@test.com')).toBe(false)
+    expect(await isPlatformAdmin('user@test.com')).toBe(false)
   })
 
   test('returns false for null/undefined', async () => {
-    vi.stubEnv('PLATFORM_ADMIN_EMAILS', 'admin@test.com')
     const { isPlatformAdmin } = await import('@/lib/platform/auth')
-    expect(isPlatformAdmin(null)).toBe(false)
-    expect(isPlatformAdmin(undefined)).toBe(false)
+    expect(await isPlatformAdmin(null)).toBe(false)
+    expect(await isPlatformAdmin(undefined)).toBe(false)
   })
 
-  test('falls back to default email when env not set', async () => {
-    vi.stubEnv('PLATFORM_ADMIN_EMAILS', '')
+  test('is case-insensitive', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { is_platform_admin: true } })
     const { isPlatformAdmin } = await import('@/lib/platform/auth')
-    expect(isPlatformAdmin('gr@adhoc.inc')).toBe(true)
+    expect(await isPlatformAdmin('ADMIN@TEST.COM')).toBe(true)
   })
 })

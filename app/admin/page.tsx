@@ -32,24 +32,6 @@ export default async function AdminPage() {
             action: 'Gestionar Archivos'
         },
         {
-            title: 'Prometeo',
-            description: 'Tareas programadas y notificaciones push.',
-            icon: Clock,
-            href: '/admin/prometeo',
-            color: 'text-purple-600',
-            bg: 'bg-purple-100',
-            action: 'Programar'
-        },
-        {
-            title: 'Usuarios',
-            description: 'Administrar acceso y roles del equipo.',
-            icon: Users,
-            href: '/admin/users',
-            color: 'text-adhoc-coral',
-            bg: 'bg-adhoc-coral/10',
-            action: 'Ver Usuarios'
-        },
-        {
             title: 'Herramientas',
             description: 'Integraciones (Odoo, MercadoLibre, etc).',
             icon: Wrench,
@@ -59,6 +41,15 @@ export default async function AdminPage() {
             action: 'Integraciones'
         },
         {
+            title: 'Prometeo',
+            description: 'Tareas programadas y notificaciones push.',
+            icon: Clock,
+            href: '/admin/prometeo',
+            color: 'text-purple-600',
+            bg: 'bg-purple-100',
+            action: 'Programar'
+        },
+        {
             title: 'Empresa',
             description: 'Datos de facturación y configuración general.',
             icon: Building,
@@ -66,6 +57,15 @@ export default async function AdminPage() {
             color: 'text-gray-600',
             bg: 'bg-gray-100',
             action: 'Ajustes'
+        },
+        {
+            title: 'Usuarios',
+            description: 'Administrar acceso y roles del equipo.',
+            icon: Users,
+            href: '/admin/users',
+            color: 'text-adhoc-coral',
+            bg: 'bg-adhoc-coral/10',
+            action: 'Ver Usuarios'
         }
     ]
 
@@ -82,12 +82,9 @@ export default async function AdminPage() {
                         </Link>
                         <h1 className="text-lg font-bold text-gray-900 font-display">Panel de Administración</h1>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</span>
-                        <span className="text-sm font-medium text-adhoc-violet px-3 py-1 bg-adhoc-lavender/30 rounded-full border border-adhoc-lavender/50">
-                            {session.tenant?.name || 'Cliente Adhoc'}
-                        </span>
-                    </div>
+                    <span className="text-sm font-medium text-adhoc-violet px-3 py-1 bg-adhoc-lavender/30 rounded-full border border-adhoc-lavender/50">
+                        {session.tenant?.name || 'Cliente Adhoc'}
+                    </span>
                 </div>
             </div>
 
