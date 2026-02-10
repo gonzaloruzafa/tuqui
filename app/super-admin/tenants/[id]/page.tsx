@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2, KeyRound, Trash2 } from 'lucide-react'
+import { ArrowLeft, Building, Users, Bot, Zap, Activity, Pencil, Check, X, Loader2, KeyRound, Trash2, Plug, RefreshCw } from 'lucide-react'
 
 interface TenantDetail {
     tenant: {
@@ -27,6 +27,12 @@ interface TenantDetail {
         is_active: boolean
         master_agent_id: string | null
         custom_instructions: string | null
+        master_version_synced: number | null
+        last_synced_at: string | null
+    }>
+    integrations: Array<{
+        type: string
+        is_active: boolean
     }>
     usage: {
         totalTokens: number
@@ -196,7 +202,7 @@ export default function TenantDetailPage() {
         )
     }
 
-    const { tenant, users, agents, usage } = data
+    const { tenant, users, agents, integrations, usage } = data
     const activeAgents = agents.filter(a => a.is_active)
 
     return (
@@ -354,11 +360,37 @@ export default function TenantDetailPage() {
                                 {a.custom_instructions && (
                                     <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">📝 custom prompt</span>
                                 )}
+                                {a.last_synced_at && (
+                                    <span className="text-[10px] text-gray-400 flex items-center gap-1" title={`Sync: ${new Date(a.last_synced_at).toLocaleString('es-AR')}`}>
+                                        <RefreshCw className="w-3 h-3" />
+                                        {new Date(a.last_synced_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     ))}
                     {agents.length === 0 && (
                         <p className="px-6 py-4 text-sm text-gray-400">Sin agentes</p>
+                    )}
+                </div>
+            </section>
+
+            {/* Integrations section */}
+            <section className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <Plug className="w-5 h-5 text-gray-500" />
+                    <h2 className="font-semibold text-gray-900">Integraciones</h2>
+                </div>
+                <div className="divide-y divide-gray-50">
+                    {integrations.length > 0 ? integrations.map(i => (
+                        <div key={i.type} className="px-6 py-3 flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-900 capitalize">{i.type}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${i.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                {i.is_active ? '✅ Configurado' : '❌ Inactivo'}
+                            </span>
+                        </div>
+                    )) : (
+                        <p className="px-6 py-4 text-sm text-gray-400">Sin integraciones configuradas</p>
                     )}
                 </div>
             </section>
