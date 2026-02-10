@@ -13,6 +13,7 @@ function getSupabaseAuthClient() {
 
 export const authConfig = {
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    trustHost: true,
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,

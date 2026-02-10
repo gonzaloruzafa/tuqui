@@ -1,4 +1,5 @@
 import { signIn } from "@/lib/auth/config"
+import { AuthError } from "next-auth"
 import Image from "next/image"
 import { redirect } from "next/navigation"
 
@@ -13,13 +14,12 @@ async function handleCredentialsLogin(formData: FormData) {
             password, 
             redirectTo: "/" 
         })
-    } catch (error: any) {
-        // NextAuth throws NEXT_REDIRECT on success, let it through
-        if (error?.digest?.includes('NEXT_REDIRECT')) {
-            throw error
+    } catch (error) {
+        if (error instanceof AuthError) {
+            redirect("/login?error=CredentialsSignin")
         }
-        // For other errors, redirect back to login with error
-        redirect("/login?error=CredentialsSignin")
+        // Re-throw non-auth errors (NEXT_REDIRECT from successful signIn, etc.)
+        throw error
     }
 }
 
