@@ -32,8 +32,11 @@ export async function isPlatformAdmin(email: string | null | undefined): Promise
 
 export async function requirePlatformAdmin() {
   const session = await auth()
-  const isAdmin = await isPlatformAdmin(session?.user?.email)
-  if (!session?.user?.email || !isAdmin) {
+  const email = session?.user?.email
+  const isAdmin = await isPlatformAdmin(email)
+  
+  if (!email || !isAdmin) {
+    console.warn(`[PlatformAdmin] Access denied for ${email || 'no-email'} (isAdmin=${isAdmin})`)
     redirect('/')
   }
   return session
