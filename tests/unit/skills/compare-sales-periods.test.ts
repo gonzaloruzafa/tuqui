@@ -153,8 +153,8 @@ describe('Skill: compare_sales_periods', () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.current.totalSales).toBe(0);
-        expect(result.data.previous.totalSales).toBe(0);
+        expect(result.data.current.totalSalesWithTax).toBe(0);
+        expect(result.data.previous.totalSalesWithTax).toBe(0);
         expect(result.data.salesChange).toBe(0);
         expect(result.data.trend).toBe('stable');
       }
@@ -162,14 +162,14 @@ describe('Skill: compare_sales_periods', () => {
 
     it('calculates positive trend when current > previous', async () => {
       // Mock current period - higher sales
-      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 100000 }]);
+      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 100000, amount_untaxed: 82645 }]);
       mockOdooClient.searchRead.mockResolvedValueOnce([
         { id: 1, partner_id: [1, 'Cliente'] },
         { id: 2, partner_id: [2, 'Cliente 2'] },
       ]);
 
       // Mock previous period - lower sales
-      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 50000 }]);
+      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 50000, amount_untaxed: 41322 }]);
       mockOdooClient.searchRead.mockResolvedValueOnce([
         { id: 3, partner_id: [1, 'Cliente'] },
       ]);
@@ -178,8 +178,8 @@ describe('Skill: compare_sales_periods', () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.current.totalSales).toBe(100000);
-        expect(result.data.previous.totalSales).toBe(50000);
+        expect(result.data.current.totalSalesWithTax).toBe(100000);
+        expect(result.data.previous.totalSalesWithTax).toBe(50000);
         expect(result.data.salesChange).toBe(50000);
         expect(result.data.salesChangePercent).toBe(100); // 100% increase
         expect(result.data.trend).toBe('up');
@@ -188,11 +188,11 @@ describe('Skill: compare_sales_periods', () => {
 
     it('calculates negative trend when current < previous', async () => {
       // Mock current period - lower sales
-      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 40000 }]);
+      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 40000, amount_untaxed: 33058 }]);
       mockOdooClient.searchRead.mockResolvedValueOnce([{ id: 1, partner_id: [1, 'Cliente'] }]);
 
       // Mock previous period - higher sales
-      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 100000 }]);
+      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 100000, amount_untaxed: 82645 }]);
       mockOdooClient.searchRead.mockResolvedValueOnce([
         { id: 2, partner_id: [1, 'Cliente'] },
         { id: 3, partner_id: [2, 'Cliente 2'] },
@@ -202,8 +202,8 @@ describe('Skill: compare_sales_periods', () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.current.totalSales).toBe(40000);
-        expect(result.data.previous.totalSales).toBe(100000);
+        expect(result.data.current.totalSalesWithTax).toBe(40000);
+        expect(result.data.previous.totalSalesWithTax).toBe(100000);
         expect(result.data.salesChange).toBe(-60000);
         expect(result.data.salesChangePercent).toBe(-60);
         expect(result.data.trend).toBe('down');
@@ -212,11 +212,11 @@ describe('Skill: compare_sales_periods', () => {
 
     it('shows stable trend for small differences', async () => {
       // Mock current period
-      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 100000 }]);
+      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 100000, amount_untaxed: 82645 }]);
       mockOdooClient.searchRead.mockResolvedValueOnce([{ id: 1, partner_id: [1, 'Cliente'] }]);
 
       // Mock previous period - similar sales (within 5%)
-      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 98000 }]);
+      mockOdooClient.readGroup.mockResolvedValueOnce([{ amount_total: 98000, amount_untaxed: 80992 }]);
       mockOdooClient.searchRead.mockResolvedValueOnce([{ id: 2, partner_id: [1, 'Cliente'] }]);
 
       const result = await compareSalesPeriods.execute(validInput, mockContext);

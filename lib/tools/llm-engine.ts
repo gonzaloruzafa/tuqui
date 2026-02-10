@@ -413,6 +413,12 @@ export async function generateTextWithThinking({
                         totalTokens += forceResponse.usageMetadata.totalTokenCount || 0
                     }
                 }
+
+                // Final safety net: if still no text after force-text, provide fallback
+                if (!finalText.trim()) {
+                    console.warn(`[NativeGeminiV2] Force-text call returned empty, using fallback`)
+                    finalText = 'Perdón, busqué mucha información pero no logré armar una respuesta. ¿Podés reformular la pregunta o ser más específico?'
+                }
             }
             // Otherwise, the next loop iteration will handle the response
         }

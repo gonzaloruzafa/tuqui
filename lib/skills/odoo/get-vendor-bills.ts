@@ -18,7 +18,10 @@ export const GetVendorBillsInputSchema = z.object({
 });
 
 export interface VendorBillsOutput {
-  totalAmount: number;
+  /** Total with taxes */
+  totalAmountWithTax: number;
+  /** Total without taxes */
+  totalAmountWithoutTax: number;
   billCount: number;
   period: z.infer<typeof PeriodSchema>;
 }
@@ -58,16 +61,19 @@ USAR PARA: "cuánto le debemos a proveedores", "facturas pendientes de pago", "d
 
       const bills = await odoo.searchRead<{
         amount_total: number;
+        amount_untaxed: number;
       }>(
         'account.move',
         domain,
-        { fields: ['amount_total'], limit: input.limit }
+        { fields: ['amount_total', 'amount_untaxed'], limit: input.limit }
       );
 
-      const totalAmount = bills.reduce((sum, b) => sum + b.amount_total, 0);
+      const totalAmountWithTax = bills.reduce((sum, b) => sum + b.amount_total, 0);
+      const totalAmountWithoutTax = bills.reduce((sum, b) => sum + (b.amount_untaxed || 0), 0);
 
       return success({
-        totalAmount,
+        totalAmountWithTax,
+        totalAmountWithoutTax,
         billCount: bills.length,
         period,
       });

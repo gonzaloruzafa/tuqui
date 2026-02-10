@@ -38,6 +38,8 @@ export const GetSalesByCustomerInputSchema = z.object({
   minAmount: z.number().min(0).optional(),
   /** Filter by sales team ID (e.g., ecommerce, tienda web) */
   teamId: z.number().int().positive().optional(),
+  /** Filter by customer name (partial match). Use for: "ventas de Cliente X", "cuánto le vendimos a X" */
+  customerName: z.string().optional(),
 });
 
 export type GetSalesByCustomerInput = z.infer<typeof GetSalesByCustomerInputSchema>;
@@ -53,8 +55,10 @@ export interface CustomerSales {
   customerName: string;
   /** Number of orders */
   orderCount: number;
-  /** Total sales amount (with taxes) */
-  totalAmount: number;
+  /** Total sales with taxes */
+  totalWithTax: number;
+  /** Total sales without taxes */
+  totalWithoutTax: number;
   /** Average order value */
   avgOrderValue: number;
 }
@@ -62,8 +66,10 @@ export interface CustomerSales {
 export interface GetSalesByCustomerOutput {
   /** List of customers with their sales */
   customers: CustomerSales[];
-  /** Sum of all customer totals */
-  grandTotal: number;
+  /** Sum of all customer totals (with tax) */
+  grandTotalWithTax: number;
+  /** Sum of all customer totals (without tax) */
+  grandTotalWithoutTax: number;
   /** Sum of all order counts */
   totalOrders: number;
   /** Number of unique customers */
@@ -84,6 +90,7 @@ export const getSalesByCustomer: Skill<
 
   description: `Análisis detallado de ventas por cliente - incluye cantidad de órdenes, monto total, y valor promedio.
 USAR PARA: análisis detallado, "cuánto le vendimos a X", "detalle de ventas por cliente", métricas por cliente.
+Puede filtrar por UN cliente específico con customerName (ej: customerName="Acme Corp").
 NO usar para ranking rápido (usar get_top_customers en su lugar).
 Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cliente".`,
 
@@ -119,11 +126,16 @@ Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cl
         domain.push(['team_id', '=', input.teamId]);
       }
 
+      // Filter by customer name (partial match via ilike)
+      if (input.customerName) {
+        domain.push(['partner_id.name', 'ilike', input.customerName]);
+      }
+
       // 3. Execute aggregation query
       const grouped = await odoo.readGroup(
         'sale.order',
         domain,
-        ['partner_id', 'amount_total:sum'],
+        ['partner_id', 'amount_total:sum', 'amount_untaxed:sum'],
         ['partner_id'],
         {
           limit: input.limit * 2, // Fetch extra to filter by minAmount
@@ -138,28 +150,31 @@ Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cl
           customerId: g.partner_id[0],
           customerName: g.partner_id[1],
           orderCount: g.partner_id_count || g.__count || 1,
-          totalAmount: g.amount_total || 0,
+          totalWithTax: g.amount_total || 0,
+          totalWithoutTax: g.amount_untaxed || 0,
           avgOrderValue: 0, // Calculated below
         }));
 
       // 5. Filter by minimum amount if specified
       if (input.minAmount && input.minAmount > 0) {
-        customers = customers.filter((c) => c.totalAmount >= input.minAmount!);
+        customers = customers.filter((c) => c.totalWithTax >= input.minAmount!);
       }
 
       // 6. Apply final limit and calculate averages
       customers = customers.slice(0, input.limit).map((c) => ({
         ...c,
-        avgOrderValue: c.orderCount > 0 ? c.totalAmount / c.orderCount : 0,
+        avgOrderValue: c.orderCount > 0 ? c.totalWithTax / c.orderCount : 0,
       }));
 
       // 7. Calculate totals
-      const grandTotal = customers.reduce((sum, c) => sum + c.totalAmount, 0);
+      const grandTotalWithTax = customers.reduce((sum, c) => sum + c.totalWithTax, 0);
+      const grandTotalWithoutTax = customers.reduce((sum, c) => sum + c.totalWithoutTax, 0);
       const totalOrders = customers.reduce((sum, c) => sum + c.orderCount, 0);
 
       return success({
         customers,
-        grandTotal,
+        grandTotalWithTax,
+        grandTotalWithoutTax,
         totalOrders,
         customerCount: customers.length,
         period,

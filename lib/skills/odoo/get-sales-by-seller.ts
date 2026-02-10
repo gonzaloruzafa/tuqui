@@ -41,13 +41,17 @@ export interface SellerSales {
   sellerId: number;
   sellerName: string;
   orderCount: number;
-  totalAmount: number;
+  /** Total sales with taxes */
+  totalWithTax: number;
+  /** Total sales without taxes */
+  totalWithoutTax: number;
   avgOrderValue: number;
 }
 
 export interface SalesBySellerOutput {
   sellers: SellerSales[];
-  grandTotal: number;
+  grandTotalWithTax: number;
+  grandTotalWithoutTax: number;
   totalOrders: number;
   sellerCount: number;
   period: z.infer<typeof PeriodSchema>;
@@ -91,7 +95,7 @@ export const getSalesBySeller: Skill<
       const grouped = await odoo.readGroup(
         'sale.order',
         domain,
-        ['user_id', 'amount_total:sum'],
+        ['user_id', 'amount_total:sum', 'amount_untaxed:sum'],
         ['user_id'],
         {
           limit: input.limit,
@@ -104,25 +108,29 @@ export const getSalesBySeller: Skill<
         .filter((g) => g.user_id && Array.isArray(g.user_id))
         .map((g) => {
           const [sellerId, sellerName] = g.user_id as [number, string];
-          const totalAmount = g.amount_total || 0;
+          const totalWithTax = g.amount_total || 0;
+          const totalWithoutTax = g.amount_untaxed || 0;
           const orderCount = g.user_id_count || 1;
 
           return {
             sellerId,
             sellerName,
             orderCount,
-            totalAmount,
-            avgOrderValue: totalAmount / orderCount,
+            totalWithTax,
+            totalWithoutTax,
+            avgOrderValue: totalWithTax / orderCount,
           };
         });
 
       // Calculate totals
-      const grandTotal = sellers.reduce((sum, s) => sum + s.totalAmount, 0);
+      const grandTotalWithTax = sellers.reduce((sum, s) => sum + s.totalWithTax, 0);
+      const grandTotalWithoutTax = sellers.reduce((sum, s) => sum + s.totalWithoutTax, 0);
       const totalOrders = sellers.reduce((sum, s) => sum + s.orderCount, 0);
 
       return success({
         sellers,
-        grandTotal,
+        grandTotalWithTax,
+        grandTotalWithoutTax,
         totalOrders,
         sellerCount: sellers.length,
         period,

@@ -31,6 +31,9 @@ export const GetInvoicesByCustomerInputSchema = z.object({
 
   /** Only customer invoices (out_invoice) vs vendor bills */
   invoiceType: z.enum(['out_invoice', 'in_invoice', 'all']).default('out_invoice'),
+
+  /** Filter by customer name (partial match). Use for: "facturas de Cliente X", "cuánto facturamos a X" */
+  customerName: z.string().optional(),
 });
 
 // ============================================
@@ -62,7 +65,9 @@ export const getInvoicesByCustomer: Skill<
   InvoicesByCustomerOutput
 > = {
   name: 'get_invoices_by_customer',
-  description: 'Get invoices grouped by customer. Use when user asks about "invoicing by customer", "billed amount by client", "top invoiced customers".',
+  description: `Facturas agrupadas por cliente. Puede filtrar por UN cliente específico con customerName.
+USAR PARA: "facturas de Cliente X", "cuánto facturamos a X", "facturación por cliente", "top clientes facturados".
+Ejemplo: customerName="Acme Corp" devuelve solo facturas de ese cliente.`,
   tool: 'odoo',
   tags: ['invoices', 'customers', 'accounting'],
   inputSchema: GetInvoicesByCustomerInputSchema,
@@ -89,6 +94,11 @@ export const getInvoicesByCustomer: Skill<
       // Invoice type filter
       if (input.invoiceType !== 'all') {
         domain.push(['move_type', '=', input.invoiceType]);
+      }
+
+      // Filter by customer name (partial match via ilike)
+      if (input.customerName) {
+        domain.push(['partner_id.name', 'ilike', input.customerName]);
       }
 
       // Group by partner

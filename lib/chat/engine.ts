@@ -80,7 +80,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         system: systemPrompt,
         messages: messages as any,
         tools: hasTools ? tools : undefined,
-        maxSteps: 10,
+        maxSteps: 15,
         thinkingLevel: channel === 'voice' ? 'low' : 'medium',
         includeThoughts: params.streaming === true,
         onThinkingStep: params.onThinkingStep,
@@ -88,7 +88,10 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
     })
 
     // 6. Validate response (detect hallucinations, low confidence)
-    if (result.text) {
+    if (!result.text?.trim()) {
+        console.error('[ChatEngine] Empty response from LLM engine')
+        result.text = 'Perdón, no pude generar una respuesta. ¿Podés intentar de nuevo?'
+    } else {
         const validation = ResponseGuard.validateResponse(result.text)
         if (!validation.valid) {
             console.warn(`[ChatEngine] Response validation warnings:`, validation.warnings)

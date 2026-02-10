@@ -22,13 +22,17 @@ export interface TopCustomer {
   customerId: number;
   customerName: string;
   orderCount: number;
-  totalRevenue: number;
+  /** Total revenue with taxes */
+  totalRevenueWithTax: number;
+  /** Total revenue without taxes */
+  totalRevenueWithoutTax: number;
   avgOrderValue: number;
 }
 
 export interface TopCustomersOutput {
   customers: TopCustomer[];
-  totalRevenue: number;
+  totalRevenueWithTax: number;
+  totalRevenueWithoutTax: number;
   period: z.infer<typeof PeriodSchema>;
 }
 
@@ -66,7 +70,7 @@ SIEMPRE ejecutar sin preguntar período - usa default mes actual automáticament
       const grouped = await odoo.readGroup(
         'sale.order',
         domain,
-        ['partner_id', 'amount_total:sum'],
+        ['partner_id', 'amount_total:sum', 'amount_untaxed:sum'],
         ['partner_id'],
         { limit: input.limit * 2, orderBy: 'amount_total desc' }
       );
@@ -74,26 +78,29 @@ SIEMPRE ejecutar sin preguntar período - usa default mes actual automáticament
       let customers: TopCustomer[] = grouped
         .filter((g) => g.partner_id && Array.isArray(g.partner_id))
         .map((g) => {
-          const totalRevenue = g.amount_total || 0;
+          const totalRevenueWithTax = g.amount_total || 0;
+          const totalRevenueWithoutTax = g.amount_untaxed || 0;
           const orderCount = g.partner_id_count || 1;
           return {
             customerId: (g.partner_id as [number, string])[0],
             customerName: (g.partner_id as [number, string])[1],
             orderCount,
-            totalRevenue,
-            avgOrderValue: totalRevenue / orderCount,
+            totalRevenueWithTax,
+            totalRevenueWithoutTax,
+            avgOrderValue: totalRevenueWithTax / orderCount,
           };
         });
 
       if (input.minAmount) {
-        customers = customers.filter((c) => c.totalRevenue >= input.minAmount!);
+        customers = customers.filter((c) => c.totalRevenueWithTax >= input.minAmount!);
       }
 
       customers = customers.slice(0, input.limit);
 
       return success({
         customers,
-        totalRevenue: customers.reduce((sum, c) => sum + c.totalRevenue, 0),
+        totalRevenueWithTax: customers.reduce((sum, c) => sum + c.totalRevenueWithTax, 0),
+        totalRevenueWithoutTax: customers.reduce((sum, c) => sum + c.totalRevenueWithoutTax, 0),
         period,
       });
     } catch (error) {

@@ -96,6 +96,17 @@ describe('Skill: get_sales_by_customer', () => {
       expect(result.success).toBe(true);
     });
 
+    it('accepts customerName parameter', () => {
+      const result = GetSalesByCustomerInputSchema.safeParse({
+        period: { start: '2025-01-01', end: '2025-01-31' },
+        customerName: 'Fundacion Instituto',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.customerName).toBe('Fundacion Instituto');
+      }
+    });
+
     it('rejects limit below 1', () => {
       const result = GetSalesByCustomerInputSchema.safeParse({
         period: { start: '2025-01-01', end: '2025-01-31' },
@@ -235,7 +246,7 @@ describe('Skill: get_sales_by_customer', () => {
           ['date_order', '<=', '2025-01-31'],
           ['state', 'in', ['sale', 'done']],
         ]),
-        ['partner_id', 'amount_total:sum'],
+        ['partner_id', 'amount_total:sum', 'amount_untaxed:sum'],
         ['partner_id'],
         expect.any(Object)
       );
@@ -281,6 +292,40 @@ describe('Skill: get_sales_by_customer', () => {
         expect.objectContaining({ limit: 10 }) // 5 * 2 = 10
       );
     });
+
+    it('adds customerName filter to domain when provided', async () => {
+      mockOdooClient.readGroup.mockResolvedValue([]);
+
+      await getSalesByCustomer.execute(
+        {
+          ...validInput,
+          customerName: 'Fundacion Instituto',
+        },
+        mockContext
+      );
+
+      expect(mockOdooClient.readGroup).toHaveBeenCalledWith(
+        'sale.order',
+        expect.arrayContaining([
+          ['partner_id.name', 'ilike', 'Fundacion Instituto'],
+        ]),
+        expect.any(Array),
+        expect.any(Array),
+        expect.any(Object)
+      );
+    });
+
+    it('does not add customerName filter when not provided', async () => {
+      mockOdooClient.readGroup.mockResolvedValue([]);
+
+      await getSalesByCustomer.execute(validInput, mockContext);
+
+      const domain = mockOdooClient.readGroup.mock.calls[0][1];
+      const hasCustomerFilter = domain.some(
+        (d: any) => Array.isArray(d) && d[0] === 'partner_id.name'
+      );
+      expect(hasCustomerFilter).toBe(false);
+    });
   });
 
   // ============================================
@@ -299,7 +344,7 @@ describe('Skill: get_sales_by_customer', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.customers).toEqual([]);
-        expect(result.data.grandTotal).toBe(0);
+        expect(result.data.grandTotalWithTax).toBe(0);
         expect(result.data.totalOrders).toBe(0);
         expect(result.data.customerCount).toBe(0);
       }
@@ -307,9 +352,9 @@ describe('Skill: get_sales_by_customer', () => {
 
     it('transforms Odoo readGroup response correctly', async () => {
       mockOdooClient.readGroup.mockResolvedValue([
-        { partner_id: [1, 'Customer A'], amount_total: 10000, partner_id_count: 5 },
-        { partner_id: [2, 'Customer B'], amount_total: 5000, partner_id_count: 3 },
-        { partner_id: [3, 'Customer C'], amount_total: 2000, partner_id_count: 2 },
+        { partner_id: [1, 'Customer A'], amount_total: 10000, amount_untaxed: 8264, partner_id_count: 5 },
+        { partner_id: [2, 'Customer B'], amount_total: 5000, amount_untaxed: 4132, partner_id_count: 3 },
+        { partner_id: [3, 'Customer C'], amount_total: 2000, amount_untaxed: 1653, partner_id_count: 2 },
       ]);
 
       const result = await getSalesByCustomer.execute(
@@ -324,19 +369,20 @@ describe('Skill: get_sales_by_customer', () => {
           customerId: 1,
           customerName: 'Customer A',
           orderCount: 5,
-          totalAmount: 10000,
+          totalWithTax: 10000,
+          totalWithoutTax: 8264,
           avgOrderValue: 2000,
         });
-        expect(result.data.grandTotal).toBe(17000);
+        expect(result.data.grandTotalWithTax).toBe(17000);
         expect(result.data.totalOrders).toBe(10);
       }
     });
 
     it('filters out null partner_id entries', async () => {
       mockOdooClient.readGroup.mockResolvedValue([
-        { partner_id: [1, 'Customer A'], amount_total: 10000, partner_id_count: 5 },
-        { partner_id: null, amount_total: 500, partner_id_count: 1 }, // Should be filtered
-        { partner_id: false, amount_total: 300, partner_id_count: 1 }, // Should be filtered
+        { partner_id: [1, 'Customer A'], amount_total: 10000, amount_untaxed: 8264, partner_id_count: 5 },
+        { partner_id: null, amount_total: 500, amount_untaxed: 413, partner_id_count: 1 }, // Should be filtered
+        { partner_id: false, amount_total: 300, amount_untaxed: 248, partner_id_count: 1 }, // Should be filtered
       ]);
 
       const result = await getSalesByCustomer.execute(
@@ -353,9 +399,9 @@ describe('Skill: get_sales_by_customer', () => {
 
     it('applies minAmount filter correctly', async () => {
       mockOdooClient.readGroup.mockResolvedValue([
-        { partner_id: [1, 'Big Customer'], amount_total: 10000, partner_id_count: 5 },
-        { partner_id: [2, 'Medium Customer'], amount_total: 5000, partner_id_count: 3 },
-        { partner_id: [3, 'Small Customer'], amount_total: 500, partner_id_count: 1 },
+        { partner_id: [1, 'Big Customer'], amount_total: 10000, amount_untaxed: 8264, partner_id_count: 5 },
+        { partner_id: [2, 'Medium Customer'], amount_total: 5000, amount_untaxed: 4132, partner_id_count: 3 },
+        { partner_id: [3, 'Small Customer'], amount_total: 500, amount_untaxed: 413, partner_id_count: 1 },
       ]);
 
       const result = await getSalesByCustomer.execute(
@@ -369,17 +415,17 @@ describe('Skill: get_sales_by_customer', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.customers).toHaveLength(2);
-        expect(result.data.customers.every((c) => c.totalAmount >= 1000)).toBe(true);
+        expect(result.data.customers.every((c) => c.totalWithTax >= 1000)).toBe(true);
       }
     });
 
     it('respects limit after minAmount filtering', async () => {
       mockOdooClient.readGroup.mockResolvedValue([
-        { partner_id: [1, 'Customer 1'], amount_total: 10000, partner_id_count: 1 },
-        { partner_id: [2, 'Customer 2'], amount_total: 9000, partner_id_count: 1 },
-        { partner_id: [3, 'Customer 3'], amount_total: 8000, partner_id_count: 1 },
-        { partner_id: [4, 'Customer 4'], amount_total: 7000, partner_id_count: 1 },
-        { partner_id: [5, 'Customer 5'], amount_total: 6000, partner_id_count: 1 },
+        { partner_id: [1, 'Customer 1'], amount_total: 10000, amount_untaxed: 8264, partner_id_count: 1 },
+        { partner_id: [2, 'Customer 2'], amount_total: 9000, amount_untaxed: 7438, partner_id_count: 1 },
+        { partner_id: [3, 'Customer 3'], amount_total: 8000, amount_untaxed: 6612, partner_id_count: 1 },
+        { partner_id: [4, 'Customer 4'], amount_total: 7000, amount_untaxed: 5785, partner_id_count: 1 },
+        { partner_id: [5, 'Customer 5'], amount_total: 6000, amount_untaxed: 4959, partner_id_count: 1 },
       ]);
 
       const result = await getSalesByCustomer.execute(
@@ -399,7 +445,7 @@ describe('Skill: get_sales_by_customer', () => {
 
     it('calculates correct average order value', async () => {
       mockOdooClient.readGroup.mockResolvedValue([
-        { partner_id: [1, 'Customer'], amount_total: 10000, partner_id_count: 4 },
+        { partner_id: [1, 'Customer'], amount_total: 10000, amount_untaxed: 8264, partner_id_count: 4 },
       ]);
 
       const result = await getSalesByCustomer.execute(

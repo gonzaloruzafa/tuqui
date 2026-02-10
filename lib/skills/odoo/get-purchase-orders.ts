@@ -39,12 +39,16 @@ export const GetPurchaseOrdersInputSchema = z.object({
 
 export interface PurchaseOrderSummary {
   orderCount: number;
-  totalAmount: number;
+  /** Total with taxes */
+  totalAmountWithTax: number;
+  /** Total without taxes */
+  totalAmountWithoutTax: number;
   groupName?: string;
 }
 
 export interface PurchaseOrdersOutput {
-  totalAmount: number;
+  totalAmountWithTax: number;
+  totalAmountWithoutTax: number;
   orderCount: number;
   groups?: Record<string, PurchaseOrderSummary>;
   period: z.infer<typeof PeriodSchema>;
@@ -94,16 +98,18 @@ Para pendientes usar state='confirmed' sin período.`,
         const grouped = await odoo.readGroup(
           'purchase.order',
           domain,
-          ['amount_total:sum'],
+          ['amount_total:sum', 'amount_untaxed:sum'],
           [],
           { limit: 1 }
         );
 
-        const totalAmount = grouped[0]?.amount_total || 0;
+        const totalAmountWithTax = grouped[0]?.amount_total || 0;
+        const totalAmountWithoutTax = grouped[0]?.amount_untaxed || 0;
         const orderCount = grouped[0]?.id_count || 0;
 
         return success({
-          totalAmount,
+          totalAmountWithTax,
+          totalAmountWithoutTax,
           orderCount,
           period,
         });
@@ -114,7 +120,7 @@ Para pendientes usar state='confirmed' sin período.`,
         const grouped = await odoo.readGroup(
           'purchase.order',
           domain,
-          [groupField, 'amount_total:sum'],
+          [groupField, 'amount_total:sum', 'amount_untaxed:sum'],
           [groupField],
           {
             limit: input.limit,
@@ -123,7 +129,8 @@ Para pendientes usar state='confirmed' sin período.`,
         );
 
         const groups: Record<string, PurchaseOrderSummary> = {};
-        let totalAmount = 0;
+        let totalAmountWithTax = 0;
+        let totalAmountWithoutTax = 0;
         let orderCount = 0;
 
         for (const g of grouped) {
@@ -133,16 +140,19 @@ Para pendientes usar state='confirmed' sin período.`,
 
           groups[groupName] = {
             orderCount: g.id_count || 1,
-            totalAmount: g.amount_total || 0,
+            totalAmountWithTax: g.amount_total || 0,
+            totalAmountWithoutTax: g.amount_untaxed || 0,
             groupName,
           };
 
-          totalAmount += g.amount_total || 0;
+          totalAmountWithTax += g.amount_total || 0;
+          totalAmountWithoutTax += g.amount_untaxed || 0;
           orderCount += g.id_count || 1;
         }
 
         return success({
-          totalAmount,
+          totalAmountWithTax,
+          totalAmountWithoutTax,
           orderCount,
           groups,
           period,

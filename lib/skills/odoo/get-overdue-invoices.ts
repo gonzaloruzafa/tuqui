@@ -28,6 +28,9 @@ export const GetOverdueInvoicesInputSchema = z.object({
 
   /** Group by customer */
   groupByCustomer: z.boolean().default(false),
+
+  /** Filter by customer name (partial match). Use for: "facturas vencidas de Cliente X" */
+  customerName: z.string().optional(),
 });
 
 // ============================================
@@ -70,7 +73,11 @@ export const getOverdueInvoices: Skill<
   OverdueInvoicesOutput
 > = {
   name: 'get_overdue_invoices',
-  description: 'Get overdue customer invoices. Use for "facturas vencidas", "pagos atrasados", "overdue invoices", "late payments", "unpaid invoices", "deudores morosos", "debt collection".',
+  description: `Facturas vencidas de clientes. Puede filtrar por UN cliente específico con customerName.
+USAR PARA: "facturas vencidas", "pagos atrasados", "overdue invoices", "late payments",
+"facturas vencidas de Cliente X", "deudores morosos", "número de factura vencida".
+RETORNA: invoiceNumber (ej FAC-A 00001-00000123), monto total, monto pendiente, fecha vencimiento, días de atraso.
+Si necesitás el NÚMERO de una factura vencida, esta es la herramienta correcta.`,
   tool: 'odoo',
   tags: ['invoices', 'debt', 'collections', 'accounting'],
   inputSchema: GetOverdueInvoicesInputSchema,
@@ -93,6 +100,11 @@ export const getOverdueInvoices: Skill<
         ['payment_state', 'in', ['not_paid', 'partial']], // Not fully paid
         ['invoice_date_due', '<', today], // Due date passed
       ]);
+
+      // Filter by customer name (partial match via ilike)
+      if (input.customerName) {
+        domain.push(['partner_id.name', 'ilike', input.customerName]);
+      }
 
       if (!input.groupByCustomer) {
         // Get individual invoices

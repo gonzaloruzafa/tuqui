@@ -20,12 +20,16 @@ export interface SupplierPurchases {
   supplierId: number;
   supplierName: string;
   orderCount: number;
-  totalAmount: number;
+  /** Total with taxes */
+  totalAmountWithTax: number;
+  /** Total without taxes */
+  totalAmountWithoutTax: number;
 }
 
 export interface PurchasesBySupplierOutput {
   suppliers: SupplierPurchases[];
-  grandTotal: number;
+  grandTotalWithTax: number;
+  grandTotalWithoutTax: number;
   totalOrders: number;
   period: z.infer<typeof PeriodSchema>;
 }
@@ -66,7 +70,7 @@ Para: "a quién le compramos más", "cuánto le compramos a cada proveedor", "pr
       const grouped = await odoo.readGroup(
         'purchase.order',
         domain,
-        ['partner_id', 'amount_total:sum'],
+        ['partner_id', 'amount_total:sum', 'amount_untaxed:sum'],
         ['partner_id'],
         { limit: input.limit, orderBy: 'amount_total desc' }
       );
@@ -77,12 +81,14 @@ Para: "a quién le compramos más", "cuánto le compramos a cada proveedor", "pr
           supplierId: (g.partner_id as [number, string])[0],
           supplierName: (g.partner_id as [number, string])[1],
           orderCount: g.partner_id_count || 1,
-          totalAmount: g.amount_total || 0,
+          totalAmountWithTax: g.amount_total || 0,
+          totalAmountWithoutTax: g.amount_untaxed || 0,
         }));
 
       return success({
         suppliers,
-        grandTotal: suppliers.reduce((sum, s) => sum + s.totalAmount, 0),
+        grandTotalWithTax: suppliers.reduce((sum, s) => sum + s.totalAmountWithTax, 0),
+        grandTotalWithoutTax: suppliers.reduce((sum, s) => sum + s.totalAmountWithoutTax, 0),
         totalOrders: suppliers.reduce((sum, s) => sum + s.orderCount, 0),
         period,
       });

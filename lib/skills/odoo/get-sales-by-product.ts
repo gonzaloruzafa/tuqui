@@ -45,14 +45,18 @@ export interface ProductSales {
   productName: string;
   productCode: string | null;
   quantitySold: number;
-  totalAmount: number;
+  /** Total with taxes */
+  totalWithTax: number;
+  /** Total without taxes */
+  totalWithoutTax: number;
   orderCount: number;
   avgPrice: number;
 }
 
 export interface SalesByProductOutput {
   products: ProductSales[];
-  grandTotal: number;
+  grandTotalWithTax: number;
+  grandTotalWithoutTax: number;
   totalQuantity: number;
   totalOrders: number;
   productCount: number;
@@ -110,7 +114,7 @@ export const getSalesByProduct: Skill<
       const grouped = await odoo.readGroup(
         'sale.order.line',
         domain,
-        ['product_id', 'product_uom_qty:sum', 'price_total:sum', 'order_id:count_distinct'],
+        ['product_id', 'product_uom_qty:sum', 'price_total:sum', 'price_subtotal:sum', 'order_id:count_distinct'],
         ['product_id'],
         {
           limit: input.limit * 2, // Fetch more to handle filtering
@@ -123,7 +127,8 @@ export const getSalesByProduct: Skill<
         .filter((g) => g.product_id && Array.isArray(g.product_id))
         .map((g) => {
           const [productId, productName] = g.product_id;
-          const totalAmount = g.price_total || 0;
+          const totalWithTax = g.price_total || 0;
+          const totalWithoutTax = g.price_subtotal || 0;
           const quantitySold = g.product_uom_qty || 0;
           const orderCount = (g as any).order_id_count || (g as any).order_id || 1;
 
@@ -132,21 +137,24 @@ export const getSalesByProduct: Skill<
             productName,
             productCode: null, // Would need additional query to get code
             quantitySold,
-            totalAmount,
+            totalWithTax,
+            totalWithoutTax,
             orderCount,
-            avgPrice: quantitySold > 0 ? totalAmount / quantitySold : 0,
+            avgPrice: quantitySold > 0 ? totalWithTax / quantitySold : 0,
           };
         })
         .slice(0, input.limit);
 
       // Calculate totals
-      const grandTotal = products.reduce((sum, p) => sum + p.totalAmount, 0);
+      const grandTotalWithTax = products.reduce((sum, p) => sum + p.totalWithTax, 0);
+      const grandTotalWithoutTax = products.reduce((sum, p) => sum + p.totalWithoutTax, 0);
       const totalQuantity = products.reduce((sum, p) => sum + p.quantitySold, 0);
       const totalOrders = products.reduce((sum, p) => sum + p.orderCount, 0);
 
       return success({
         products,
-        grandTotal,
+        grandTotalWithTax,
+        grandTotalWithoutTax,
         totalQuantity,
         totalOrders,
         productCount: products.length,

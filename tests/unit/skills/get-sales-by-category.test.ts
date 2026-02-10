@@ -84,18 +84,21 @@ describe('Skill: get_sales_by_category', () => {
           'product_id.categ_id': [1, 'Equipamiento Dental'],
           product_uom_qty: 50,
           price_total: 100000,
+          price_subtotal: 82645,
           order_id_count: 20,
         },
         {
           'product_id.categ_id': [2, 'Descartables'],
           product_uom_qty: 200,
           price_total: 50000,
+          price_subtotal: 41322,
           order_id_count: 40,
         },
         {
           'product_id.categ_id': [3, 'Instrumental'],
           product_uom_qty: 10,
           price_total: 50000,
+          price_subtotal: 41322,
           order_id_count: 5,
         },
       ]);
@@ -108,12 +111,12 @@ describe('Skill: get_sales_by_category', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.categoryCount).toBe(3);
-        expect(result.data.grandTotal).toBe(200000);
+        expect(result.data.grandTotalWithTax).toBe(200000);
 
         // First category: 100k / 200k = 50%
         expect(result.data.categories[0].categoryName).toBe('Equipamiento Dental');
         expect(result.data.categories[0].percentage).toBe(50);
-        expect(result.data.categories[0].totalAmount).toBe(100000);
+        expect(result.data.categories[0].totalWithTax).toBe(100000);
 
         // Second: 50k / 200k = 25%
         expect(result.data.categories[1].percentage).toBe(25);
@@ -134,7 +137,7 @@ describe('Skill: get_sales_by_category', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.categories).toEqual([]);
-        expect(result.data.grandTotal).toBe(0);
+        expect(result.data.grandTotalWithTax).toBe(0);
         expect(result.data.categoryCount).toBe(0);
       }
     });

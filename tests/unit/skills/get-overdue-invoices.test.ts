@@ -63,6 +63,16 @@ describe('Skill: get_overdue_invoices', () => {
       });
       expect(result.success).toBe(true);
     });
+
+    it('accepts customerName parameter', () => {
+      const result = GetOverdueInvoicesInputSchema.safeParse({
+        customerName: 'Fundacion Instituto',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.customerName).toBe('Fundacion Instituto');
+      }
+    });
   });
 
   describe('Authentication', () => {
@@ -155,6 +165,35 @@ describe('Skill: get_overdue_invoices', () => {
       if (!result.success) {
         expect(result.error.code).toBe('API_ERROR');
       }
+    });
+
+    it('adds customerName filter to domain when provided', async () => {
+      mockOdooClient.searchRead.mockResolvedValue([]);
+
+      await getOverdueInvoices.execute(
+        { ...validInput, customerName: 'Fundacion Instituto' },
+        mockContext
+      );
+
+      expect(mockOdooClient.searchRead).toHaveBeenCalledWith(
+        'account.move',
+        expect.arrayContaining([
+          ['partner_id.name', 'ilike', 'Fundacion Instituto'],
+        ]),
+        expect.any(Object)
+      );
+    });
+
+    it('does not add customerName filter when not provided', async () => {
+      mockOdooClient.searchRead.mockResolvedValue([]);
+
+      await getOverdueInvoices.execute(validInput, mockContext);
+
+      const domain = mockOdooClient.searchRead.mock.calls[0][1];
+      const hasCustomerFilter = domain.some(
+        (d: any) => Array.isArray(d) && d[0] === 'partner_id.name'
+      );
+      expect(hasCustomerFilter).toBe(false);
     });
   });
 

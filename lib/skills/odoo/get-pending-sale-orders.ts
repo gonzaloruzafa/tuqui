@@ -39,13 +39,17 @@ export interface PendingOrderSummary {
   name: string;
   partner: string;
   date: string;
-  amount: number;
+  /** Amount with taxes */
+  amountWithTax: number;
+  /** Amount without taxes */
+  amountWithoutTax: number;
   status: string;
 }
 
 export interface PendingSaleOrdersOutput {
   totalCount: number;
-  totalAmount: number;
+  totalAmountWithTax: number;
+  totalAmountWithoutTax: number;
   orders: PendingOrderSummary[];
   period: z.infer<typeof PeriodSchema> | null;
 }
@@ -113,11 +117,12 @@ SIEMPRE ejecutar con AMBAS (entrega Y facturación) - NO preguntar cuál tipo. D
       const totals = await odoo.readGroup(
         'sale.order',
         domain,
-        ['amount_total'],
+        ['amount_total', 'amount_untaxed'],
         [],
         { limit: 1 }
       );
-      const totalAmount = totals[0]?.amount_total || 0;
+      const totalAmountWithTax = totals[0]?.amount_total || 0;
+      const totalAmountWithoutTax = totals[0]?.amount_untaxed || 0;
 
       // Get order details (limited)
       const orders = await odoo.searchRead<{
@@ -126,6 +131,7 @@ SIEMPRE ejecutar con AMBAS (entrega Y facturación) - NO preguntar cuál tipo. D
         partner_id: [number, string];
         date_order: string;
         amount_total: number;
+        amount_untaxed: number;
         state: string;
         delivery_status: string;
         invoice_status: string;
@@ -133,7 +139,7 @@ SIEMPRE ejecutar con AMBAS (entrega Y facturación) - NO preguntar cuál tipo. D
         'sale.order',
         domain,
         { 
-          fields: ['name', 'partner_id', 'date_order', 'amount_total', 'state', 'delivery_status', 'invoice_status'],
+          fields: ['name', 'partner_id', 'date_order', 'amount_total', 'amount_untaxed', 'state', 'delivery_status', 'invoice_status'],
           limit: input.limit, 
           order: 'date_order desc' 
         }
@@ -144,13 +150,15 @@ SIEMPRE ejecutar con AMBAS (entrega Y facturación) - NO preguntar cuál tipo. D
         name: o.name,
         partner: Array.isArray(o.partner_id) ? o.partner_id[1] : 'Cliente',
         date: o.date_order,
-        amount: o.amount_total,
+        amountWithTax: o.amount_total,
+        amountWithoutTax: o.amount_untaxed || 0,
         status: o.delivery_status || o.state,
       }));
 
       return success({
         totalCount,
-        totalAmount,
+        totalAmountWithTax,
+        totalAmountWithoutTax,
         orders: orderSummaries,
         period,
       });
