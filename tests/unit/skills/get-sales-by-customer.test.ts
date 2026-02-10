@@ -96,6 +96,17 @@ describe('Skill: get_sales_by_customer', () => {
       expect(result.success).toBe(true);
     });
 
+    it('accepts customerName parameter', () => {
+      const result = GetSalesByCustomerInputSchema.safeParse({
+        period: { start: '2025-01-01', end: '2025-01-31' },
+        customerName: 'Fundacion Instituto',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.customerName).toBe('Fundacion Instituto');
+      }
+    });
+
     it('rejects limit below 1', () => {
       const result = GetSalesByCustomerInputSchema.safeParse({
         period: { start: '2025-01-01', end: '2025-01-31' },
@@ -280,6 +291,40 @@ describe('Skill: get_sales_by_customer', () => {
         expect.any(Array),
         expect.objectContaining({ limit: 10 }) // 5 * 2 = 10
       );
+    });
+
+    it('adds customerName filter to domain when provided', async () => {
+      mockOdooClient.readGroup.mockResolvedValue([]);
+
+      await getSalesByCustomer.execute(
+        {
+          ...validInput,
+          customerName: 'Fundacion Instituto',
+        },
+        mockContext
+      );
+
+      expect(mockOdooClient.readGroup).toHaveBeenCalledWith(
+        'sale.order',
+        expect.arrayContaining([
+          ['partner_id.name', 'ilike', 'Fundacion Instituto'],
+        ]),
+        expect.any(Array),
+        expect.any(Array),
+        expect.any(Object)
+      );
+    });
+
+    it('does not add customerName filter when not provided', async () => {
+      mockOdooClient.readGroup.mockResolvedValue([]);
+
+      await getSalesByCustomer.execute(validInput, mockContext);
+
+      const domain = mockOdooClient.readGroup.mock.calls[0][1];
+      const hasCustomerFilter = domain.some(
+        (d: any) => Array.isArray(d) && d[0] === 'partner_id.name'
+      );
+      expect(hasCustomerFilter).toBe(false);
     });
   });
 

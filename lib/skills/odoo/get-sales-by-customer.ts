@@ -38,6 +38,8 @@ export const GetSalesByCustomerInputSchema = z.object({
   minAmount: z.number().min(0).optional(),
   /** Filter by sales team ID (e.g., ecommerce, tienda web) */
   teamId: z.number().int().positive().optional(),
+  /** Filter by customer name (partial match). Use for: "ventas de Cliente X", "cuánto le vendimos a X" */
+  customerName: z.string().optional(),
 });
 
 export type GetSalesByCustomerInput = z.infer<typeof GetSalesByCustomerInputSchema>;
@@ -84,6 +86,7 @@ export const getSalesByCustomer: Skill<
 
   description: `Análisis detallado de ventas por cliente - incluye cantidad de órdenes, monto total, y valor promedio.
 USAR PARA: análisis detallado, "cuánto le vendimos a X", "detalle de ventas por cliente", métricas por cliente.
+Puede filtrar por UN cliente específico con customerName (ej: customerName="Acme Corp").
 NO usar para ranking rápido (usar get_top_customers en su lugar).
 Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cliente".`,
 
@@ -117,6 +120,11 @@ Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cl
       // Filter by sales team if specified
       if (input.teamId) {
         domain.push(['team_id', '=', input.teamId]);
+      }
+
+      // Filter by customer name (partial match via ilike)
+      if (input.customerName) {
+        domain.push(['partner_id.name', 'ilike', input.customerName]);
       }
 
       // 3. Execute aggregation query

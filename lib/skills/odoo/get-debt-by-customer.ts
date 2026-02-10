@@ -35,6 +35,8 @@ export const GetDebtByCustomerInputSchema = z.object({
   includeOverdueDays: z.boolean().default(true),
   /** Only show invoices overdue by this many days */
   minOverdueDays: z.number().min(0).optional(),
+  /** Filter by customer name (partial match). Use for: "deuda de Cliente X", "cuánto debe X" */
+  customerName: z.string().optional(),
 });
 
 export type GetDebtByCustomerInput = z.infer<typeof GetDebtByCustomerInputSchema>;
@@ -82,7 +84,9 @@ export const getDebtByCustomer: Skill<
   description: `Deudas de clientes - quién nos debe más y cuánto. HERRAMIENTA PRINCIPAL para cobranzas.
 Use for: "quién nos debe más", "clientes morosos", "deudores principales", "accounts receivable", 
 "deudas de clientes", "quién nos debe", "cuentas por cobrar", "saldos pendientes",
-"top deudores", "clientes con deuda", "cobrar". Devuelve cliente, monto adeudado, fecha vencimiento.`,
+"top deudores", "clientes con deuda", "cobrar".
+Puede filtrar por UN cliente específico con customerName (ej: customerName="Fundacion X").
+Devuelve cliente, monto adeudado, fecha vencimiento.`,
 
   tool: 'odoo',
 
@@ -113,6 +117,11 @@ Use for: "quién nos debe más", "clientes morosos", "deudores principales", "ac
         baseDomain,
         invoiceTypeFilter('out_invoice') // Customer invoices only
       );
+
+      // Filter by customer name (partial match via ilike)
+      if (input.customerName) {
+        domain.push(['partner_id.name', 'ilike', input.customerName]);
+      }
 
       // Get aggregated debt by customer
       const grouped = await odoo.readGroup(
