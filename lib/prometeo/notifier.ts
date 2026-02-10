@@ -78,7 +78,7 @@ export async function sendNotifications(options: NotifyOptions): Promise<NotifyR
         // 2. Push Notification
         if (shouldSendPush) {
             try {
-                const sent = await sendPushNotification(db, recipientEmail, payload)
+                const sent = await sendPushNotification(db, tenantId, recipientEmail, payload)
                 if (sent) result.pushSent++
             } catch (e) {
                 result.errors.push(`[push] ${recipientEmail}: ${e instanceof Error ? e.message : 'Unknown error'}`)
@@ -136,6 +136,7 @@ async function saveInAppNotification(
  */
 async function sendPushNotification(
     db: SupabaseClient,
+    tenantId: string,
     userEmail: string,
     payload: NotificationPayload
 ): Promise<boolean> {
@@ -144,6 +145,7 @@ async function sendPushNotification(
         .from('push_subscriptions')
         .select('subscription')
         .eq('user_email', userEmail)
+        .eq('tenant_id', tenantId)
     
     if (!subscriptions || subscriptions.length === 0) {
         console.log(`[Notifier] No push subscriptions for ${userEmail}`)
@@ -201,11 +203,12 @@ async function sendEmailNotification(
 /**
  * Get unread notification count for a user
  */
-export async function getUnreadCount(db: SupabaseClient, userEmail: string): Promise<number> {
+export async function getUnreadCount(db: SupabaseClient, tenantId: string, userEmail: string): Promise<number> {
     const { count, error } = await db
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_email', userEmail)
+        .eq('tenant_id', tenantId)
         .eq('is_read', false)
     
     if (error) {
@@ -233,11 +236,12 @@ export async function markAsRead(db: SupabaseClient, notificationId: string): Pr
 /**
  * Mark all notifications as read for a user
  */
-export async function markAllAsRead(db: SupabaseClient, userEmail: string): Promise<void> {
+export async function markAllAsRead(db: SupabaseClient, tenantId: string, userEmail: string): Promise<void> {
     const { error } = await db
         .from('notifications')
         .update({ is_read: true })
         .eq('user_email', userEmail)
+        .eq('tenant_id', tenantId)
         .eq('is_read', false)
     
     if (error) {

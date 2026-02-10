@@ -30,7 +30,8 @@ export async function PATCH(
             .from('notifications')
             .update(updateData)
             .eq('id', id)
-            .eq('user_email', session.user.email)  // Security: only own notifications
+            .eq('user_email', session.user.email)
+            .eq('tenant_id', session.tenant.id)
             .select()
             .single()
 
@@ -68,7 +69,8 @@ export async function DELETE(
             .from('notifications')
             .delete()
             .eq('id', id)
-            .eq('user_email', session.user.email)  // Security: only own notifications
+            .eq('user_email', session.user.email)
+            .eq('tenant_id', session.tenant.id)
 
         if (error) {
             console.error('Error deleting notification:', error)

@@ -23,6 +23,7 @@ export async function GET(
         agents:agent_id (name)
       `)
       .eq('id', taskId)
+      .eq('tenant_id', session.tenant.id)
       .single();
 
     if (error || !task) {
@@ -104,6 +105,7 @@ export async function PATCH(
       .from('prometeo_tasks')
       .update(updateData)
       .eq('id', taskId)
+      .eq('tenant_id', session.tenant.id)
       .select()
       .single();
 
@@ -135,7 +137,8 @@ export async function DELETE(
     const { error } = await supabase
       .from('prometeo_tasks')
       .delete()
-      .eq('id', taskId);
+      .eq('id', taskId)
+      .eq('tenant_id', session.tenant.id);
 
     if (error) {
       console.error('Error deleting prometeo task:', error);

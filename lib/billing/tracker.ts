@@ -11,6 +11,7 @@ export async function checkUsageLimit(tenantId: string, userEmail: string, estim
     const { data: usage } = await db
         .from('usage_stats')
         .select('total_tokens')
+        .eq('tenant_id', tenantId)
         .eq('user_email', userEmail)
         .eq('year_month', currentMonth)
         .single()

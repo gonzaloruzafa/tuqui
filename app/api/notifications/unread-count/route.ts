@@ -19,6 +19,7 @@ export async function GET() {
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_email', session.user.email)
+            .eq('tenant_id', session.tenant.id)
             .eq('is_read', false)
 
         if (error) {

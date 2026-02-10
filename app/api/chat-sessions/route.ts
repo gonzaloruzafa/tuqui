@@ -20,6 +20,7 @@ export async function GET(req: Request) {
             .from('chat_messages')
             .select('*')
             .eq('session_id', sessionId)
+            .eq('tenant_id', session.tenant.id)
             .order('created_at', { ascending: true })
         return Response.json(messages || [])
     }
@@ -31,6 +32,7 @@ export async function GET(req: Request) {
             .select('*')
             .eq('agent_id', agentId)
             .eq('user_email', session.user.email)
+            .eq('tenant_id', session.tenant.id)
             .order('updated_at', { ascending: false })
         return Response.json(sessions || [])
     }
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
             .single()
 
         // Update session updated_at
-        await db.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId)
+        await db.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId).eq('tenant_id', session.tenant.id)
 
         if (error) return new Response(error.message, { status: 500 })
         return Response.json(data)
@@ -131,6 +133,7 @@ Título:`
             .from('chat_sessions')
             .update({ title })
             .eq('id', sessionId)
+            .eq('tenant_id', session.tenant.id)
             .select('title')
             .single()
 
@@ -149,7 +152,7 @@ export async function DELETE(req: Request) {
     const sessionId = searchParams.get('sessionId')
     const db = await getTenantClient(session.tenant.id)
 
-    await db.from('chat_sessions').delete().eq('id', sessionId).eq('user_email', session.user.email)
+    await db.from('chat_sessions').delete().eq('id', sessionId).eq('user_email', session.user.email).eq('tenant_id', session.tenant.id)
 
     return Response.json({ ok: true })
 }

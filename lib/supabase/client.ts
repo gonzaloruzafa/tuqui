@@ -158,7 +158,7 @@ export async function getTenantForUser(email: string): Promise<{
 } | null> {
     const db = getClient()
     
-    // First get the user (use .limit(1) to handle duplicate emails across tenants)
+    // First get the user (use .limit(1) to avoid PGRST116 crash on 0 or N rows)
     const { data: users, error: userError } = await db
         .from('users')
         .select('tenant_id')

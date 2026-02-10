@@ -21,6 +21,7 @@ export async function POST(
       .from('prometeo_tasks')
       .select('*')
       .eq('id', taskId)
+      .eq('tenant_id', session.tenant.id)
       .single();
 
     if (error || !task) {
@@ -37,7 +38,8 @@ export async function POST(
         last_run: new Date().toISOString(),
         last_result: result.success ? 'success' : 'error',
       })
-      .eq('id', taskId);
+      .eq('id', taskId)
+      .eq('tenant_id', session.tenant.id);
 
     return NextResponse.json({
       success: result.success,

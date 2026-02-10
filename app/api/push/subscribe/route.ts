@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       .from('push_subscriptions')
       .select('id')
       .eq('user_email', session.user.email)
+      .eq('tenant_id', tenantId)
       .filter('subscription->>endpoint', 'eq', endpoint)
       .maybeSingle();
 
@@ -94,6 +95,7 @@ export async function DELETE(request: NextRequest) {
       .from('push_subscriptions')
       .delete()
       .eq('user_email', session.user.email)
+      .eq('tenant_id', tenantId)
       .filter('subscription->>endpoint', 'eq', endpoint);
 
     if (error) {

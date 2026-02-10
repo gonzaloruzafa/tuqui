@@ -197,7 +197,7 @@ export async function processDocumentFromStorage(params: StorageUploadParams) {
 
         if (chunkError) {
             console.error('[RAG] Error inserting chunks:', chunkError)
-            await db.from('documents').delete().eq('id', doc.id)
+            await db.from('documents').delete().eq('id', doc.id).eq('tenant_id', tenantId)
             await masterDb.storage.from('rag-documents').remove([storagePath])
             
             if (chunkError.message?.includes('agent_id')) {
@@ -210,7 +210,7 @@ export async function processDocumentFromStorage(params: StorageUploadParams) {
 
     } catch (e) {
         console.error('[RAG] Error generating embeddings:', e)
-        await db.from('documents').delete().eq('id', doc.id)
+        await db.from('documents').delete().eq('id', doc.id).eq('tenant_id', tenantId)
         await masterDb.storage.from('rag-documents').remove([storagePath])
         return { error: 'Error generating embeddings' }
     }
@@ -316,7 +316,7 @@ export async function uploadDocument(formData: FormData) {
         if (chunkError) {
             console.error('[RAG] Error inserting chunks:', chunkError)
             // Rollback document
-            await db.from('documents').delete().eq('id', doc.id)
+            await db.from('documents').delete().eq('id', doc.id).eq('tenant_id', tenantId)
             
             // Provide more helpful error message
             if (chunkError.message?.includes('agent_id')) {
@@ -330,7 +330,7 @@ export async function uploadDocument(formData: FormData) {
     } catch (e) {
         console.error('[RAG] Error generating embeddings:', e)
         // Rollback document
-        await db.from('documents').delete().eq('id', doc.id)
+        await db.from('documents').delete().eq('id', doc.id).eq('tenant_id', tenantId)
         return { error: 'Error generating embeddings' }
     }
 
@@ -349,7 +349,7 @@ export async function deleteDocument(formData: FormData): Promise<void> {
     const db = await getTenantClient(session.tenant.id)
 
     // Delete document (chunks will cascade delete due to FK)
-    const { error } = await db.from('documents').delete().eq('id', id)
+    const { error } = await db.from('documents').delete().eq('id', id).eq('tenant_id', session.tenant.id)
 
     if (error) {
         console.error('[RAG] Error deleting document:', error)

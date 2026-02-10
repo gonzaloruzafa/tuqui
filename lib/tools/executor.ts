@@ -1,6 +1,7 @@
 import { webSearchTool } from './web-search'
 import { loadSkillsForAgent, hasOdooTools, shouldUseSkills } from '@/lib/skills/loader'
 import { createRagTool } from './definitions/rag-tool'
+import { createMemoryTools } from '@/lib/skills/memory'
 
 /**
  * Agent configuration subset needed for tool loading
@@ -23,12 +24,14 @@ export interface AgentToolConfig {
  *
  * @param tenantId - Tenant ID for multi-tenant isolation
  * @param agentOrTools - Agent config object OR array of tool slugs (backwards compatible)
- * @param userId - User ID (email) for audit trail
+ * @param userEmail - User email for audit trail / Odoo skills
+ * @param userId - Auth UUID for user-scoped tools (memory)
  * @returns Record of tools keyed by tool name
  */
 export async function getToolsForAgent(
     tenantId: string,
     agentOrTools: AgentToolConfig | string[],
+    userEmail?: string,
     userId?: string
 ) {
     // Backwards compatibility: accept array of tools (legacy) or agent config (new)
@@ -59,14 +62,21 @@ export async function getToolsForAgent(
         console.warn('[Tools/Executor] Skipping RAG tool: agent.id is not a valid UUID:', agent.id)
     }
 
+    // Memory - User-scoped notes (recall + save)
+    if (agentTools.includes('memory') && userId) {
+        const memoryTools = createMemoryTools(tenantId, userId)
+        Object.assign(tools, memoryTools)
+        console.log('[Tools/Executor] Memory tools loaded (recall_memory, save_memory)')
+    }
+
     // Odoo Skills - New atomic skills architecture
-    if (hasOdooTools(agentTools) && userId) {
+    if (hasOdooTools(agentTools) && userEmail) {
         const useSkills = await shouldUseSkills(tenantId)
 
         if (useSkills) {
             console.log('[Tools/Executor] Loading Odoo Skills for tenant:', tenantId)
             try {
-                const skillTools = await loadSkillsForAgent(tenantId, userId, agentTools)
+                const skillTools = await loadSkillsForAgent(tenantId, userEmail, agentTools)
                 Object.assign(tools, skillTools)
                 console.log('[Tools/Executor] Loaded', Object.keys(skillTools).length, 'skills')
             } catch (error) {

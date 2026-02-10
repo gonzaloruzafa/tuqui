@@ -197,7 +197,38 @@ Agregar al modal existente:
 - Recibir `slug` como parámetro (hoy no lo recibe)
 - Recibir `selectedAgentSlugs?: string[]` — si se pasa, solo clonar esos (hoy clona todos)
 
-### 2.3 — Tenant detail view
+### 2.4 — Gestión de usuarios (password + delete)
+
+Desde el tenant detail, el super-admin puede:
+
+**Cambiar password de un usuario:**
+- Botón 🔑 en cada fila de usuario
+- Modal con campo "nueva password" (sin pedir la actual, es super-admin)
+- API: `PATCH /api/super-admin/tenants/[id]/users/[userId]`
+- Backend: `supabaseAdmin().auth.admin.updateUserById(authUserId, { password })`
+- Requiere `auth_user_id` en `public.users` (se completa en session callback)
+
+**Eliminar usuario:**
+- Botón 🗑️ en cada fila (no se puede eliminar al último admin)
+- Confirmación: "¿Eliminar a user@email.com?"
+- API: `DELETE /api/super-admin/tenants/[id]/users/[userId]`
+- Backend: Delete de `public.users` + `supabaseAdmin().auth.admin.deleteUser(authUserId)`
+
+**Eliminar tenant:**
+- Botón "Eliminar tenant" al final del detail (rojo, con doble confirmación)
+- Cascade: borra users, agents, conversations, usage_stats, integrations
+- API: `DELETE /api/super-admin/tenants/[id]`
+- Opción: soft-delete (marcar `is_active = false` + `deleted_at`) vs hard-delete
+- **Recomendación:** soft-delete primero, hard-delete manual vía SQL si hace falta
+
+**Archivos:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `app/api/super-admin/tenants/[id]/users/[userId]/route.ts` | NUEVO — PATCH password, DELETE user |
+| `app/super-admin/tenants/[id]/page.tsx` | Agregar botones de acción por usuario + delete tenant |
+
+### 2.5 — Tenant detail view
 
 **Ruta:** `/super-admin/tenants/[id]`
 
@@ -710,6 +741,86 @@ por request. Migrar callers gradualmente sin romper lo existente.
 
 ---
 
+## Fase 6 — Token Limits desde Super-Admin (1 día)
+
+> Hoy los límites están hardcodeados en `lib/billing/limits.ts`.
+> Objetivo: que el super-admin pueda configurar límites por tenant sin tocar código.
+
+### 6.1 — DB para límites
+
+**Columnas nuevas en `tenants`:**
+
+```sql
+ALTER TABLE tenants ADD COLUMN tokens_per_user_limit BIGINT DEFAULT 500000;
+ALTER TABLE tenants ADD COLUMN plan_name TEXT DEFAULT 'pro';
+```
+
+**Tabla de overrides por usuario (opcional):**
+
+```sql
+CREATE TABLE token_overrides (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL,
+    tokens_limit BIGINT NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(tenant_id, user_email)
+);
+```
+
+### 6.2 — Reescribir checkUsageLimit
+
+```typescript
+// lib/billing/limits.ts
+export async function getTenantLimit(tenantId: string, userEmail: string) {
+    const db = getClient()
+    
+    // Check override first
+    const { data: override } = await db
+        .from('token_overrides')
+        .select('tokens_limit')
+        .eq('tenant_id', tenantId)
+        .eq('user_email', userEmail)
+        .limit(1)
+    
+    if (override?.[0]) return override[0].tokens_limit
+    
+    // Fall back to tenant default
+    const { data: tenant } = await db
+        .from('tenants')
+        .select('tokens_per_user_limit')
+        .eq('id', tenantId)
+        .single()
+    
+    return tenant?.tokens_per_user_limit || 500000
+}
+```
+
+### 6.3 — UI en tenant detail
+
+En la sección de tenant detail, agregar:
+
+```
+─── Límites ──────────────────────────────
+Plan: [pro ▾]
+Tokens/usuario/mes: [500,000    ] [Guardar]
+
+Overrides:
+  gr@adhoc.inc    → 1,000,000 tokens  [✏️] [🗑️]
+  [+ Agregar override]
+```
+
+**Archivos:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `lib/billing/limits.ts` | Reescribir para leer de DB |
+| `app/super-admin/tenants/[id]/page.tsx` | Agregar sección de límites |
+| `app/api/super-admin/tenants/[id]/route.ts` | PATCH para tokens_per_user_limit |
+
+---
+
 ## 📁 Archivos — Resumen
 
 ### Nuevos (17 archivos)
@@ -722,6 +833,7 @@ por request. Migrar callers gradualmente sin romper lo existente.
 | `app/api/super-admin/tenants/[id]/route.ts` | 2 |
 | `app/super-admin/agents/page.tsx` | 3 |
 | `app/super-admin/agents/[slug]/page.tsx` | 3 |
+| `app/api/super-admin/tenants/[id]/users/[userId]/route.ts` | 2 |
 | `app/api/super-admin/agents/route.ts` | 3 |
 | `app/api/super-admin/agents/[slug]/route.ts` | 3 |
 | `app/api/super-admin/agents/[slug]/sync/route.ts` | 3 |
@@ -759,12 +871,13 @@ por request. Migrar callers gradualmente sin romper lo existente.
 | Fase | Qué | Esfuerzo |
 |------|-----|----------|
 | **1** | Fundaciones (helper auth, cleanup, fix slug) | Medio día |
-| **2** | Tenants (tabla mejorada, detail view, crear mejorado) | 2-3 días |
+| **2** | Tenants (tabla, detail, crear, password, delete) | 3-4 días |
 | **3** | Master Agents CRUD + Documentos RAG centralizados | 3-4 días |
 | **4** | Overview dashboard mínimo | Medio día |
 | **5** | Seguridad (crypto real, singleton fix) | 1 día |
+| **6** | Token limits desde super-admin | 1 día |
 
-**Total: ~7-9 días**
+**Total: ~9-11 días**
 
 ---
 

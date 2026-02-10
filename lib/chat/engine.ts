@@ -16,6 +16,8 @@ export interface ChatMessage {
 export interface ChatEngineParams {
     tenantId: string
     userEmail: string
+    /** Auth UUID — used for memory and other user-scoped tools */
+    userId?: string
     agent: AgentWithMergedPrompt
     messages: ChatMessage[]
     channel: 'web' | 'whatsapp' | 'voice'
@@ -36,7 +38,7 @@ export interface ChatEngineResponse {
  * Uses Gemini V2 (thinking + retry + force-text) for all channels.
  */
 export async function processChatRequest(params: ChatEngineParams): Promise<ChatEngineResponse> {
-    const { tenantId, userEmail, agent, messages, channel } = params
+    const { tenantId, userEmail, userId, agent, messages, channel } = params
     const lastMessage = messages[messages.length - 1]
     const inputContent = lastMessage?.content || ''
 
@@ -67,7 +69,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         id: selectedAgent.id,
         tools: effectiveTools
     }
-    const tools = await getToolsForAgent(tenantId, agentToolConfig, userEmail)
+    const tools = await getToolsForAgent(tenantId, agentToolConfig, userEmail, userId)
     const hasTools = Object.keys(tools).length > 0
     console.log(`[ChatEngine] Tools loaded: ${Object.keys(tools).join(', ') || 'none'}`)
 

@@ -86,6 +86,7 @@ export async function getCompanyContext(tenantId: string): Promise<CompanyContex
         .from('documents')
         .select('title, content')
         .in('id', linkedDocs)
+        .eq('tenant_id', tenantId)
 
       if (docs && docs.length > 0) {
         const docsText = docs

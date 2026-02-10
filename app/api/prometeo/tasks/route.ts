@@ -19,6 +19,7 @@ export async function GET() {
         *,
         agents:agent_id (name)
       `)
+      .eq('tenant_id', session.tenant.id)
       .order('created_at', { ascending: false });
 
     if (error) {

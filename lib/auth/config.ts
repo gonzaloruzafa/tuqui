@@ -110,6 +110,8 @@ export const authConfig = {
                                 .eq('tenant_id', tenant.id)
                                 .is('auth_user_id', null)
                         }
+                    } else {
+                        console.warn(`[Auth] No tenant found for ${session.user.email} - user may not exist in public.users`)
                     }
                 } catch (err) {
                     console.error('[Auth] Session callback error:', err)
