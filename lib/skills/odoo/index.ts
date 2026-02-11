@@ -62,6 +62,7 @@ export { getNewCustomers } from './get-new-customers';
 export { getArAging } from './get-ar-aging';
 export { getSalesTeams } from './get-sales-teams';
 export { getCompanies } from './get-companies';
+export { searchSuppliers } from './search-suppliers';
 
 // Skill array for registration
 import { getSalesTotal } from './get-sales-total';
@@ -85,6 +86,7 @@ import { getPurchasesBySupplier } from './get-purchases-by-supplier';
 import { getVendorBills } from './get-vendor-bills';
 import { searchCustomers } from './search-customers';
 import { searchProducts } from './search-products';
+import { searchSuppliers } from './search-suppliers';
 import { getCustomerBalance } from './get-customer-balance';
 import { getCashBalance } from './get-cash-balance';
 import { getAccountsReceivable } from './get-accounts-receivable';
@@ -134,9 +136,10 @@ export const odooSkills = [
   getPurchaseOrders,
   getPurchasesBySupplier,
   getVendorBills,
-  // Search (2)
+  // Search (3)
   searchCustomers,
   searchProducts,
+  searchSuppliers, // NEW - search suppliers separately from customers
   // Accounting/Treasury (7)
   getCustomerBalance,
   getCashBalance, // NEW

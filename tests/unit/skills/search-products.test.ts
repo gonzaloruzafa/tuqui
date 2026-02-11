@@ -37,6 +37,7 @@ describe('Skill: search_products', () => {
     limit: 20,
     includeStock: true,
     saleableOnly: false,
+    publishedOnly: false,
   };
 
   beforeEach(() => {
@@ -114,6 +115,8 @@ describe('Skill: search_products', () => {
           qty_available: 50,
           virtual_available: 50,
           uom_id: [1, 'Unidades'],
+          is_published: true,
+          product_tmpl_id: [10, 'Producto Test A'],
         },
         {
           id: 2,
@@ -126,6 +129,8 @@ describe('Skill: search_products', () => {
           qty_available: 25,
           virtual_available: 25,
           uom_id: [1, 'Unidades'],
+          is_published: false,
+          product_tmpl_id: [11, 'Producto Test B'],
         },
       ]);
 

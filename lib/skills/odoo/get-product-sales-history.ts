@@ -11,7 +11,10 @@ import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from '.
 import { errorToResult } from '../errors';
 
 export const GetProductSalesHistoryInputSchema = z.object({
-  productId: z.number().int().positive(),
+  /** Product variant ID (product.product). Use for a specific variant. */
+  productId: z.number().int().positive().optional(),
+  /** Product template ID (product.template). Use to aggregate ALL variants of a product. */
+  productTemplateId: z.number().int().positive().optional(),
   period: PeriodSchema.optional(),
   groupBy: z.enum(['none', 'month', 'customer']).default('none'),
   /** Sales team ID. Obtener de get_sales_teams, NO adivinar. */
@@ -38,7 +41,9 @@ IMPORTANTE: El período default es el mes actual. Para evaluar si un producto
 tiene movimiento o rotación, usá un período de al menos 6 meses.
 Para comparar períodos (ej: enero vs febrero, este año vs el anterior),
 llamá este skill dos veces con períodos distintos.
-Soporta groupBy: 'month' para ver evolución mensual, 'customer' para ver compradores.
+Para productos con VARIANTES: usar productTemplateId (obtenido de search_products.templateId)
+para agregar ventas de TODAS las variantes. Si usás productId, solo verás UNA variante.
+Soporta groupBy: 'month' para evolución mensual, 'customer' para compradores.
 Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'products', 'history'],
@@ -53,12 +58,31 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
       const odoo = createOdooClient(context.credentials.odoo);
       const period = input.period || getDefaultPeriod();
 
+      // Resolve product filter: template → all variant IDs, or single product ID
+      let productFilter: ['product_id', '=' | 'in', number | number[]];
+      if (input.productTemplateId) {
+        const variants = await odoo.searchRead<{ id: number }>(
+          'product.product',
+          [['product_tmpl_id', '=', input.productTemplateId]],
+          { fields: ['id'] }
+        );
+        const variantIds = variants.map(v => v.id);
+        if (variantIds.length === 0) {
+          return success({ productId: 0, totalQuantity: 0, totalRevenue: 0, orderCount: 0, period });
+        }
+        productFilter = ['product_id', 'in', variantIds];
+      } else if (input.productId) {
+        productFilter = ['product_id', '=', input.productId];
+      } else {
+        return success({ productId: 0, totalQuantity: 0, totalRevenue: 0, orderCount: 0, period });
+      }
+
       // sale.order.line doesn't have date_order or state directly
       // Must use order_id.date_order and order_id.state
       const domain = combineDomains(
         dateRange('order_id.date_order', period.start, period.end),
         [
-          ['product_id', '=', input.productId],
+          productFilter,
           ['order_id.state', 'in', ['sale', 'done']],
         ]
       );
@@ -82,7 +106,7 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         const totalRevenue = lines.reduce((sum, l) => sum + l.price_total, 0);
 
         return success({
-          productId: input.productId,
+          productId: input.productId || input.productTemplateId || 0,
           totalQuantity,
           totalRevenue,
           orderCount: lines.length,
@@ -122,7 +146,7 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
       }
 
       return success({
-        productId: input.productId,
+        productId: input.productId || input.productTemplateId || 0,
         totalQuantity,
         totalRevenue,
         orderCount: grouped.length,
