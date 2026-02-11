@@ -50,8 +50,12 @@ Usa stock.quant (modelo real de stock) agrupado por producto.`,
     try {
       const odoo = createOdooClient(context.credentials.odoo);
 
-      // Build domain for stock.quant
-      const domain: OdooDomain = [['quantity', '>', 0]];
+      // Build domain for stock.quant — always filter internal locations
+      // to exclude customer/supplier/transit virtual locations
+      const domain: OdooDomain = [
+        ['quantity', '>', 0],
+        ['location_id.usage', '=', 'internal'],
+      ];
       
       if (input.locationId) {
         domain.push(['location_id', '=', input.locationId]);
