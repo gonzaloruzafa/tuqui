@@ -61,6 +61,7 @@ export { getTopStockProducts } from './get-top-stock-products';
 export { getNewCustomers } from './get-new-customers';
 export { getArAging } from './get-ar-aging';
 export { getSalesTeams } from './get-sales-teams';
+export { getCompanies } from './get-companies';
 
 // Skill array for registration
 import { getSalesTotal } from './get-sales-total';
@@ -92,6 +93,7 @@ import { getTopStockProducts } from './get-top-stock-products';
 import { getNewCustomers } from './get-new-customers';
 import { getArAging } from './get-ar-aging';
 import { getSalesTeams } from './get-sales-teams';
+import { getCompanies } from './get-companies';
 import { getAccountBalance } from './get-account-balance';
 import { getJournalEntries } from './get-journal-entries';
 import { getAccountsPayable } from './get-accounts-payable';
@@ -111,6 +113,7 @@ export const odooSkills = [
   compareSalesPeriods,
   getPendingSaleOrders,
   getSalesTeams, // NEW - list sales teams for filtering
+  getCompanies, // NEW - list companies for multi-company filtering
   // Invoices/Debt (4)
   getDebtByCustomer,
   getInvoicesByCustomer,

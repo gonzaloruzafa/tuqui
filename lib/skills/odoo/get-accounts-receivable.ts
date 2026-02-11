@@ -27,6 +27,8 @@ export const GetAccountsReceivableInputSchema = z.object({
   overdueOnly: z.boolean().default(false),
   /** Group by customer */
   groupByCustomer: z.boolean().default(false),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
   /** Maximum results when grouped */
   limit: z.number().min(1).max(100).default(20),
 })
@@ -75,6 +77,7 @@ export const getAccountsReceivable: Skill<
 
   description: `TOTAL de cuentas por cobrar (deuda agregada). USAR PARA: montos totales, resumen de deuda, "cuánto nos deben en total".
 NO usar para ranking de clientes individuales (usar get_debt_by_customer en su lugar).
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Keywords: "total por cobrar", "monto de cuentas por cobrar", "deuda total de clientes", "accounts receivable total".`,
 
   tool: 'odoo',
@@ -102,6 +105,11 @@ Keywords: "total por cobrar", "monto de cuentas por cobrar", "deuda total de cli
         ['move_type', '=', 'out_invoice'], // Customer invoices only
         ['amount_residual', '>', 0], // Has remaining balance
       ]
+
+      // Company filter
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]]
+      }
 
       // Filter by due date if period specified
       if (input.duePeriod) {

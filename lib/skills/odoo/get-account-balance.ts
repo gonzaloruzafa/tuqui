@@ -27,6 +27,8 @@ export const GetAccountBalanceInputSchema = z.object({
   accountCode: z.string().optional(),
   /** Filter by specific account IDs */
   accountIds: z.array(z.number().positive()).optional(),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
   /** Max accounts to return */
   limit: z.number().min(1).max(200).default(50),
 });
@@ -64,6 +66,7 @@ export const getAccountBalance: Skill<typeof GetAccountBalanceInputSchema, GetAc
   description: `Saldos del plan de cuentas contables (balancete).
 USAR PARA: "saldo de la cuenta 1.1.1", "balance contable", "saldos de cuentas", "cuánto hay en la cuenta X", "balancete".
 Filtra por código de cuenta (prefix match) y período.
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Retorna: debit, credit, balance por cuenta.`,
 
   tool: 'odoo',
@@ -83,6 +86,9 @@ Retorna: debit, credit, balance por cuenta.`,
         dateRange('date', period.start, period.end)
       );
 
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]];
+      }
       if (input.accountCode) {
         domain = [...domain, ['account_id.code', '=like', `${input.accountCode}%`]];
       }

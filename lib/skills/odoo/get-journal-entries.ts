@@ -38,6 +38,8 @@ export const GetJournalEntriesInputSchema = z.object({
   customerName: z.string().optional(),
   /** Filter by exact partner ID */
   partnerId: z.number().int().positive().optional(),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
   state: z.enum(['all', 'posted', 'draft']).default('posted'),
   limit: z.number().min(1).max(100).default(50),
 });
@@ -76,6 +78,7 @@ export const getJournalEntries: Skill<typeof GetJournalEntriesInputSchema, GetJo
   description: `Asientos contables / journal entries. Puede filtrar por cliente con customerName.
 USAR PARA: "asientos contables", "notas de crédito", "movimientos contables", "asientos de la cuenta X",
 "facturas de Cliente X" (con moveType=out_invoice + customerName).
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 RETORNA: name (número de factura/asiento, ej FAC-A 00001-00000123), monto, partner, diario.`,
 
   tool: 'odoo',
@@ -104,6 +107,11 @@ RETORNA: name (número de factura/asiento, ej FAC-A 00001-00000123), monto, part
       if (input.moveType) {
         const types = Array.isArray(input.moveType) ? input.moveType : [input.moveType];
         domain = [...domain, ['move_type', 'in', types]];
+      }
+
+      // Company filter
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]];
       }
 
       // Customer/partner filter

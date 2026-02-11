@@ -25,6 +25,8 @@ export const GetCashBalanceInputSchema = z.object({
   includeBanks: z.boolean().default(true),
   /** Filter by specific journal IDs */
   journalIds: z.array(z.number().positive()).optional(),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
 })
 
 export type GetCashBalanceInput = z.infer<typeof GetCashBalanceInputSchema>
@@ -44,6 +46,10 @@ export interface JournalBalance {
   balance: number
   /** Currency */
   currency: string
+  /** Company ID that owns this journal */
+  companyId: number
+  /** Company name */
+  companyName: string
 }
 
 export interface GetCashBalanceOutput {
@@ -67,7 +73,10 @@ export const getCashBalance: Skill<typeof GetCashBalanceInputSchema, GetCashBala
   name: 'get_cash_balance',
 
   description: `Saldo de caja y bancos (tesorería).
-USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "saldo total disponible", "cuánta plata hay", "efectivo disponible", "liquidez".
+USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "liquidez".
+Para ver liquidez de TODAS las compañías: llamar SIN companyId → devuelve TODOS los diarios con su compañía.
+Para ver liquidez de UNA compañía: llamar con companyId (obtener de get_companies primero).
+Cada diario incluye companyId y companyName para identificar a qué empresa pertenece.
 Retorna: saldo por caja/banco y total combinado.`,
 
   tool: 'odoo',
@@ -96,6 +105,11 @@ Retorna: saldo por caja/banco y total combinado.`,
       }
 
       let domain: OdooDomain = [['type', 'in', journalTypes]]
+
+      // Add company filter
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]]
+      }
 
       // Add specific journal filter if provided
       if (input.journalIds && input.journalIds.length > 0) {
@@ -151,6 +165,8 @@ Retorna: saldo por caja/banco y total combinado.`,
           journalType,
           balance,
           currency,
+          companyId: Array.isArray(journal.company_id) ? journal.company_id[0] : journal.company_id,
+          companyName: Array.isArray(journal.company_id) ? journal.company_id[1] : 'Desconocida',
         })
 
         // Use first currency as default

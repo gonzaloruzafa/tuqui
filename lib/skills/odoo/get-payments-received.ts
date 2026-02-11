@@ -36,6 +36,8 @@ export const GetPaymentsReceivedInputSchema = z.object({
   groupByCustomer: z.boolean().default(false),
   /** Filter by specific journal IDs */
   journalIds: z.array(z.number().positive()).optional(),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
   /** Maximum results when grouped */
   limit: z.number().min(1).max(100).default(20),
 });
@@ -82,6 +84,7 @@ export const getPaymentsReceived: Skill<
 
   description: `Pagos recibidos de clientes (cobranzas).
 USAR PARA: "cuánto cobramos", "pagos recibidos", "cobranzas del mes", "cobros de enero", "recaudación".
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Retorna total cobrado, cantidad de pagos. Acepta período (this_month, last_month, enero, etc).`,
 
   tool: 'odoo',
@@ -116,6 +119,11 @@ Retorna total cobrado, cantidad de pagos. Acepta período (this_month, last_mont
         baseDomain,
         dateRange('date', period.start, period.end)
       );
+
+      // Filter by company
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]];
+      }
 
       // Filter by journal IDs if specified
       if (input.journalIds?.length) {

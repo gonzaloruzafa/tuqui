@@ -37,6 +37,10 @@ export const GetDebtByCustomerInputSchema = z.object({
   minOverdueDays: z.number().min(0).optional(),
   /** Filter by customer name (partial match). Use for: "deuda de Cliente X", "cuánto debe X" */
   customerName: z.string().optional(),
+  /** Filter by salesperson name on the invoice (partial match). Use for: "deuda por vendedor X" */
+  sellerName: z.string().optional(),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
 });
 
 export type GetDebtByCustomerInput = z.infer<typeof GetDebtByCustomerInputSchema>;
@@ -84,8 +88,9 @@ export const getDebtByCustomer: Skill<
   description: `Deudas de clientes - quién nos debe más y cuánto. HERRAMIENTA PRINCIPAL para cobranzas.
 Use for: "quién nos debe más", "clientes morosos", "deudores principales", "accounts receivable", 
 "deudas de clientes", "quién nos debe", "cuentas por cobrar", "saldos pendientes",
-"top deudores", "clientes con deuda", "cobrar".
-Puede filtrar por UN cliente específico con customerName (ej: customerName="Fundacion X").
+"top deudores", "clientes con deuda", "cobrar", "deuda por vendedor/comercial".
+Puede filtrar por UN cliente con customerName, por vendedor con sellerName.
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Devuelve cliente, monto adeudado, fecha vencimiento.`,
 
   tool: 'odoo',
@@ -121,6 +126,16 @@ Devuelve cliente, monto adeudado, fecha vencimiento.`,
       // Filter by customer name (partial match via ilike)
       if (input.customerName) {
         domain.push(['partner_id.name', 'ilike', input.customerName]);
+      }
+
+      // Filter by salesperson (invoice_user_id)
+      if (input.sellerName) {
+        domain.push(['invoice_user_id.name', 'ilike', input.sellerName]);
+      }
+
+      // Filter by company
+      if (input.companyId) {
+        domain.push(['company_id', '=', input.companyId]);
       }
 
       // Get aggregated debt by customer
