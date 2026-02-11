@@ -104,6 +104,40 @@ function convertJsonSchemaToGemini(schema: any): Record<string, any> {
 }
 
 /**
+ * Detect and truncate repetition loops in LLM output.
+ * Gemini sometimes enters infinite loops repeating the same sentence.
+ */
+function truncateRepetitionLoop(text: string): string {
+    if (text.length < 500) return text
+
+    // Split into sentences and find repeated ones
+    const sentences = text.split(/(?<=[.!?✨🦷🚀])\s+/)
+    if (sentences.length < 5) return text
+
+    // Check if the last N sentences are repeats
+    const lastSentence = sentences[sentences.length - 1]?.trim()
+    if (!lastSentence || lastSentence.length < 20) return text
+
+    let repeatCount = 0
+    for (let i = sentences.length - 1; i >= 0; i--) {
+        if (sentences[i]?.trim() === lastSentence) {
+            repeatCount++
+        } else {
+            break
+        }
+    }
+
+    if (repeatCount >= 3) {
+        console.warn(`[NativeGeminiV2] Detected repetition loop (${repeatCount}x), truncating`)
+        // Keep everything up to the first repetition + one instance
+        const cutIndex = sentences.length - repeatCount + 1
+        return sentences.slice(0, cutIndex).join(' ')
+    }
+
+    return text
+}
+
+/**
  * Generate text with native thinking support using the new SDK
  * 
  * @param onThinkingStep - Callback for tool execution events
@@ -206,6 +240,7 @@ export async function generateTextWithThinking({
                 contents,
                 config: {
                     systemInstruction: system,
+                    maxOutputTokens: 4096,
                     tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
                     thinkingConfig: {
                         thinkingLevel: resolvedThinkingLevel,
@@ -354,6 +389,7 @@ export async function generateTextWithThinking({
                     contents,
                     config: {
                         systemInstruction: system,
+                        maxOutputTokens: 4096,
                         tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
                         thinkingConfig: {
                             thinkingLevel: resolvedThinkingLevel,
@@ -404,6 +440,7 @@ export async function generateTextWithThinking({
                             contents,
                             config: {
                                 systemInstruction: system,
+                                maxOutputTokens: 4096,
                                 toolConfig: { functionCallingConfig: { mode: 'NONE' as any } },
                                 thinkingConfig: { thinkingLevel: resolvedThinkingLevel, includeThoughts }
                             }
@@ -427,6 +464,9 @@ export async function generateTextWithThinking({
             }
             // Otherwise, the next loop iteration will handle the response
         }
+
+        // Detect and truncate repetition loops
+        finalText = truncateRepetitionLoop(finalText)
 
         return {
             text: finalText,
