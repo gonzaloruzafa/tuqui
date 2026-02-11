@@ -40,6 +40,8 @@ export const GetSalesByCustomerInputSchema = z.object({
   teamId: z.number().int().positive().optional(),
   /** Filter by customer name (partial match). Use for: "ventas de Cliente X", "cuánto le vendimos a X" */
   customerName: z.string().optional(),
+  /** Filter by customer province/state name (e.g. "Córdoba", "Buenos Aires", "Santa Fe") */
+  customerState: z.string().optional(),
 });
 
 export type GetSalesByCustomerInput = z.infer<typeof GetSalesByCustomerInputSchema>;
@@ -89,10 +91,10 @@ export const getSalesByCustomer: Skill<
   name: 'get_sales_by_customer',
 
   description: `Análisis detallado de ventas por cliente - incluye cantidad de órdenes, monto total, y valor promedio.
-USAR PARA: análisis detallado, "cuánto le vendimos a X", "detalle de ventas por cliente", métricas por cliente.
-Puede filtrar por UN cliente específico con customerName (ej: customerName="Acme Corp").
-NO usar para ranking rápido (usar get_top_customers en su lugar).
-Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cliente".`,
+USAR PARA: "cuánto le vendimos a X", "detalle de ventas por cliente", "ventas en [provincia]".
+Puede filtrar por UN cliente (customerName), provincia (customerState) o equipo (teamId).
+NO usar para ranking rápido (usar get_top_customers).
+Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
 
   tool: 'odoo',
 
@@ -129,6 +131,11 @@ Keywords: "ventas a cliente específico", "detalle de cliente", "análisis de cl
       // Filter by customer name (partial match via ilike)
       if (input.customerName) {
         domain.push(['partner_id.name', 'ilike', input.customerName]);
+      }
+
+      // Filter by customer province/state
+      if (input.customerState) {
+        domain.push(['partner_id.state_id.name', 'ilike', input.customerState]);
       }
 
       // 3. Execute aggregation query

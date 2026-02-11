@@ -82,6 +82,7 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 | F6 | 1 día | Briefings Matutinos | ⭐⭐⭐ Hábito de uso |
 | F8 | 0.5 días | Piloto Cedent | ⭐⭐⭐ Validación real |
 | F9 | — | Cobrar ($50-100/mes) | ⭐⭐⭐⭐⭐ PMF signal |
+| FX | 5 min | Optimizar modelo Gemini → bajar costos ~70% | ⭐⭐ Margen |
 
 **Total: ~5-6 días de código + validación continua**
 
@@ -101,6 +102,8 @@ F7 → F5 → F6 → F8 → F9
 | Super Admin UI completa (tenants) | Podés hacer CRUD via SQL |
 | Token limits desde UI | Nadie está en el límite |
 | Seguridad enterprise (AES-256) | No tenés datos sensibles todavía |
+| RLS en `company_contexts` | ⚠️ Tabla pública sin RLS. Activar RLS + política `service_role only`. **No tocar antes de demo** — rompe si no tiene la policy correcta |
+| Cleanup secrets en código | `lib/crypto.ts` tiene fallback secret hardcodeado + `encrypt()` es solo base64. `scripts/apply-migration.ts` tiene Supabase URL hardcodeada. `.env` files OK (nunca se commitearon). Odoo key ya fixeada en `a799a45`. |
 
 ---
 
@@ -408,7 +411,35 @@ d975e90 feat: add delete agent functionality for custom agents
 
 ---
 
-## 📊 MÉTRICAS DE ÉXITO
+## � FASE X: OPTIMIZAR MODELO GEMINI (~5 min + corrida de evals)
+
+> **Objetivo:** Bajar costos de API ~70% sin perder calidad
+
+**Problema:** `gemini-3-flash-preview` está en `engine.ts` y `llm-engine.ts` (chat principal). Es ~5x más caro que `gemini-2.0-flash`. En Feb 2026 costó ~$13 de $19 totales.
+
+| Archivo | Modelo actual | Cambiar a |
+|---------|--------------|-----------|
+| `lib/chat/engine.ts:79` | `gemini-3-flash-preview` | `gemini-2.0-flash` |
+| `lib/tools/llm-engine.ts:147` | `gemini-3-flash-preview` | `gemini-2.0-flash` |
+| `app/api/internal/chat-test/route.ts:188` | `gemini-3-flash-preview` | `gemini-2.0-flash` |
+
+**Nota:** El orquestador ya usa `gemini-2.0-flash` y da 98.5% en evals. Si las respuestas del agente bajan calidad, probar `gemini-2.5-flash` como intermedio.
+
+**Verificación:** Correr evals después del cambio. Si ≥85% → ship. Si baja → revertir.
+
+**Desglose de costos Feb 2026 ($19.11 en 11 días):**
+
+| SKU | Costo |
+|-----|-------|
+| Gemini 3 Flash input (20.1M tokens) | $10.06 |
+| Gemini 2.0 Flash input (43.6M tokens) | $4.36 |
+| Gemini 3 Flash output (1M tokens) | $3.08 |
+| Embeddings input (5.5M tokens) | $0.83 |
+| Resto | ~$0.78 |
+
+---
+
+## �📊 MÉTRICAS DE ÉXITO
 
 | Métrica | Actual | Target | Cómo medir |
 |---------|--------|--------|------------|

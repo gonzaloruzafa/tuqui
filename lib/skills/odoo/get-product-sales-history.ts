@@ -14,6 +14,8 @@ export const GetProductSalesHistoryInputSchema = z.object({
   productId: z.number().int().positive(),
   period: PeriodSchema.optional(),
   groupBy: z.enum(['none', 'month', 'customer']).default('none'),
+  /** Sales team ID. Obtener de get_sales_teams, NO adivinar. */
+  teamId: z.number().int().positive().optional(),
 });
 
 export interface ProductSalesHistoryOutput {
@@ -36,7 +38,8 @@ IMPORTANTE: El período default es el mes actual. Para evaluar si un producto
 tiene movimiento o rotación, usá un período de al menos 6 meses.
 Para comparar períodos (ej: enero vs febrero, este año vs el anterior),
 llamá este skill dos veces con períodos distintos.
-Soporta groupBy: 'month' para ver evolución mensual, 'customer' para ver compradores.`,
+Soporta groupBy: 'month' para ver evolución mensual, 'customer' para ver compradores.
+Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'products', 'history'],
   inputSchema: GetProductSalesHistoryInputSchema,
@@ -59,6 +62,11 @@ Soporta groupBy: 'month' para ver evolución mensual, 'customer' para ver compra
           ['order_id.state', 'in', ['sale', 'done']],
         ]
       );
+
+      // Filter by sales team if specified
+      if (input.teamId) {
+        domain.push(['order_id.team_id', '=', input.teamId]);
+      }
 
       if (input.groupBy === 'none') {
         const lines = await odoo.searchRead<{
