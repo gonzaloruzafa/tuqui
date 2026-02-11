@@ -305,14 +305,14 @@ describe('processChatRequest (Unified Engine)', () => {
         }))
     })
 
-    test('passes maxSteps: 15 always', async () => {
+    test('passes maxSteps: 12 always', async () => {
         await processChatRequest({
             tenantId: 'tenant-1', userEmail: 'user@test.com',
             agent: baseAgent as any, messages: baseMessages, channel: 'web'
         })
 
         expect(mockedGenerate).toHaveBeenCalledWith(expect.objectContaining({
-            maxSteps: 15
+            maxSteps: 12
         }))
     })
 
