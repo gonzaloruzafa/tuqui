@@ -144,7 +144,7 @@ function truncateRepetitionLoop(text: string): string {
  * @param onThinkingSummary - Callback for streaming thinking summaries (Chain of Thought)
  */
 export async function generateTextWithThinking({
-    model: modelName = 'gemini-3-flash-preview',
+    model: modelName = 'gemini-2.5-flash',
     system,
     messages,
     tools,

@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
         const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
 
         const result = await generateTextWithThinking({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.5-flash',
             system: systemPrompt,
             messages: messages.map((m: any) => ({
                 role: m.role,

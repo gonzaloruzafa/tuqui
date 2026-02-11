@@ -8,7 +8,7 @@ export const USAGE_LIMITS = {
     PRO_TIER: {
         name: 'Pro',
         price_per_user: 500, // cents ($5.00)
-        tokens_per_user: 500000,
+        tokens_per_user: 2000000, // 2M tokens for alpha testing
     }
 }
 
