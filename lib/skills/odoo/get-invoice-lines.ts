@@ -55,6 +55,9 @@ export const GetInvoiceLinesInputSchema = z.object({
 
   /** Group results by: none (individual lines), product, seller, customer */
   groupBy: z.enum(['none', 'product', 'seller', 'customer']).default('none'),
+
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
 });
 
 // ============================================
@@ -109,7 +112,10 @@ export const getInvoiceLines: Skill<
   InvoiceLinesOutput
 > = {
   name: 'get_invoice_lines',
-  description: 'Get invoice lines with flexible filters. Use for: "qué le vendemos a X cliente", "productos vendidos a X", "invoice lines by seller", "what did X invoice", "line-level invoice detail", "commissions by seller". Use groupBy=product + customerName to get products sold to a specific customer.',
+  description: `Líneas de factura con filtros flexibles. USAR PARA: "qué le vendemos a X cliente", "productos vendidos a X",
+"líneas de factura por vendedor", "qué facturó X", "detalle de comisiones", "comisiones por vendedor".
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
+Usar groupBy=product + customerName para ver productos vendidos a un cliente específico.`,
   tool: 'odoo',
   tags: ['invoices', 'lines', 'sellers', 'commissions', 'detail'],
   inputSchema: GetInvoiceLinesInputSchema,
@@ -164,6 +170,11 @@ export const getInvoiceLines: Skill<
         domain.push(['product_id', '=', input.productId]);
       } else if (input.productName) {
         domain.push(['product_id.name', 'ilike', input.productName]);
+      }
+
+      // Company filter
+      if (input.companyId) {
+        domain.push(['move_id.company_id', '=', input.companyId]);
       }
 
       const filters: InvoiceLinesOutput['filters'] = {};

@@ -25,6 +25,8 @@ export const GetPaymentsMadeInputSchema = z.object({
   groupByJournal: z.boolean().default(false),
   groupBySupplier: z.boolean().default(false),
   journalIds: z.array(z.number().positive()).optional(),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
   limit: z.number().min(1).max(100).default(20),
 });
 
@@ -58,6 +60,7 @@ export const getPaymentsMade: Skill<typeof GetPaymentsMadeInputSchema, GetPaymen
 
   description: `Pagos realizados a proveedores (egresos).
 USAR PARA: "cuánto pagamos", "pagos a proveedores", "egresos del mes", "cuánto se pagó", "pagos realizados".
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Retorna total pagado, cantidad de pagos. Acepta período y agrupación por diario/proveedor.`,
 
   tool: 'odoo',
@@ -79,6 +82,11 @@ Retorna total pagado, cantidad de pagos. Acepta período y agrupación por diari
       ];
 
       let domain: OdooDomain = combineDomains(baseDomain, dateRange('date', period.start, period.end));
+
+      // Filter by company
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]];
+      }
 
       if (input.journalIds?.length) {
         domain = [...domain, ['journal_id', 'in', input.journalIds]];

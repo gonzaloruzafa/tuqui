@@ -24,6 +24,8 @@ export const GetAccountsPayableInputSchema = z.object({
   duePeriod: PeriodSchema.optional(),
   overdueOnly: z.boolean().default(false),
   groupBySupplier: z.boolean().default(false),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
   limit: z.number().min(1).max(100).default(20),
 });
 
@@ -58,6 +60,7 @@ export const getAccountsPayable: Skill<typeof GetAccountsPayableInputSchema, Get
 
   description: `Total de cuentas por pagar (deuda con proveedores).
 USAR PARA: "cuánto debemos a proveedores", "cuentas por pagar", "accounts payable", "deuda total con proveedores", "cuánto hay que pagar".
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Retorna total adeudado, total vencido, cantidad de facturas y proveedores.`,
 
   tool: 'odoo',
@@ -78,6 +81,11 @@ Retorna total adeudado, total vencido, cantidad de facturas y proveedores.`,
         ['move_type', '=', 'in_invoice'],
         ['amount_residual', '>', 0],
       ];
+
+      // Company filter
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]];
+      }
 
       if (input.duePeriod) {
         const dueDateFilters = dateRange('invoice_date_due', input.duePeriod.start, input.duePeriod.end);

@@ -34,6 +34,12 @@ export const GetInvoicesByCustomerInputSchema = z.object({
 
   /** Filter by customer name (partial match). Use for: "facturas de Cliente X", "cuánto facturamos a X" */
   customerName: z.string().optional(),
+
+  /** Filter by salesperson name on the invoice (partial match) */
+  sellerName: z.string().optional(),
+
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
 });
 
 // ============================================
@@ -65,8 +71,10 @@ export const getInvoicesByCustomer: Skill<
   InvoicesByCustomerOutput
 > = {
   name: 'get_invoices_by_customer',
-  description: `Facturas agrupadas por cliente. Puede filtrar por UN cliente específico con customerName.
-USAR PARA: "facturas de Cliente X", "cuánto facturamos a X", "facturación por cliente", "top clientes facturados".
+  description: `Facturas agrupadas por cliente. Puede filtrar por UN cliente específico con customerName o por vendedor con sellerName.
+USAR PARA: "facturas de Cliente X", "cuánto facturamos a X", "facturación por cliente", "top clientes facturados",
+"facturas del vendedor X", "cuánto facturó cada vendedor".
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Ejemplo: customerName="Acme Corp" devuelve solo facturas de ese cliente.`,
   tool: 'odoo',
   tags: ['invoices', 'customers', 'accounting'],
@@ -99,6 +107,16 @@ Ejemplo: customerName="Acme Corp" devuelve solo facturas de ese cliente.`,
       // Filter by customer name (partial match via ilike)
       if (input.customerName) {
         domain.push(['partner_id.name', 'ilike', input.customerName]);
+      }
+
+      // Filter by salesperson (invoice_user_id)
+      if (input.sellerName) {
+        domain.push(['invoice_user_id.name', 'ilike', input.sellerName]);
+      }
+
+      // Filter by company
+      if (input.companyId) {
+        domain.push(['company_id', '=', input.companyId]);
       }
 
       // Group by partner

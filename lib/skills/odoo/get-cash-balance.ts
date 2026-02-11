@@ -25,6 +25,8 @@ export const GetCashBalanceInputSchema = z.object({
   includeBanks: z.boolean().default(true),
   /** Filter by specific journal IDs */
   journalIds: z.array(z.number().positive()).optional(),
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
 })
 
 export type GetCashBalanceInput = z.infer<typeof GetCashBalanceInputSchema>
@@ -68,6 +70,7 @@ export const getCashBalance: Skill<typeof GetCashBalanceInputSchema, GetCashBala
 
   description: `Saldo de caja y bancos (tesorería).
 USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "saldo total disponible", "cuánta plata hay", "efectivo disponible", "liquidez".
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
 Retorna: saldo por caja/banco y total combinado.`,
 
   tool: 'odoo',
@@ -96,6 +99,11 @@ Retorna: saldo por caja/banco y total combinado.`,
       }
 
       let domain: OdooDomain = [['type', 'in', journalTypes]]
+
+      // Add company filter
+      if (input.companyId) {
+        domain = [...domain, ['company_id', '=', input.companyId]]
+      }
 
       // Add specific journal filter if provided
       if (input.journalIds && input.journalIds.length > 0) {

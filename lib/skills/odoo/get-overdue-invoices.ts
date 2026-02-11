@@ -31,6 +31,12 @@ export const GetOverdueInvoicesInputSchema = z.object({
 
   /** Filter by customer name (partial match). Use for: "facturas vencidas de Cliente X" */
   customerName: z.string().optional(),
+
+  /** Filter by salesperson name on the invoice (partial match). Use for: "facturas vencidas del vendedor X" */
+  sellerName: z.string().optional(),
+
+  /** Company ID. Obtener de get_companies, NO adivinar. */
+  companyId: z.number().int().positive().optional(),
 });
 
 // ============================================
@@ -42,6 +48,7 @@ export interface OverdueInvoice {
   invoiceNumber: string;
   customerId: number;
   customerName: string;
+  sellerName: string | null;
   amountTotal: number;
   amountResidual: number;
   invoiceDate: string;
@@ -73,11 +80,12 @@ export const getOverdueInvoices: Skill<
   OverdueInvoicesOutput
 > = {
   name: 'get_overdue_invoices',
-  description: `Facturas vencidas de clientes. Puede filtrar por UN cliente específico con customerName.
+  description: `Facturas vencidas de clientes. Puede filtrar por UN cliente específico con customerName o por vendedor con sellerName.
 USAR PARA: "facturas vencidas", "pagos atrasados", "overdue invoices", "late payments",
-"facturas vencidas de Cliente X", "deudores morosos", "número de factura vencida".
-RETORNA: invoiceNumber (ej FAC-A 00001-00000123), monto total, monto pendiente, fecha vencimiento, días de atraso.
-Si necesitás el NÚMERO de una factura vencida, esta es la herramienta correcta.`,
+"facturas vencidas de Cliente X", "deudores morosos", "número de factura vencida",
+"facturas vencidas del vendedor X", "deuda vencida por comercial".
+Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
+RETORNA: invoiceNumber, monto total, monto pendiente, fecha vencimiento, días de atraso, nombre del vendedor.`,
   tool: 'odoo',
   tags: ['invoices', 'debt', 'collections', 'accounting'],
   inputSchema: GetOverdueInvoicesInputSchema,
@@ -106,12 +114,23 @@ Si necesitás el NÚMERO de una factura vencida, esta es la herramienta correcta
         domain.push(['partner_id.name', 'ilike', input.customerName]);
       }
 
+      // Filter by salesperson (invoice_user_id)
+      if (input.sellerName) {
+        domain.push(['invoice_user_id.name', 'ilike', input.sellerName]);
+      }
+
+      // Filter by company
+      if (input.companyId) {
+        domain.push(['company_id', '=', input.companyId]);
+      }
+
       if (!input.groupByCustomer) {
         // Get individual invoices
         const invoices = await odoo.searchRead<{
           id: number;
           name: string;
           partner_id: [number, string];
+          invoice_user_id: [number, string] | false;
           amount_total: number;
           amount_residual: number;
           invoice_date: string;
@@ -123,6 +142,7 @@ Si necesitás el NÚMERO de una factura vencida, esta es la herramienta correcta
             fields: [
               'name',
               'partner_id',
+              'invoice_user_id',
               'amount_total',
               'amount_residual',
               'invoice_date',
@@ -147,6 +167,7 @@ Si necesitás el NÚMERO de una factura vencida, esta es la herramienta correcta
               invoiceNumber: inv.name,
               customerId: inv.partner_id[0],
               customerName: inv.partner_id[1],
+              sellerName: inv.invoice_user_id ? inv.invoice_user_id[1] : null,
               amountTotal: inv.amount_total,
               amountResidual: inv.amount_residual,
               invoiceDate: inv.invoice_date,
