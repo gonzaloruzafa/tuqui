@@ -428,18 +428,22 @@ export function dateRange(
 }
 
 /**
- * Get default period (current month)
+ * Get default period (last 12 months)
  */
 export function getDefaultPeriod(): { start: string; end: string; label: string } {
   const now = new Date();
+  const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate() + 1);
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
-  const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+  const day = String(now.getDate()).padStart(2, '0');
+  const startYear = yearAgo.getFullYear();
+  const startMonth = String(yearAgo.getMonth() + 1).padStart(2, '0');
+  const startDay = String(yearAgo.getDate()).padStart(2, '0');
   
   return {
-    start: `${year}-${month}-01`,
-    end: `${year}-${month}-${String(lastDay).padStart(2, '0')}`,
-    label: 'Este mes'
+    start: `${startYear}-${startMonth}-${startDay}`,
+    end: `${year}-${month}-${day}`,
+    label: 'Últimos 12 meses'
   };
 }
 

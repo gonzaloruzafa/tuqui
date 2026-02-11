@@ -45,6 +45,8 @@ export interface ProductStockLevel {
   productName: string;
   /** Available quantity */
   quantity: number;
+  /** Unit of measure (e.g. "Unidad", "kg", "Litro") */
+  uom: string;
   /** Location name (if filtered) */
   locationName?: string;
 }
@@ -145,10 +147,30 @@ Can search by product name or show low stock items.`,
         { limit: input.limit, orderBy: 'quantity desc' }
       );
 
+      // Get product IDs to fetch UoM
+      const resultProductIds = stockData.map((row: any) => row.product_id?.[0]).filter(Boolean);
+      
+      // Fetch UoM for each product
+      const uomMap = new Map<number, string>();
+      if (resultProductIds.length > 0) {
+        const productData = await odoo.searchRead<{
+          id: number;
+          uom_id: [number, string];
+        }>(
+          'product.product',
+          [['id', 'in', resultProductIds]],
+          { fields: ['id', 'uom_id'] }
+        );
+        for (const p of productData) {
+          uomMap.set(p.id, p.uom_id?.[1] || 'Unidad');
+        }
+      }
+
       const products: ProductStockLevel[] = stockData.map((row: any) => ({
         productId: row.product_id?.[0] || 0,
         productName: row.product_id?.[1] || 'Sin nombre',
         quantity: row.quantity || 0,
+        uom: uomMap.get(row.product_id?.[0]) || 'Unidad',
       }));
 
       const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
