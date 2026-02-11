@@ -24,6 +24,8 @@ import { errorToResult } from '../errors';
 export const GetProductStockInputSchema = z.object({
   /** Product name/code search (partial match) */
   productSearch: z.string().min(1).optional(),
+  /** Product template ID to aggregate stock of ALL variants */
+  productTemplateId: z.number().int().positive().optional(),
   /** Location ID (filter by warehouse/location) */
   locationId: z.number().positive().optional(),
   /** Only show products with stock below this quantity */
@@ -70,10 +72,11 @@ export const getProductStock: Skill<
 > = {
   name: 'get_product_stock',
 
-  description: `Get stock levels for products using stock.quant model.
-Use when user asks: "stock", "inventory", "how many do we have",
-"stock disponible", "inventario", "cuánto tenemos", "existencias".
-Can search by product name or show low stock items.`,
+  description: `Stock de productos usando stock.quant.
+USAR CUANDO: "stock", "inventario", "cuánto tenemos", "stock disponible", "existencias".
+Puede buscar por nombre o mostrar productos con stock bajo.
+Para productos con VARIANTES: usar productTemplateId (obtenido de search_products.templateId)
+para agregar stock de TODAS las variantes. Sin él, solo verás variantes individuales.`,
 
   tool: 'odoo',
 
@@ -96,7 +99,18 @@ Can search by product name or show low stock items.`,
 
       // If searching by product name, first find matching products
       let productIds: number[] | undefined;
-      if (input.productSearch) {
+      if (input.productTemplateId) {
+        // Resolve template to all variant IDs
+        const variants = await odoo.searchRead<{ id: number }>(
+          'product.product',
+          [['product_tmpl_id', '=', input.productTemplateId]],
+          { fields: ['id'] }
+        );
+        productIds = variants.map(v => v.id);
+        if (productIds.length === 0) {
+          return success({ products: [], totalQuantity: 0, productCount: 0 });
+        }
+      } else if (input.productSearch) {
         const products = await odoo.searchRead<{ id: number; name: string }>(
           'product.product',
           [

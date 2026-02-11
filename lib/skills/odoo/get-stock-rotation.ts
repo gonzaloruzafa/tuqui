@@ -17,6 +17,8 @@ export const GetStockRotationInputSchema = z.object({
   limit: z.number().int().min(1).max(50).default(20),
   /** Only show products with zero sales in the period */
   zeroSalesOnly: z.boolean().default(false),
+  /** Filter by product template ID to check rotation of a specific product (all variants) */
+  productTemplateId: z.number().int().positive().optional(),
 });
 
 export interface StockRotationProduct {
@@ -50,8 +52,8 @@ export const getStockRotation: Skill<
   description: `Analiza rotación de stock: cruza inventario actual con ventas del período.
 USAR CUANDO: "productos estancados", "stock sin movimiento", "qué no se vende",
 "rotación de inventario", "productos parados", "stock dormido", "liquidación".
-Devuelve productos con alto stock y pocas/ninguna venta, ordenados por valor parado.
-Incluye UoM, cantidad vendida, revenue y valor estimado del stock.`,
+Soporta productTemplateId para analizar un producto específico (todas las variantes).
+Devuelve productos con alto stock y pocas/ninguna venta, ordenados por valor parado.`,
   tool: 'odoo',
   tags: ['inventory', 'stock', 'sales', 'rotation', 'analysis'],
   inputSchema: GetStockRotationInputSchema,
@@ -66,12 +68,28 @@ Incluye UoM, cantidad vendida, revenue y valor estimado del stock.`,
       const period = input.period || getDefaultPeriod();
 
       // Step 1: Get top stocked products (internal locations only)
+      const stockDomain: OdooDomain = [
+        ['quantity', '>', 0],
+        ['location_id.usage', '=', 'internal'],
+      ];
+
+      // Filter by product template if specified
+      if (input.productTemplateId) {
+        const variants = await odoo.searchRead<{ id: number }>(
+          'product.product',
+          [['product_tmpl_id', '=', input.productTemplateId]],
+          { fields: ['id'] }
+        );
+        const variantIds = variants.map(v => v.id);
+        if (variantIds.length === 0) {
+          return success({ products: [], period, totalStockValue: 0 });
+        }
+        stockDomain.push(['product_id', 'in', variantIds]);
+      }
+
       const stockData = await odoo.readGroup(
         'stock.quant',
-        [
-          ['quantity', '>', 0],
-          ['location_id.usage', '=', 'internal'],
-        ],
+        stockDomain,
         ['product_id', 'quantity:sum'],
         ['product_id'],
         { limit: 100, orderBy: 'quantity desc' }

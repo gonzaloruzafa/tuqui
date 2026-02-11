@@ -62,7 +62,10 @@ export const searchCustomers: Skill<
   SearchCustomersOutput
 > = {
   name: 'search_customers',
-  description: 'Search for customers by name, email, VAT, or reference. Use when user wants to "find a customer", "search client", "look up customer".',
+  description: `Busca CLIENTES por nombre, email, CUIT o referencia.
+USAR PARA: "buscar cliente", "cliente que se llama", "cliente Gaveno", "encontrar cliente".
+Para buscar PROVEEDORES usar search_suppliers (son herramientas distintas).
+Devuelve: nombre, email, teléfono, CUIT, ciudad.`,
   tool: 'odoo',
   tags: ['customers', 'search', 'crm'],
   inputSchema: SearchCustomersInputSchema,

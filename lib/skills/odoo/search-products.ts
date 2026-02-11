@@ -31,6 +31,9 @@ export const SearchProductsInputSchema = z.object({
 
   /** Only saleable products */
   saleableOnly: z.boolean().default(false),
+
+  /** Only products published on the website */
+  publishedOnly: z.boolean().default(false),
 });
 
 // ============================================
@@ -48,6 +51,12 @@ export interface ProductResult {
   qtyAvailable?: number;
   virtualAvailable?: number;
   uom: string;
+  /** Whether the product is published on the website */
+  isPublished: boolean;
+  /** Product template ID (groups all variants of the same product) */
+  templateId: number;
+  /** Product template name (shared across variants) */
+  templateName: string;
 }
 
 export interface SearchProductsOutput {
@@ -65,9 +74,12 @@ export const searchProducts: Skill<
 > = {
   name: 'search_products',
   description: `Busca productos en Odoo por nombre, código o código de barras. HERRAMIENTA PRINCIPAL para buscar.
-Use for: "buscar productos con X", "encontrar producto", "producto que contenga", "buscar cable", 
-"productos con nombre X", "productos que contengan", "qué productos tenemos con", "buscar en productos".
-Devuelve: nombre, código, precio, stock disponible.`,
+USAR PARA: "buscar productos con X", "encontrar producto", "producto que contenga", "buscar cable",
+"productos con nombre X", "qué productos tenemos con", "buscar en productos".
+Soporta publishedOnly para filtrar solo productos publicados en la web (ePublish/is_published).
+Devuelve: nombre, código, precio, stock, isPublished, templateId (para agrupar variantes).
+Si un producto tiene variantes (ej: distintos tamaños), el templateId es el mismo para todas.
+Para ver ventas agregadas de TODAS las variantes, usar el templateId con get_product_sales_history.`,
   tool: 'odoo',
   tags: ['products', 'search', 'inventory'],
   inputSchema: SearchProductsInputSchema,
@@ -93,6 +105,10 @@ Devuelve: nombre, código, precio, stock disponible.`,
         domain.push(['sale_ok', '=', true]);
       }
 
+      if (input.publishedOnly) {
+        domain.push(['is_published', '=', true]);
+      }
+
       // Define fields
       const fields = [
         'name',
@@ -102,6 +118,8 @@ Devuelve: nombre, código, precio, stock disponible.`,
         'list_price',
         'standard_price',
         'uom_id',
+        'is_published',
+        'product_tmpl_id',
       ];
 
       if (input.includeStock) {
@@ -120,6 +138,8 @@ Devuelve: nombre, código, precio, stock disponible.`,
         qty_available?: number;
         virtual_available?: number;
         uom_id: [number, string];
+        is_published: boolean;
+        product_tmpl_id: [number, string];
       }>(
         'product.product',
         domain,
@@ -141,6 +161,9 @@ Devuelve: nombre, código, precio, stock disponible.`,
         qtyAvailable: p.qty_available,
         virtualAvailable: p.virtual_available,
         uom: p.uom_id[1],
+        isPublished: p.is_published || false,
+        templateId: p.product_tmpl_id?.[0] || 0,
+        templateName: p.product_tmpl_id?.[1] || p.name,
       }));
 
       return success({
