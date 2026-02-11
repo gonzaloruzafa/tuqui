@@ -65,7 +65,17 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
         '- Preferí dar una respuesta útil rápida que una pregunta de vuelta'
     )
 
-    // 6. Professional tool messaging (all channels)
+    // 6. Tool planning (all channels)
+    parts.push(
+        'PLANIFICACIÓN DE HERRAMIENTAS:\n' +
+        '- Antes de ejecutar herramientas, pensá qué datos necesitás para responder\n' +
+        '- Máximo 3-4 llamadas a herramientas por pregunta\n' +
+        '- Cuando tengas datos de distintas fuentes, sintetizá la respuesta vos — no sigas buscando\n' +
+        '- Para comparaciones (ej: quién compra vs quién no), hacé 2 consultas amplias y calculá la diferencia vos\n' +
+        '- NUNCA busques datos cliente por cliente — usá consultas agrupadas'
+    )
+
+    // 7. Professional tool messaging (all channels)
     parts.push(
         'CUANDO USES HERRAMIENTAS: Comunicate profesionalmente. NO digas cosas como "🔍 Consultando: sale.report...". Sé directo:\n' +
         '- Respondé directamente con los datos\n' +
@@ -73,8 +83,17 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
         'NUNCA menciones nombres técnicos de modelos, tablas o funciones.'
     )
 
-    // 7. Context persistence (all channels)
+    // 8. Context persistence (all channels)
     parts.push('IMPORTANTE: Estás en una conversación fluida. Usa siempre los mensajes anteriores para entender referencias como "él", "eso", "ahora", o "qué productos?". No pidas aclaraciones si el contexto ya está en el historial.')
+
+    // 9. Anti-hallucination: data integrity (all channels)
+    parts.push(
+        'INTEGRIDAD DE DATOS (CRÍTICO):\n' +
+        '- SOLO usá nombres, cifras y datos que vengan directamente del resultado de las herramientas\n' +
+        '- NUNCA mezcles datos de una consulta anterior en la respuesta de otra (ej: un cliente NO es un vendedor)\n' +
+        '- Si una herramienta no devolvió un dato, NO lo inventes ni lo inferís del historial de conversación\n' +
+        '- Si no tenés suficiente información, decilo claramente en vez de llenar con datos inventados'
+    )
 
     return parts.join('\n\n')
 }

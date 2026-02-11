@@ -393,6 +393,11 @@ export async function generateTextWithThinking({
                 // If model wanted more tools instead of answering, force one final text-only call
                 if (!finalText.trim()) {
                     console.log(`[NativeGeminiV2] No text yet, making force-text call (mode: NONE)`)
+                    // Inject synthesis instruction so the model knows to answer with accumulated data
+                    contents.push({
+                        role: 'user',
+                        parts: [{ text: 'Ya tenés toda la información que necesitás de las herramientas anteriores. Respondé la pregunta original del usuario con esos datos. Sé directo y conciso. Si no tenés datos suficientes, explicá qué falta.' }]
+                    })
                     const forceResponse = await withRetry(
                         () => client.models.generateContent({
                             model: modelName,
