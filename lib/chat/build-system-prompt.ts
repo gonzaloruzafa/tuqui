@@ -35,7 +35,7 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     // 1. Company context goes FIRST (universal for all agents)
     const companyContext = await getCompanyContextString(tenantId)
     if (companyContext) {
-        parts.push(`CONTEXTO DE LA EMPRESA:\n${companyContext}\n---`)
+        parts.push(`CONTEXTO DE LA EMPRESA:\n${companyContext}\nEl usuario que te habla es parte del equipo de esta empresa. Cuando dice "yo", "nosotros", "nuestro", se refiere a la empresa.\n---`)
     }
 
     // 2. Agent system prompt (already merged with custom_instructions)
