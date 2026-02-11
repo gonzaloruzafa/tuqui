@@ -109,7 +109,7 @@ export const getInvoiceLines: Skill<
   InvoiceLinesOutput
 > = {
   name: 'get_invoice_lines',
-  description: 'Get invoice lines with flexible filters. Use for: "invoice lines by seller", "what did X invoice", "line-level invoice detail", "commissions by seller", "products invoiced by salesperson".',
+  description: 'Get invoice lines with flexible filters. Use for: "qué le vendemos a X cliente", "productos vendidos a X", "invoice lines by seller", "what did X invoice", "line-level invoice detail", "commissions by seller". Use groupBy=product + customerName to get products sold to a specific customer.',
   tool: 'odoo',
   tags: ['invoices', 'lines', 'sellers', 'commissions', 'detail'],
   inputSchema: GetInvoiceLinesInputSchema,
