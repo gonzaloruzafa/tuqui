@@ -122,10 +122,10 @@ export const compareSalesPeriods: Skill<
 > = {
   name: 'compare_sales_periods',
 
-  description: `Compare sales between two periods (e.g., this month vs last month).
-Use when user asks: "compare sales", "how did we do vs last month",
-"comparar ventas", "cómo estamos vs mes pasado", "evolución de ventas".
-Returns sales totals, order counts, and percentage changes for both periods.`,
+  description: `Comparar ventas entre dos períodos (ej: este mes vs el anterior, este año vs el pasado).
+USAR PARA: "compará ventas", "cómo estamos vs mes pasado", "evolución", "crecimiento".
+Opcional: includeProducts/includeCustomers para breakdown detallado.
+Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
 
   tool: 'odoo',
 
@@ -218,17 +218,23 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
         const stateDomain = stateFilter(input.state, 'sale.order')
         const stateOnOrder = stateDomain.map((f) => ['order_id.' + f[0], f[1], f[2]] as [string, string, any])
 
+        // Build base domain with team filter for sale.order.line
+        const productBaseDomain: OdooDomain = []
+        if (input.teamId) {
+          productBaseDomain.push(['order_id.team_id', '=', input.teamId])
+        }
+
         const [currentProducts, previousProducts] = await Promise.all([
           odoo.readGroup(
             'sale.order.line',
-            combineDomains(currentDateDomain, stateOnOrder),
+            combineDomains(currentDateDomain, [...stateOnOrder, ...productBaseDomain]),
             ['product_id', 'price_total', 'price_subtotal'],
             ['product_id'],
             { orderBy: 'price_total desc', limit: input.limit }
           ),
           odoo.readGroup(
             'sale.order.line',
-            combineDomains(previousDateDomain, stateOnOrder),
+            combineDomains(previousDateDomain, [...stateOnOrder, ...productBaseDomain]),
             ['product_id', 'price_total', 'price_subtotal'],
             ['product_id'],
             { orderBy: 'price_total desc', limit: input.limit }
@@ -267,17 +273,23 @@ Returns sales totals, order counts, and percentage changes for both periods.`,
         const previousDateDomain = dateRange('date_order', previousPeriod.start, previousPeriod.end)
         const stateDomain = stateFilter(input.state, 'sale.order')
 
+        // Build base domain with team filter for sale.order
+        const customerBaseDomain: OdooDomain = []
+        if (input.teamId) {
+          customerBaseDomain.push(['team_id', '=', input.teamId])
+        }
+
         const [currentCustomers, previousCustomers] = await Promise.all([
           odoo.readGroup(
             'sale.order',
-            combineDomains(currentDateDomain, stateDomain),
+            combineDomains(currentDateDomain, [...stateDomain, ...customerBaseDomain]),
             ['partner_id', 'amount_total'],
             ['partner_id'],
             { orderBy: 'amount_total desc', limit: input.limit }
           ),
           odoo.readGroup(
             'sale.order',
-            combineDomains(previousDateDomain, stateDomain),
+            combineDomains(previousDateDomain, [...stateDomain, ...customerBaseDomain]),
             ['partner_id', 'amount_total'],
             ['partner_id'],
             { orderBy: 'amount_total desc', limit: input.limit }

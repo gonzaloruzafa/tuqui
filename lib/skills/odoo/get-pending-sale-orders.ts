@@ -28,6 +28,9 @@ export const GetPendingSaleOrdersInputSchema = z.object({
 
   /** Maximum number of orders to return details */
   limit: z.number().int().min(1).max(100).default(20),
+
+  /** Sales team ID. Obtener de get_sales_teams, NO adivinar. */
+  teamId: z.number().int().positive().optional(),
 });
 
 // ============================================
@@ -63,9 +66,10 @@ export const getPendingSaleOrders: Skill<
   PendingSaleOrdersOutput
 > = {
   name: 'get_pending_sale_orders',
-  description: `Órdenes de venta pendientes - pedidos confirmados sin entregar o facturar. 
+  description: `Órdenes de venta pendientes - pedidos confirmados sin entregar o facturar.
 HERRAMIENTA PRINCIPAL para "cuántas órdenes pendientes", "pedidos sin entregar", "ventas pendientes".
-SIEMPRE ejecutar con AMBAS (entrega Y facturación) - NO preguntar cuál tipo. Devuelve lista de órdenes.`,
+SIEMPRE ejecutar con AMBAS (entrega Y facturación) - NO preguntar cuál tipo.
+Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'orders', 'pending', 'delivery'],
   inputSchema: GetPendingSaleOrdersInputSchema,
@@ -102,6 +106,11 @@ SIEMPRE ejecutar con AMBAS (entrega Y facturación) - NO preguntar cuál tipo. D
         domain = [
           ['state', '=', 'sale'],
         ];
+      }
+
+      // Filter by sales team if specified
+      if (input.teamId) {
+        domain.push(['team_id', '=', input.teamId]);
       }
 
       // Add period filter if specified

@@ -42,8 +42,8 @@ export const getTopProducts: Skill<
 > = {
   name: 'get_top_products',
   description: `Top productos por ventas. EJECUTAR SIN PREGUNTAR PERÍODO (usa mes actual por defecto).
-Para: "top products", "best sellers", "productos más vendidos", "qué se vende más",
-"ranking de productos", "productos estrella", "qué vendemos más".`,
+Para: "productos más vendidos", "qué se vende más", "ranking de productos", "productos estrella".
+Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'products', 'reporting'],
   inputSchema: GetTopProductsInputSchema,

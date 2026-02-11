@@ -72,7 +72,10 @@ export const getSalesByProduct: Skill<
   SalesByProductOutput
 > = {
   name: 'get_sales_by_product',
-  description: 'Get sales grouped by product. Use when user asks "top products", "best-selling products", "product sales", "what sold most".',
+  description: `Ventas agrupadas por producto - cuánto se vendió de cada producto.
+USAR PARA: "qué productos vendimos", "ventas por producto", "qué se vendió más".
+Puede filtrar por categoría (categoryId) o equipo de ventas (teamId).
+Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'products', 'reporting'],
   inputSchema: GetSalesByProductInputSchema,

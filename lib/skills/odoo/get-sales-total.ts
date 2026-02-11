@@ -36,6 +36,8 @@ export const GetSalesTotalInputSchema = z.object({
   includeTaxes: z.boolean().default(false),
   /** Filter by sales team ID (e.g., ecommerce, tienda web) */
   teamId: z.number().int().positive().optional(),
+  /** Filter by customer province/state name (e.g. "Córdoba", "Buenos Aires") */
+  customerState: z.string().optional(),
 });
 
 export type GetSalesTotalInput = z.infer<typeof GetSalesTotalInputSchema>;
@@ -80,10 +82,10 @@ export const getSalesTotal: Skill<
 > = {
   name: 'get_sales_total',
 
-  description: `Total de ventas por período, con opción de filtrar por equipo de ventas.
-USAR PARA: "total ventas", "cuánto vendimos", "facturación total", "revenue".
-Filtro teamId para: "ventas del ecommerce", "tienda web", "ventas online".
-Retorna: total con/sin impuestos, cantidad de órdenes, valor promedio.`,
+  description: `Total de ventas por período, con opción de filtrar por equipo o provincia.
+USAR PARA: "total ventas", "cuánto vendimos", "facturación total", "ventas en [provincia]".
+Soporta filtro por equipo (teamId) y provincia del cliente (customerState).
+SIEMPRE llamar get_sales_teams primero para obtener el teamId, NO adivinarlo.`,
 
   tool: 'odoo',
 
@@ -116,6 +118,11 @@ Retorna: total con/sin impuestos, cantidad de órdenes, valor promedio.`,
       // Filter by sales team if specified
       if (input.teamId) {
         domain.push(['team_id', '=', input.teamId]);
+      }
+
+      // Filter by customer province/state
+      if (input.customerState) {
+        domain.push(['partner_id.state_id.name', 'ilike', input.customerState]);
       }
 
       // Execute aggregation - get totals and distinct partners

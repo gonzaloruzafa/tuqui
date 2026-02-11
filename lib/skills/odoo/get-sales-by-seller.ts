@@ -66,7 +66,9 @@ export const getSalesBySeller: Skill<
   SalesBySellerOutput
 > = {
   name: 'get_sales_by_seller',
-  description: 'Get sales grouped by salesperson. Use when user asks "top sellers", "who sold most", "sales by salesperson", "commissions".',
+  description: `Ventas agrupadas por vendedor - quién vendió cuánto.
+USAR PARA: "ventas por vendedor", "quién vendió más", "comisiones", "ranking vendedores".
+Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'sellers', 'commissions', 'reporting'],
   inputSchema: GetSalesBySellerInputSchema,

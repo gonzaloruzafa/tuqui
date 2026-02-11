@@ -16,6 +16,8 @@ export const GetTopCustomersInputSchema = z.object({
   minAmount: z.number().min(0).optional(),
   /** Filter by sales team ID (e.g., ecommerce, tienda web) */
   teamId: z.number().int().positive().optional(),
+  /** Filter by customer province/state name (e.g. "Córdoba", "Buenos Aires") */
+  customerState: z.string().optional(),
 });
 
 export interface TopCustomer {
@@ -42,8 +44,9 @@ export const getTopCustomers: Skill<
 > = {
   name: 'get_top_customers',
   description: `Top clientes por ventas - mejores clientes y cuánto compraron. USA MES ACTUAL si no hay período.
-Use for: "mejores clientes", "clientes top", "best customers", "quién compra más", "mi mejor cliente".
-SIEMPRE ejecutar sin preguntar período - usa default mes actual automáticamente.`,
+Para: "mejores clientes", "clientes top", "quién compra más", "top clientes de [provincia]".
+Soporta filtro por provincia (customerState) y equipo (teamId).
+SIEMPRE llamar get_sales_teams primero para obtener el teamId, NO adivinarlo.`,
   tool: 'odoo',
   tags: ['sales', 'customers', 'reporting'],
   inputSchema: GetTopCustomersInputSchema,
@@ -65,6 +68,11 @@ SIEMPRE ejecutar sin preguntar período - usa default mes actual automáticament
       // Filter by sales team if specified
       if (input.teamId) {
         domain.push(['team_id', '=', input.teamId]);
+      }
+
+      // Filter by customer province/state
+      if (input.customerState) {
+        domain.push(['partner_id.state_id.name', 'ilike', input.customerState]);
       }
 
       const grouped = await odoo.readGroup(
