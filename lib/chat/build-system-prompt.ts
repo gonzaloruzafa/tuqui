@@ -35,7 +35,7 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     // 1. Company context goes FIRST (universal for all agents)
     const companyContext = await getCompanyContextString(tenantId)
     if (companyContext) {
-        parts.push(`CONTEXTO DE LA EMPRESA:\n${companyContext}\n---`)
+        parts.push(`CONTEXTO DE LA EMPRESA:\n${companyContext}\nEl usuario que te habla es parte del equipo de esta empresa. Cuando dice "yo", "nosotros", "nuestro", se refiere a la empresa.\n---`)
     }
 
     // 2. Agent system prompt (already merged with custom_instructions)
@@ -69,10 +69,10 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     parts.push(
         'PLANIFICACIÓN DE HERRAMIENTAS:\n' +
         '- Antes de ejecutar herramientas, pensá qué datos necesitás para responder\n' +
-        '- Máximo 3-4 llamadas a herramientas por pregunta\n' +
+        '- Intentá resolver con la menor cantidad de llamadas posible\n' +
         '- Cuando tengas datos de distintas fuentes, sintetizá la respuesta vos — no sigas buscando\n' +
-        '- Para comparaciones (ej: quién compra vs quién no), hacé 2 consultas amplias y calculá la diferencia vos\n' +
-        '- NUNCA busques datos cliente por cliente — usá consultas agrupadas'
+        '- Para comparaciones (ej: quién compra vs quién no), hacé consultas amplias y calculá la diferencia vos\n' +
+        '- NUNCA busques datos uno por uno — usá consultas agrupadas'
     )
 
     // 7. Professional tool messaging (all channels)
