@@ -115,8 +115,11 @@ Can search by product name or show low stock items.`,
         productIds = products.map(p => p.id);
       }
 
-      // Build stock.quant domain
-      const domain: OdooDomain = [];
+      // Build stock.quant domain — always filter internal locations
+      // to exclude customer/supplier/transit virtual locations
+      const domain: OdooDomain = [
+        ['location_id.usage', '=', 'internal'],
+      ];
       
       // Filter by products if searching
       if (productIds?.length) {
