@@ -46,6 +46,10 @@ export interface JournalBalance {
   balance: number
   /** Currency */
   currency: string
+  /** Company ID that owns this journal */
+  companyId: number
+  /** Company name */
+  companyName: string
 }
 
 export interface GetCashBalanceOutput {
@@ -69,8 +73,10 @@ export const getCashBalance: Skill<typeof GetCashBalanceInputSchema, GetCashBala
   name: 'get_cash_balance',
 
   description: `Saldo de caja y bancos (tesorería).
-USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "saldo total disponible", "cuánta plata hay", "efectivo disponible", "liquidez".
-Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
+USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "liquidez".
+Para ver liquidez de TODAS las compañías: llamar SIN companyId → devuelve TODOS los diarios con su compañía.
+Para ver liquidez de UNA compañía: llamar con companyId (obtener de get_companies primero).
+Cada diario incluye companyId y companyName para identificar a qué empresa pertenece.
 Retorna: saldo por caja/banco y total combinado.`,
 
   tool: 'odoo',
@@ -159,6 +165,8 @@ Retorna: saldo por caja/banco y total combinado.`,
           journalType,
           balance,
           currency,
+          companyId: Array.isArray(journal.company_id) ? journal.company_id[0] : journal.company_id,
+          companyName: Array.isArray(journal.company_id) ? journal.company_id[1] : 'Desconocida',
         })
 
         // Use first currency as default
