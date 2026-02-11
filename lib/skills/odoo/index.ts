@@ -28,6 +28,7 @@ export { getProductStock, type GetProductStockInput, type GetProductStockOutput 
 export { getLowStockProducts } from './get-low-stock-products';
 export { getStockValuation } from './get-stock-valuation';
 export { getExpiringStock, type GetExpiringStockInput, type GetExpiringStockOutput } from './get-expiring-stock';
+export { getStockRotation } from './get-stock-rotation';
 
 // Payment Skills
 export { getPaymentsReceived, type GetPaymentsReceivedInput, type GetPaymentsReceivedOutput } from './get-payments-received';
@@ -96,6 +97,7 @@ import { getJournalEntries } from './get-journal-entries';
 import { getAccountsPayable } from './get-accounts-payable';
 import { getPaymentsMade } from './get-payments-made';
 import { getExpiringStock } from './get-expiring-stock';
+import { getStockRotation } from './get-stock-rotation';
 
 export const odooSkills = [
   // Sales (10)
@@ -120,6 +122,7 @@ export const odooSkills = [
   getStockValuation,
   getTopStockProducts,
   getExpiringStock, // NEW - expiration date tracking
+  getStockRotation, // NEW - stock rotation analysis
   // Payments (1)
   getPaymentsReceived,
   // Purchases (3)

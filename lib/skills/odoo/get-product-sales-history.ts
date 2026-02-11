@@ -30,7 +30,13 @@ export const getProductSalesHistory: Skill<
   ProductSalesHistoryOutput
 > = {
   name: 'get_product_sales_history',
-  description: 'Get sales history for a specific product. Use for "product sales history", "how much did we sell of X".',
+  description: `Historial de ventas de un producto específico.
+USAR CUANDO: "cuánto vendimos de X", "ventas del producto", "historial de ventas".
+IMPORTANTE: El período default es el mes actual. Para evaluar si un producto
+tiene movimiento o rotación, usá un período de al menos 6 meses.
+Para comparar períodos (ej: enero vs febrero, este año vs el anterior),
+llamá este skill dos veces con períodos distintos.
+Soporta groupBy: 'month' para ver evolución mensual, 'customer' para ver compradores.`,
   tool: 'odoo',
   tags: ['sales', 'products', 'history'],
   inputSchema: GetProductSalesHistoryInputSchema,
