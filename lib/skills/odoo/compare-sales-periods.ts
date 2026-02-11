@@ -13,7 +13,7 @@
 import { z } from 'zod'
 import type { Skill, SkillContext, SkillResult, Period } from '../types'
 import { PeriodSchema, DocumentStateSchema, success, authError } from '../types'
-import { createOdooClient, dateRange, stateFilter, combineDomains, getDefaultPeriod, getPreviousMonthPeriod, type OdooDomain } from './_client'
+import { createOdooClient, dateRange, stateFilter, combineDomains, getDefaultPeriod, getPreviousMonthPeriod, type OdooDomain, type DomainFilter } from './_client'
 import { errorToResult } from '../errors'
 
 // ============================================
@@ -219,7 +219,7 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         const stateOnOrder = stateDomain.map((f) => ['order_id.' + f[0], f[1], f[2]] as [string, string, any])
 
         // Build base domain with team filter for sale.order.line
-        const productBaseDomain: OdooDomain = []
+        const productBaseDomain: DomainFilter[] = []
         if (input.teamId) {
           productBaseDomain.push(['order_id.team_id', '=', input.teamId])
         }
@@ -274,7 +274,7 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         const stateDomain = stateFilter(input.state, 'sale.order')
 
         // Build base domain with team filter for sale.order
-        const customerBaseDomain: OdooDomain = []
+        const customerBaseDomain: DomainFilter[] = []
         if (input.teamId) {
           customerBaseDomain.push(['team_id', '=', input.teamId])
         }
