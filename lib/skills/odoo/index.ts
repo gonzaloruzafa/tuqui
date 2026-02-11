@@ -68,6 +68,7 @@ import { getSalesTotal } from './get-sales-total';
 import { getSalesByCustomer } from './get-sales-by-customer';
 import { getSalesByProduct } from './get-sales-by-product';
 import { getSalesBySeller } from './get-sales-by-seller';
+import { getSalesByCategory } from './get-sales-by-category';
 import { getTopProducts } from './get-top-products';
 import { getTopCustomers } from './get-top-customers';
 import { getProductSalesHistory } from './get-product-sales-history';
@@ -112,6 +113,7 @@ export const odooSkills = [
   getProductSalesHistory,
   compareSalesPeriods,
   getPendingSaleOrders,
+  getSalesByCategory,
   getSalesTeams, // NEW - list sales teams for filtering
   getCompanies, // NEW - list companies for multi-company filtering
   // Invoices/Debt (4)
