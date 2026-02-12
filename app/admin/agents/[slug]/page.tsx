@@ -58,13 +58,10 @@ async function updateAgent(formData: FormData) {
 
     // Tools handling (multi-value) - only for custom agents
     const tools = formData.getAll('tools') as string[]
-    
-    // rag_enabled is now derived from tools - if knowledge_base is in tools, RAG is enabled
-    const ragEnabled = tools.includes('knowledge_base')
 
     // Docs handling
     const docIds = formData.getAll('doc_ids') as string[]
-    console.log('[AgentEditor] Saving:', { slug, docIds, tools, ragEnabled, isBaseAgent })
+    console.log('[AgentEditor] Saving:', { slug, docIds, tools, isBaseAgent })
 
     const session = await auth()
     if (!session?.tenant?.id || !session.isAdmin) return
@@ -79,15 +76,13 @@ async function updateAgent(formData: FormData) {
         // BASE AGENT: Only update custom_instructions and is_active
         await db.from('agents').update({
             custom_instructions: customInstructions,
-            is_active: isActive,
-            rag_enabled: ragEnabled
+            is_active: isActive
         }).eq('tenant_id', session.tenant.id).eq('id', agent.id)
     } else {
         // CUSTOM AGENT: Update everything
         await db.from('agents').update({
             name: name,
             system_prompt: systemPrompt,
-            rag_enabled: ragEnabled,
             is_active: isActive,
             tools: tools
         }).eq('tenant_id', session.tenant.id).eq('id', agent.id)
@@ -151,10 +146,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
         { slug: 'memory', label: 'Memoria', description: 'Recordar notas sobre clientes, productos y proveedores entre conversaciones' }
     ]
     
-    // For display purposes: if rag_enabled but knowledge_base not in tools, add it
-    const displayTools = agent.rag_enabled && !agent.tools?.includes('knowledge_base')
-        ? [...(agent.tools || []), 'knowledge_base']
-        : agent.tools || []
+    const displayTools = agent.tools || []
 
     return (
         <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">

@@ -41,3 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# RAG source PDFs (large files, not committed)
+tuqui-rag-pdfs/

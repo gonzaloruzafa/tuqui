@@ -10,7 +10,6 @@ interface Agent {
     slug: string
     description: string | null
     system_prompt: string | null
-    rag_enabled: boolean
     is_active: boolean
     tools: string[]
     master_agent_id: string | null
@@ -124,9 +123,7 @@ export default function AdminAgentsPage() {
     const customAgents = agents.filter(a => !a.master_agent_id)
 
     const getAgentTools = (agent: Agent): string[] => {
-        const tools = [...(agent.tools || [])]
-        if (agent.rag_enabled) tools.push('rag')
-        return tools
+        return [...(agent.tools || [])]
     }
 
     const AgentRow = ({ agent }: { agent: Agent }) => {
