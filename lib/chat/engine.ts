@@ -76,7 +76,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
     // 5. Execute with Gemini V2 (thinking + retry + force-text fallback)
     const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
     const result = await generateTextWithThinking({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         system: systemPrompt,
         messages: messages as any,
         tools: hasTools ? tools : undefined,

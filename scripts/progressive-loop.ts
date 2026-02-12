@@ -58,7 +58,7 @@ const config: Partial<LoopConfig> = {
     startLevel: startLevel as LoopConfig['startLevel'],
     maxLevel: maxLevel as LoopConfig['maxLevel'],
     categories,
-    model: process.env.IMPROVEMENT_MODEL || 'gemini-2.5-flash',
+    model: process.env.IMPROVEMENT_MODEL || 'gemini-3-flash-preview',
 }
 
 // Tool/prompt factories that reload on each call (to pick up changes)

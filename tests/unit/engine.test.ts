@@ -316,14 +316,14 @@ describe('processChatRequest (Unified Engine)', () => {
         }))
     })
 
-    test('uses gemini-2.5-flash model', async () => {
+    test('uses gemini-3-flash-preview model', async () => {
         await processChatRequest({
             tenantId: 'tenant-1', userEmail: 'user@test.com',
             agent: baseAgent as any, messages: baseMessages, channel: 'web'
         })
 
         expect(mockedGenerate).toHaveBeenCalledWith(expect.objectContaining({
-            model: 'gemini-2.5-flash'
+            model: 'gemini-3-flash-preview'
         }))
     })
 

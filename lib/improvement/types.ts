@@ -227,7 +227,7 @@ export const DEFAULT_LOOP_CONFIG: LoopConfig = {
     maxRetriesPerLevel: 3,
     minPassRate: 0.85,
     minAuditScore: 3.5,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     requirePrForRiskyChanges: true,
     goldStandardTests: ['ventas-001', 'stock-001', 'cobranzas-001'],
     delayBetweenTests: 4000,

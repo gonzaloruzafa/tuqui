@@ -8,7 +8,7 @@ export const USAGE_LIMITS = {
     PRO_TIER: {
         name: 'Pro',
         price_per_user: 500, // cents ($5.00)
-        tokens_per_user: 2000000, // 2M tokens for alpha testing
+        tokens_per_user: 8000000, // 8M tokens ≈ $5/user/month at gemini-3 rates
     }
 }
 
