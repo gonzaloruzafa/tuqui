@@ -237,9 +237,8 @@ d975e90 feat: add delete agent functionality for custom agents
 
 ### Checklist
 
-- [ ] Migration `300_master_documents.sql` (tablas master_documents, master_document_chunks, master_agent_documents)
-- [ ] Migration `301_fix_match_documents.sql` (UNION query tenant + master docs)
-- [ ] `lib/platform/auth.ts` (isPlatformAdmin, requirePlatformAdmin)
+- [ ] Migration `206_master_documents.sql` (tablas master_documents, master_document_chunks, master_agent_documents)
+- [ ] Migration `207_fix_match_documents.sql` (UNION query tenant + master docs + eliminar check `rag_enabled` dropeado)
 - [ ] `/super-admin/agents` (lista master agents)
 - [ ] `/super-admin/agents/[slug]` (editor con prompt, tools, docs)
 - [ ] `components/super-admin/MasterAgentEditor.tsx`
@@ -247,14 +246,62 @@ d975e90 feat: add delete agent functionality for custom agents
 - [ ] `app/api/super-admin/agents/[slug]/documents/route.ts`
 - [ ] `lib/rag/master-documents.ts` (procesador PDF/TXT → chunks + embeddings)
 - [ ] Subir PDFs: Ley IVA, Ley Ganancias, LCT, Ley Sociedades
+- [ ] **@mention agents:** parseo `@slug` + skip orchestrator + autocomplete básico (~50 líneas, 4 archivos)
+- [ ] **Agent attribution en tools:** mostrar qué agente eligió el orchestrator en ExecutionProgress y ToolBadge (~40 líneas, 5 archivos)
+
+### @mention agents (sub-task)
+
+Permite forzar un agente tipeando `@odoo cuánto vendimos?` en el chat.
+
+**Cambios (4 archivos, ~80 líneas):**
+
+| Archivo | Cambio |
+|---------|--------|
+| `lib/chat/parse-mention.ts` | **NUEVO** ~15 líneas. Extrae `@slug` del inicio del mensaje, valida contra slugs disponibles |
+| `app/api/chat/route.ts` | Destructurar `mentionedAgent` del body, pasar a engine |
+| `lib/chat/engine.ts` | Si `mentionedAgent`, cargar agente directo con `getAgentBySlug()` y skip `orchestrate()` |
+| `components/chat/ChatFooter.tsx` | Al tipear `@`, mostrar lista filtrable de agentes (popover simple con los 5 slugs) |
+
+**Autocomplete minimalista:** Un `<div>` absolute posicionado sobre el textarea. Se muestra cuando el input empieza con `@` o tiene `@` después de un espacio. Se filtra mientras tipea. Click o Enter inserta el slug. Sin librería externa, ~40 líneas de JSX.
+
+```
+Usuario tipea: @con
+                ┌─────────────┐
+                │ 📊 contador │  ← filtrado
+                └─────────────┘
+Usuario apreta Enter → "@contador " se inserta
+
+Usuario tipea: @contador cuánto debo de IVA?
+→ API recibe: { mentionedAgent: "contador", message: "cuánto debo de IVA?" }
+→ Engine: skip orchestrator → agente contador directo
+```
+
+### Agent attribution en tools (sub-task)
+
+Mostrar el agente seleccionado por el orchestrator en las notificaciones de tools, tanto en tiempo real como en el badge final. Útil para debuggear routing y dar visibilidad al usuario.
+
+**Layout:** `⚡ Odoo Agent · [logo] Consultando ventas totales` → `✓ vía Odoo Agent · Odoo ERP`
+
+**Cambios (5 archivos, ~40 líneas):**
+
+| Archivo | Cambio |
+|---------|--------|
+| `lib/thinking/types.ts` | Agregar `agentSlug?: string`, `agentName?: string` opcionales a `ThinkingStep` |
+| `lib/chat/engine.ts` | Wrap `onThinkingStep` callback para inyectar `selectedAgent.slug/name` en cada step (~5 líneas) |
+| `app/chat/[slug]/page.tsx` | Extraer `agentName` del stream, guardar en state, pasar a componentes |
+| `components/chat/ExecutionProgress.tsx` | Mostrar `agentName · toolName` en vez de solo `toolName` |
+| `components/chat/ToolBadge.tsx` | Agregar prop `agentName?`, mostrar antes de sources |
+
+**Cero breaking changes** — campos opcionales, mensajes históricos sin `agentName` muestran badge como antes.
 
 ### Tests
 
 ```typescript
-// tests/unit/platform-auth.test.ts
-- isPlatformAdmin('gr@adhoc.inc') → true
-- isPlatformAdmin('random@gmail.com') → false
-- isPlatformAdmin(null) → false
+// tests/unit/parse-mention.test.ts
+- parseMention('@odoo cuánto vendimos?') → { agent: 'odoo', message: 'cuánto vendimos?' }
+- parseMention('cuánto vendimos?') → { agent: null, message: 'cuánto vendimos?' }
+- parseMention('@invalido hola') → { agent: null, message: '@invalido hola' }
+- parseMention('@contador qué dice la ley?') → { agent: 'contador', message: 'qué dice la ley?' }
 
 // tests/unit/master-documents.test.ts
 - processMasterDocument: chunking con overlap correcto
@@ -279,6 +326,7 @@ d975e90 feat: add delete agent functionality for custom agents
 | `pdf-parse` pesado en serverless | Timeout en docs grandes | Chunks < 1000 chars, procesar async |
 | IVFFlat index con pocos vectores | Performance pobre | Empezar sin index, agregar con >1000 chunks |
 | Embeddings cost para docs grandes | $$ en API calls | Batch de 20 chunks, cachear embeddings |
+| `match_documents` checkea `rag_enabled` (dropeado) | RAG silenciosamente roto | Fix en migration 207 |
 
 ---
 

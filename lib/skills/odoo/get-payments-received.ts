@@ -82,9 +82,10 @@ export const getPaymentsReceived: Skill<
 > = {
   name: 'get_payments_received',
 
-  description: `Pagos recibidos de clientes (cobranzas).
-USAR PARA: "cuánto cobramos", "pagos recibidos", "cobranzas del mes", "cobros de enero", "recaudación".
+  description: `Pagos recibidos de clientes (cobranzas) — INGRESOS de efectivo.
+USAR PARA: "cuánto cobramos", "pagos recibidos", "cobranzas del mes", "cobros de enero", "recaudación", "ingresos de caja".
 Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
+PARA FLUJO DE CAJA: este tool da los INGRESOS. Combinar con get_payments_made (egresos) y get_cash_balance (saldo actual).
 Retorna total cobrado, cantidad de pagos. Acepta período (this_month, last_month, enero, etc).`,
 
   tool: 'odoo',

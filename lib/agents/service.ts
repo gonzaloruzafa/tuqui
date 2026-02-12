@@ -189,6 +189,8 @@ async function syncAgentWithMaster(agentId: string): Promise<boolean> {
     const { error } = await db
         .from('agents')
         .update({
+            name: master.name,
+            description: master.description,
             system_prompt: master.system_prompt,
             tools: master.tools,
             master_version_synced: master.version,
