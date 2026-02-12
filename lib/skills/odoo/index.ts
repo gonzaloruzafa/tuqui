@@ -58,6 +58,13 @@ export { compareSalesPeriods, type CompareSalesPeriodsInput, type CompareSalesPe
 
 // New Skills
 export { getTopStockProducts } from './get-top-stock-products';
+
+// Intelligence Revamp Phase 1
+export { getCrmPipeline } from './get-crm-pipeline';
+export { getProductMargin } from './get-product-margin';
+export { getInactiveCustomers } from './get-inactive-customers';
+export { getSalesMarginSummary } from './get-sales-margin-summary';
+export { getPurchasePriceHistory } from './get-purchase-price-history';
 export { getNewCustomers } from './get-new-customers';
 export { getArAging } from './get-ar-aging';
 export { getSalesTeams } from './get-sales-teams';
@@ -103,6 +110,13 @@ import { getAccountsPayable } from './get-accounts-payable';
 import { getPaymentsMade } from './get-payments-made';
 import { getExpiringStock } from './get-expiring-stock';
 import { getStockRotation } from './get-stock-rotation';
+
+// Intelligence Revamp Phase 1
+import { getCrmPipeline } from './get-crm-pipeline';
+import { getProductMargin } from './get-product-margin';
+import { getInactiveCustomers } from './get-inactive-customers';
+import { getSalesMarginSummary } from './get-sales-margin-summary';
+import { getPurchasePriceHistory } from './get-purchase-price-history';
 
 export const odooSkills = [
   // Sales (10)
@@ -152,4 +166,10 @@ export const odooSkills = [
   getNewCustomers, // NEW
   // Aging/Analysis (1)
   getArAging, // NEW
+  // Intelligence Revamp Phase 1 (5)
+  getCrmPipeline,
+  getProductMargin,
+  getInactiveCustomers,
+  getSalesMarginSummary,
+  getPurchasePriceHistory,
 ];
