@@ -72,11 +72,11 @@ export interface GetCashBalanceOutput {
 export const getCashBalance: Skill<typeof GetCashBalanceInputSchema, GetCashBalanceOutput> = {
   name: 'get_cash_balance',
 
-  description: `Saldo de caja y bancos (tesorería).
-USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "liquidez".
+  description: `Saldo ACTUAL de caja y bancos (tesorería) — snapshot del momento.
+USAR PARA: "cuánto tenemos en bancos", "saldo en caja", "plata disponible", "liquidez", "disponibilidades".
 Para ver liquidez de TODAS las compañías: llamar SIN companyId → devuelve TODOS los diarios con su compañía.
 Para ver liquidez de UNA compañía: llamar con companyId (obtener de get_companies primero).
-Cada diario incluye companyId y companyName para identificar a qué empresa pertenece.
+PARA FLUJO DE CAJA: combinar este tool (saldo actual) + get_payments_received (ingresos) + get_payments_made (egresos).
 Retorna: saldo por caja/banco y total combinado.`,
 
   tool: 'odoo',

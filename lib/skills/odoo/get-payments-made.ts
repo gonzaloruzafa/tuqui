@@ -58,9 +58,10 @@ export interface GetPaymentsMadeOutput {
 export const getPaymentsMade: Skill<typeof GetPaymentsMadeInputSchema, GetPaymentsMadeOutput> = {
   name: 'get_payments_made',
 
-  description: `Pagos realizados a proveedores (egresos).
-USAR PARA: "cuánto pagamos", "pagos a proveedores", "egresos del mes", "cuánto se pagó", "pagos realizados".
+  description: `Pagos realizados a proveedores (egresos) — SALIDAS de efectivo.
+USAR PARA: "cuánto pagamos", "pagos a proveedores", "egresos del mes", "cuánto se pagó", "pagos realizados", "salidas de caja".
 Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero para obtener el ID.
+PARA FLUJO DE CAJA: este tool da los EGRESOS. Combinar con get_payments_received (ingresos) y get_cash_balance (saldo actual).
 Retorna total pagado, cantidad de pagos. Acepta período y agrupación por diario/proveedor.`,
 
   tool: 'odoo',

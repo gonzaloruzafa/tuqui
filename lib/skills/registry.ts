@@ -170,6 +170,40 @@ export class SkillRegistry {
 export const globalRegistry = new SkillRegistry();
 
 // ============================================
+// INPUT HELPERS
+// ============================================
+
+/**
+ * Auto-clamp numeric inputs to prevent Zod validation errors.
+ * LLMs sometimes pass values exceeding schema limits (e.g., limit=9999).
+ * Instead of rejecting with VALIDATION_ERROR, silently clamp to schema bounds.
+ */
+function clampNumericInputs(input: unknown, schema: z.ZodType): unknown {
+  if (typeof input !== 'object' || input === null || !(schema instanceof z.ZodObject)) {
+    return input;
+  }
+
+  const result = { ...(input as Record<string, unknown>) };
+  const shape = (schema as z.ZodObject<any>).shape;
+
+  for (const [key, fieldSchema] of Object.entries(shape)) {
+    if (typeof result[key] !== 'number') continue;
+
+    // Unwrap Default/Optional wrappers to find the inner ZodNumber
+    let inner: any = fieldSchema;
+    while (inner?._def?.innerType) inner = inner._def.innerType;
+
+    if (inner instanceof z.ZodNumber) {
+      // Zod 4 stores min/max directly on the ZodNumber instance
+      if (typeof inner.maxValue === 'number') result[key] = Math.min(result[key] as number, inner.maxValue);
+      if (typeof inner.minValue === 'number') result[key] = Math.max(result[key] as number, inner.minValue);
+    }
+  }
+
+  return result;
+}
+
+// ============================================
 // CONVERSION FUNCTIONS
 // ============================================
 
@@ -190,8 +224,11 @@ export function skillsToAITools(
       description: skill.description,
       parameters: skill.inputSchema,
       execute: async (input: unknown) => {
+        // Auto-clamp numeric values to prevent LLM validation errors
+        const clamped = clampNumericInputs(input, skill.inputSchema);
+
         // Validate input
-        const parsed = skill.inputSchema.safeParse(input);
+        const parsed = skill.inputSchema.safeParse(clamped);
         if (!parsed.success) {
           return {
             success: false,
