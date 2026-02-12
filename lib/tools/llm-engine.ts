@@ -12,7 +12,7 @@ import { ThinkingStep, OnThinkingStep, getToolSource, ThinkingSource } from '@/l
 import { withRetry } from '@/lib/skills/errors'
 
 /**
- * Map string literals to ThinkingLevel enum values
+ * Map string literals to ThinkingLevel enum values (gemini-3-*)
  */
 const thinkingLevelMap = {
     'minimal': ThinkingLevel.MINIMAL,
@@ -20,6 +20,34 @@ const thinkingLevelMap = {
     'medium': ThinkingLevel.MEDIUM,
     'high': ThinkingLevel.HIGH
 } as const
+
+/**
+ * Map string levels to token budgets (gemini-2.5-*)
+ * gemini-2.5-flash uses thinkingBudget instead of thinkingLevel
+ */
+const thinkingBudgetMap: Record<string, number> = {
+    'minimal': 1024,
+    'low': 2048,
+    'medium': 8192,
+    'high': 24576
+}
+
+/** Build thinkingConfig based on model capabilities */
+function buildThinkingConfig(
+    modelName: string,
+    level: string | ThinkingLevel,
+    includeThoughts: boolean
+) {
+    if (modelName.includes('gemini-3')) {
+        const resolved = typeof level === 'string'
+            ? thinkingLevelMap[level as keyof typeof thinkingLevelMap]
+            : level
+        return { thinkingLevel: resolved, includeThoughts }
+    }
+    // gemini-2.5-flash and others: use thinkingBudget (tokens)
+    const key = typeof level === 'string' ? level : 'medium'
+    return { thinkingBudget: thinkingBudgetMap[key] || 8192, includeThoughts }
+}
 
 /**
  * Record of a tool call made during generation
@@ -167,10 +195,7 @@ export async function generateTextWithThinking({
     
     const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
     
-    // Convert string to ThinkingLevel enum if needed
-    const resolvedThinkingLevel = typeof thinkingLevel === 'string' 
-        ? thinkingLevelMap[thinkingLevel as keyof typeof thinkingLevelMap] 
-        : thinkingLevel
+    const thinkingConfig = buildThinkingConfig(modelName, thinkingLevel, includeThoughts)
 
     // Convert tools to function declarations
     const functionDeclarations: any[] = []
@@ -242,10 +267,7 @@ export async function generateTextWithThinking({
                     systemInstruction: system,
                     maxOutputTokens: 4096,
                     tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
-                    thinkingConfig: {
-                        thinkingLevel: resolvedThinkingLevel,
-                        includeThoughts
-                    }
+                    thinkingConfig
                 }
             }),
             {
@@ -391,10 +413,7 @@ export async function generateTextWithThinking({
                         systemInstruction: system,
                         maxOutputTokens: 4096,
                         tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
-                        thinkingConfig: {
-                            thinkingLevel: resolvedThinkingLevel,
-                            includeThoughts
-                        }
+                        thinkingConfig
                     }
                 }),
                 {
@@ -442,7 +461,7 @@ export async function generateTextWithThinking({
                                 systemInstruction: system,
                                 maxOutputTokens: 4096,
                                 toolConfig: { functionCallingConfig: { mode: 'NONE' as any } },
-                                thinkingConfig: { thinkingLevel: resolvedThinkingLevel, includeThoughts }
+                                thinkingConfig
                             }
                         }),
                         { maxAttempts: 2, initialDelayMs: 1000, maxDelayMs: 4000 }
