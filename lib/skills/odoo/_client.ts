@@ -13,6 +13,14 @@ import type { OdooCredentials, SkillContext } from '../types';
 import { AuthenticationError } from '../errors';
 
 // ============================================
+// READ-ONLY GUARD
+// ============================================
+
+const ALLOWED_METHODS = Object.freeze([
+  'search_read', 'read', 'search_count', 'fields_get', 'read_group',
+] as const);
+
+// ============================================
 // TYPES
 // ============================================
 
@@ -221,7 +229,7 @@ export class SkillOdooClient {
   }
 
   /**
-   * Execute any Odoo model method
+   * Execute Odoo model method (read-only guard enforced)
    */
   async execute(
     model: string,
@@ -229,6 +237,10 @@ export class SkillOdooClient {
     args: any[] = [],
     kwargs: Record<string, any> = {}
   ): Promise<any> {
+    if (!ALLOWED_METHODS.includes(method as any)) {
+      throw new Error(`Odoo read-only: método "${method}" bloqueado`);
+    }
+
     const uid = await this.authenticate();
     return this.rpc(
       'object',
