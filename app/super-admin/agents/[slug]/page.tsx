@@ -32,7 +32,6 @@ const TOOL_LABELS: Record<string, string> = {
     odoo_intelligent_query: 'Odoo ERP',
     knowledge_base: 'Base de Conocimiento',
     memory: 'Memoria',
-    web_investigator: 'Web Investigator',
 }
 
 export default function SuperAdminAgentEditorPage() {

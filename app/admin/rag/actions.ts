@@ -18,13 +18,23 @@ function cleanText(text: string): string {
         .trim()
 }
 
-// Simple PDF text extraction without canvas dependencies
+// PDF text extraction — pdf-parse first (works in Vercel serverless), pdfjs-dist fallback
 async function extractPdfText(buffer: Buffer): Promise<string> {
-    // First try: Use pdfjs-dist directly (no canvas needed for text)
+    // Primary: pdf-parse (reliable in serverless)
+    try {
+        const pdfParse = (await import('pdf-parse')).default
+        const data = await pdfParse(buffer)
+        if (data.text && data.text.length > 50) {
+            console.log(`[RAG] pdf-parse OK: ${data.text.length} chars, ${data.numpages} pages`)
+            return cleanText(data.text)
+        }
+    } catch (e: any) {
+        console.error('[RAG] pdf-parse error:', e.message)
+    }
+    
+    // Fallback: pdfjs-dist
     try {
         const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-        
-        // Disable worker to avoid issues
         pdfjsLib.GlobalWorkerOptions.workerSrc = ''
         
         const uint8Array = new Uint8Array(buffer)
@@ -47,15 +57,6 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
         return cleanText(fullText)
     } catch (e: any) {
         console.error('[RAG] pdfjs-dist error:', e.message)
-    }
-    
-    // Fallback: try pdf-parse
-    try {
-        const pdfParse = require('pdf-parse')
-        const data = await pdfParse(buffer)
-        return cleanText(data.text)
-    } catch (e: any) {
-        console.error('[RAG] pdf-parse error:', e.message)
     }
     
     // Last resort: raw text extraction from PDF buffer

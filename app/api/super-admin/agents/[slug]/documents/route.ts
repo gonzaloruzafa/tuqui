@@ -90,8 +90,8 @@ export async function POST(
 
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     } catch (err: any) {
-        console.error('[MasterDocs API] Error:', err)
-        return NextResponse.json({ error: err.message }, { status: 500 })
+        console.error('[MasterDocs API] Error:', err.message, err.stack?.split('\n').slice(0, 3).join('\n'))
+        return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
     }
 }
 
@@ -201,6 +201,19 @@ function cleanText(text: string): string {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
+    // Primary: pdf-parse (works reliably in Vercel serverless)
+    try {
+        const pdfParse = (await import('pdf-parse')).default
+        const data = await pdfParse(buffer)
+        if (data.text && data.text.length > 50) {
+            console.log(`[MasterDocs] pdf-parse OK: ${data.text.length} chars, ${data.numpages} pages`)
+            return cleanText(data.text)
+        }
+    } catch (e: any) {
+        console.error('[MasterDocs] pdf-parse error:', e.message)
+    }
+
+    // Fallback: pdfjs-dist
     try {
         const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
         pdfjsLib.GlobalWorkerOptions.workerSrc = ''
@@ -223,14 +236,6 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
         return cleanText(fullText)
     } catch (e: any) {
         console.error('[MasterDocs] pdfjs-dist error:', e.message)
-    }
-
-    try {
-        const pdfParse = require('pdf-parse')
-        const data = await pdfParse(buffer)
-        return cleanText(data.text)
-    } catch (e: any) {
-        console.error('[MasterDocs] pdf-parse error:', e.message)
     }
 
     throw new Error('Could not extract text from PDF')
