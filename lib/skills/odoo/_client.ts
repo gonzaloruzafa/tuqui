@@ -316,31 +316,6 @@ export class SkillOdooClient {
   }
 
   /**
-   * Create a new record
-   */
-  async create(model: string, values: Record<string, any>): Promise<number> {
-    return this.execute(model, 'create', [values]);
-  }
-
-  /**
-   * Update existing records
-   */
-  async write(
-    model: string,
-    ids: number[],
-    values: Record<string, any>
-  ): Promise<boolean> {
-    return this.execute(model, 'write', [ids, values]);
-  }
-
-  /**
-   * Delete records
-   */
-  async unlink(model: string, ids: number[]): Promise<boolean> {
-    return this.execute(model, 'unlink', [ids]);
-  }
-
-  /**
    * Health check - validates connection and credentials
    * Returns true if everything is OK, throws descriptive error otherwise
    */
