@@ -12,6 +12,7 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { AdminSubHeader } from '@/components/admin/AdminSubHeader'
 import { DeleteAgentButton } from './DeleteAgentButton'
+import { DocumentSelector } from '@/components/ui/DocumentSelector'
 
 async function getAgentDetails(tenantId: string, slug: string) {
     const db = await getTenantClient(tenantId)
@@ -317,33 +318,52 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                                     <h2 className="text-xl font-bold text-gray-900 font-display">Base de Conocimiento</h2>
                                 </div>
                                 <span className="text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                    {inheritedDocs.length} doc{inheritedDocs.length !== 1 ? 's' : ''}
+                                    {inheritedDocs.length} doc{inheritedDocs.length !== 1 ? 's' : ''} centrales
                                 </span>
                             </div>
                             <div className="p-6 sm:p-8">
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Documentos incluidos en este agente. Se usan automáticamente cuando el usuario hace preguntas relacionadas.
-                                </p>
-                                <div className="space-y-3">
-                                    {inheritedDocs.map((doc: InheritedDocument) => (
-                                        <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                            <FileText className="w-4 h-4 text-adhoc-violet flex-shrink-0" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-gray-800 truncate">{doc.title}</p>
-                                                {doc.file_name && (
-                                                    <p className="text-[11px] text-gray-400 truncate">{doc.file_name}</p>
-                                                )}
+                                {/* Inherited docs (readonly) */}
+                                <div className="mb-6">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                                        Documentos de Tuqui
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {inheritedDocs.map((doc: InheritedDocument) => (
+                                            <div key={doc.id} className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                                                <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-800 truncate">{doc.title}</p>
+                                                    {doc.file_name && (
+                                                        <p className="text-[11px] text-gray-400 truncate">{doc.file_name}</p>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] text-gray-400 flex-shrink-0">
+                                                    {new Date(doc.created_at).toLocaleDateString('es-AR')}
+                                                </span>
                                             </div>
-                                            <span className="text-[10px] text-gray-400 flex-shrink-0">
-                                                {new Date(doc.created_at).toLocaleDateString('es-AR')}
-                                            </span>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-blue-600 mt-3 flex items-center gap-1">
+                                        <Info className="w-3 h-3" />
+                                        Estos documentos se configuran centralmente por Tuqui y se actualizan automáticamente.
+                                    </p>
                                 </div>
-                                <p className="text-[10px] text-blue-600 mt-4 flex items-center gap-1">
-                                    <Info className="w-3 h-3" />
-                                    Estos documentos se configuran centralmente por Tuqui y se actualizan automáticamente.
-                                </p>
+
+                                {/* Tenant docs (selectable) */}
+                                {allDocs.length > 0 && (
+                                    <div className="border-t border-gray-100 pt-6">
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                                            Documentos de tu empresa
+                                        </h3>
+                                        <p className="text-[11px] text-gray-400 mb-3">
+                                            Seleccioná documentos propios que el agente usará además de los documentos centrales.
+                                        </p>
+                                        <DocumentSelector
+                                            documents={allDocs}
+                                            selectedIds={agent.linkedDocIds}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </section>
                     )}
