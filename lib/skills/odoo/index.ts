@@ -71,6 +71,17 @@ export { getSalesTeams } from './get-sales-teams';
 export { getCompanies } from './get-companies';
 export { searchSuppliers } from './search-suppliers';
 
+// CRM Business Analysis
+export { getStaleOpportunities } from './get-stale-opportunities';
+export { getLostOpportunities } from './get-lost-opportunities';
+export { searchCrmOpportunities } from './search-crm-opportunities';
+export { getCrmTags } from './get-crm-tags';
+
+// Subscription Business Analysis
+export { getSubscriptionHealth } from './get-subscription-health';
+export { getSubscriptionChurn } from './get-subscription-churn';
+export { getSubscriptionDetail } from './get-subscription-detail';
+
 // Skill array for registration
 import { getSalesTotal } from './get-sales-total';
 import { getSalesByCustomer } from './get-sales-by-customer';
@@ -117,6 +128,17 @@ import { getProductMargin } from './get-product-margin';
 import { getInactiveCustomers } from './get-inactive-customers';
 import { getSalesMarginSummary } from './get-sales-margin-summary';
 import { getPurchasePriceHistory } from './get-purchase-price-history';
+
+// CRM Business Analysis
+import { getStaleOpportunities } from './get-stale-opportunities';
+import { getLostOpportunities } from './get-lost-opportunities';
+import { searchCrmOpportunities } from './search-crm-opportunities';
+import { getCrmTags } from './get-crm-tags';
+
+// Subscription Business Analysis
+import { getSubscriptionHealth } from './get-subscription-health';
+import { getSubscriptionChurn } from './get-subscription-churn';
+import { getSubscriptionDetail } from './get-subscription-detail';
 
 export const odooSkills = [
   // Sales (10)
@@ -172,4 +194,13 @@ export const odooSkills = [
   getInactiveCustomers,
   getSalesMarginSummary,
   getPurchasePriceHistory,
+  // CRM Business Analysis (4)
+  getStaleOpportunities,
+  getLostOpportunities,
+  searchCrmOpportunities,
+  getCrmTags,
+  // Subscription Business Analysis (3)
+  getSubscriptionHealth,
+  getSubscriptionChurn,
+  getSubscriptionDetail,
 ];
