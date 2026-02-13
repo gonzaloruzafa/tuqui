@@ -132,8 +132,9 @@ export default function SuperAdminAgentEditorPage() {
                 body: JSON.stringify({ action: 'get_upload_url', fileName: file.name }),
             })
             if (!urlRes.ok) {
-                const data = await urlRes.json()
-                throw new Error(data.error || 'Error obteniendo URL')
+                let errorMsg = 'Error obteniendo URL de subida'
+                try { const data = await urlRes.json(); errorMsg = data.error || errorMsg } catch {}
+                throw new Error(errorMsg)
             }
             const { signedUrl, path } = await urlRes.json()
 
@@ -162,14 +163,20 @@ export default function SuperAdminAgentEditorPage() {
                 }),
             })
 
+            // Parse response safely (Vercel timeout returns HTML/empty body)
+            let responseData: any = null
+            try {
+                responseData = await processRes.json()
+            } catch {
+                throw new Error('El procesamiento tardó demasiado. El documento puede haberse guardado — recargá la página.')
+            }
+
             if (processRes.ok) {
-                const doc = await processRes.json()
-                setDocs(prev => [...prev, { ...doc, source_type: 'file', created_at: new Date().toISOString() }])
-                setSuccess(`"${doc.title}" procesado correctamente`)
+                await fetchDocs() // Re-fetch to ensure list is fresh
+                setSuccess(`"${responseData.title}" procesado correctamente`)
                 setTimeout(() => setSuccess(null), 5000)
             } else {
-                const data = await processRes.json()
-                setError(data.error || 'Error procesando documento')
+                setError(responseData?.error || 'Error procesando documento')
             }
         } catch (err: any) {
             setError(err.message)
@@ -191,8 +198,9 @@ export default function SuperAdminAgentEditorPage() {
             if (res.ok) {
                 setDocs(prev => prev.filter(d => d.id !== docId))
             } else {
-                const data = await res.json()
-                setError(data.error || 'Error al eliminar')
+                let errorMsg = 'Error al eliminar'
+                try { const data = await res.json(); errorMsg = data.error || errorMsg } catch {}
+                setError(errorMsg)
             }
         } catch (err: any) {
             setError(err.message)

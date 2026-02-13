@@ -4,6 +4,9 @@ import { isPlatformAdmin } from '@/lib/platform/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { processMasterDocument, linkDocumentToAgent, deleteMasterDocument } from '@/lib/rag/master-documents'
 
+// PDF processing + embeddings can take 30s+
+export const maxDuration = 60
+
 async function getMasterAgentBySlug(slug: string) {
     const supabase = supabaseAdmin()
     const { data } = await supabase
