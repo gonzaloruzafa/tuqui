@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Bot, Save, FileText, Trash2, Upload, Loader2, BookOpen, Wrench, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Bot, Save, FileText, Trash2, Upload, Loader2, BookOpen, Wrench, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { AgentIcon } from '@/components/ui/AgentIcon'
 
 interface MasterAgent {
     id: string
@@ -31,11 +32,11 @@ const TOOL_LABELS: Record<string, string> = {
     odoo_intelligent_query: 'Odoo ERP',
     knowledge_base: 'Base de Conocimiento',
     memory: 'Memoria',
+    web_investigator: 'Web Investigator',
 }
 
 export default function SuperAdminAgentEditorPage() {
     const params = useParams()
-    const router = useRouter()
     const slug = params.slug as string
 
     const [agent, setAgent] = useState<MasterAgent | null>(null)
@@ -43,11 +44,12 @@ export default function SuperAdminAgentEditorPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState('')
+    const [syncing, setSyncing] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    // Form state
     const [form, setForm] = useState({
         name: '',
         description: '',
@@ -121,29 +123,59 @@ export default function SuperAdminAgentEditorPage() {
     const uploadDoc = async (file: File) => {
         setUploading(true)
         setError(null)
+        setUploadProgress('Obteniendo URL de subida...')
         try {
-            const formData = new FormData()
-            formData.append('file', file)
-            formData.append('title', file.name.replace(/\.pdf$/i, ''))
-
-            const res = await fetch(`/api/super-admin/agents/${slug}/documents`, {
+            // 1. Get signed upload URL
+            const urlRes = await fetch(`/api/super-admin/agents/${slug}/documents`, {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_upload_url', fileName: file.name }),
+            })
+            if (!urlRes.ok) {
+                const data = await urlRes.json()
+                throw new Error(data.error || 'Error obteniendo URL')
+            }
+            const { signedUrl, path } = await urlRes.json()
+
+            // 2. Upload file directly to Supabase Storage
+            setUploadProgress(`Subiendo ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`)
+            const uploadRes = await fetch(signedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': file.type || 'application/pdf' },
+                body: file,
+            })
+            if (!uploadRes.ok) {
+                throw new Error('Error subiendo archivo a Storage')
+            }
+
+            // 3. Process from Storage (chunk + embed)
+            setUploadProgress('Procesando: extrayendo texto, generando chunks y embeddings...')
+            const processRes = await fetch(`/api/super-admin/agents/${slug}/documents`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'process_from_storage',
+                    storagePath: path,
+                    fileName: file.name,
+                    fileSize: file.size,
+                    title: file.name.replace(/\.pdf$/i, ''),
+                }),
             })
 
-            if (res.ok) {
-                const doc = await res.json()
+            if (processRes.ok) {
+                const doc = await processRes.json()
                 setDocs(prev => [...prev, { ...doc, source_type: 'file', created_at: new Date().toISOString() }])
                 setSuccess(`"${doc.title}" procesado correctamente`)
-                setTimeout(() => setSuccess(null), 3000)
+                setTimeout(() => setSuccess(null), 5000)
             } else {
-                const data = await res.json()
-                setError(data.error || 'Error al subir documento')
+                const data = await processRes.json()
+                setError(data.error || 'Error procesando documento')
             }
         } catch (err: any) {
             setError(err.message)
         } finally {
             setUploading(false)
+            setUploadProgress('')
         }
     }
 
@@ -164,6 +196,31 @@ export default function SuperAdminAgentEditorPage() {
             }
         } catch (err: any) {
             setError(err.message)
+        }
+    }
+
+    const syncToTenants = async () => {
+        if (!confirm('¿Sincronizar este agente a todos los tenants? Se actualizará el prompt, herramientas y descripción.')) return
+
+        setSyncing(true)
+        setError(null)
+        try {
+            const res = await fetch('/api/super-admin/tenants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'sync_masters' }),
+            })
+            if (res.ok) {
+                setSuccess('Agentes sincronizados a todos los tenants')
+                setTimeout(() => setSuccess(null), 5000)
+            } else {
+                const data = await res.json()
+                setError(data.error || 'Error al sincronizar')
+            }
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setSyncing(false)
         }
     }
 
@@ -199,19 +256,24 @@ export default function SuperAdminAgentEditorPage() {
         <div className="flex-grow max-w-4xl mx-auto px-6 py-10 w-full">
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
-                <Link
-                    href="/super-admin/agents"
-                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                >
+                <Link href="/super-admin/agents" className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                     <ArrowLeft className="w-5 h-5 text-gray-500" />
                 </Link>
-                <div className="w-12 h-12 rounded-xl bg-adhoc-violet/10 flex items-center justify-center text-2xl">
-                    {agent.icon || '🤖'}
+                <div className="w-12 h-12 rounded-xl bg-adhoc-violet/10 flex items-center justify-center text-adhoc-violet">
+                    <AgentIcon name={agent.icon} className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="flex-1">
                     <h1 className="text-2xl font-bold text-gray-900 font-display">{agent.name}</h1>
                     <span className="text-sm text-gray-400 font-mono">{agent.slug}</span>
                 </div>
+                <button
+                    onClick={syncToTenants}
+                    disabled={syncing}
+                    className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Sincronizando...' : 'Sync a tenants'}
+                </button>
             </div>
 
             {/* Notifications */}
@@ -337,7 +399,7 @@ export default function SuperAdminAgentEditorPage() {
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept=".pdf"
+                                accept=".pdf,.txt"
                                 className="hidden"
                                 onChange={e => {
                                     const file = e.target.files?.[0]
@@ -358,9 +420,16 @@ export default function SuperAdminAgentEditorPage() {
                                 )}
                                 {uploading ? 'Procesando...' : 'Subir PDF'}
                             </button>
-                            <p className="text-[11px] text-gray-400 mt-2">
-                                El archivo se procesa, se divide en chunks y se generan embeddings automáticamente.
-                            </p>
+                            {uploadProgress ? (
+                                <p className="text-[11px] text-adhoc-violet mt-2 flex items-center gap-1">
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    {uploadProgress}
+                                </p>
+                            ) : (
+                                <p className="text-[11px] text-gray-400 mt-2">
+                                    Sube vía Storage (sin límite de tamaño). Se procesan chunks y embeddings automáticamente.
+                                </p>
+                            )}
                         </div>
 
                         {/* Doc list */}

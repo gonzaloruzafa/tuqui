@@ -54,8 +54,9 @@ export async function GET(
 }
 
 /**
- * POST — upload a PDF and link it to this agent
- * Expects FormData with 'file' (PDF) and optional 'title'
+ * POST — two actions:
+ *   { action: 'get_upload_url', fileName } → returns signed URL for Storage
+ *   { action: 'process_from_storage', storagePath, fileName, fileSize, title } → process uploaded file
  */
 export async function POST(
     req: NextRequest,
@@ -73,44 +74,26 @@ export async function POST(
     }
 
     try {
-        const formData = await req.formData()
-        const file = formData.get('file') as File | null
-        const title = (formData.get('title') as string) || file?.name || 'Sin título'
+        const body = await req.json()
+        const { action } = body
 
-        if (!file) {
-            return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+        if (action === 'get_upload_url') {
+            return handleGetUploadUrl(body.fileName)
         }
 
-        // Extract text from PDF
-        const buffer = Buffer.from(await file.arrayBuffer())
-        const text = await extractPdfText(buffer)
-
-        if (!text || text.length < 50) {
-            return NextResponse.json({ error: 'Could not extract text from PDF' }, { status: 400 })
+        if (action === 'process_from_storage') {
+            return handleProcessFromStorage(body, agent.id, session?.user?.email)
         }
 
-        // Process: chunk → embed → store
-        const docId = await processMasterDocument({
-            title,
-            content: text,
-            sourceType: 'file',
-            fileName: file.name,
-            metadata: { size: file.size, uploadedBy: session?.user?.email }
-        })
-
-        // Link to agent
-        await linkDocumentToAgent(docId, agent.id)
-
-        return NextResponse.json({ id: docId, title, file_name: file.name })
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     } catch (err: any) {
-        console.error('[MasterDocs API] Upload error:', err)
+        console.error('[MasterDocs API] Error:', err)
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
 }
 
 /**
  * DELETE — unlink and delete a master document
- * Expects JSON body with { documentId }
  */
 export async function DELETE(
     req: NextRequest,
@@ -141,7 +124,70 @@ export async function DELETE(
     }
 }
 
-// --- PDF text extraction (reused from admin/rag/actions.ts) ---
+// --- Action handlers ---
+
+async function handleGetUploadUrl(fileName: string) {
+    const supabase = supabaseAdmin()
+    const timestamp = Date.now()
+    const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const path = `master-docs/${timestamp}_${safeName}`
+
+    const { data, error } = await supabase.storage
+        .from('rag-documents')
+        .createSignedUploadUrl(path)
+
+    if (error) {
+        console.error('[MasterDocs] Signed URL error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ signedUrl: data.signedUrl, path, token: data.token })
+}
+
+async function handleProcessFromStorage(
+    body: { storagePath: string; fileName: string; fileSize: number; title: string },
+    agentId: string,
+    email?: string | null
+) {
+    const { storagePath, fileName, fileSize, title } = body
+    const supabase = supabaseAdmin()
+
+    // 1. Download from Storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+        .from('rag-documents')
+        .download(storagePath)
+
+    if (downloadError || !fileData) {
+        return NextResponse.json({ error: `Download failed: ${downloadError?.message}` }, { status: 500 })
+    }
+
+    // 2. Extract text
+    const buffer = Buffer.from(await fileData.arrayBuffer())
+    const text = await extractPdfText(buffer)
+
+    // 3. Clean up Storage file (content now lives in DB)
+    await supabase.storage.from('rag-documents').remove([storagePath])
+
+    if (!text || text.length < 50) {
+        return NextResponse.json({ error: 'Could not extract text from PDF (content too short)' }, { status: 400 })
+    }
+
+    // 4. Process: chunk → embed → store
+    const docId = await processMasterDocument({
+        title: title || fileName,
+        content: text,
+        sourceType: 'file',
+        fileName,
+        metadata: { size: fileSize, uploadedBy: email }
+    })
+
+    // 5. Link to agent
+    await linkDocumentToAgent(docId, agentId)
+
+    return NextResponse.json({ id: docId, title: title || fileName, file_name: fileName })
+}
+
+// --- PDF text extraction ---
 
 function cleanText(text: string): string {
     return text

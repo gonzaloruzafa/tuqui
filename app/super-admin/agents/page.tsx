@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Bot, FileText, Loader2, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
+import { AgentIcon } from '@/components/ui/AgentIcon'
 
 interface MasterAgent {
     id: string
@@ -83,8 +84,8 @@ export default function SuperAdminAgentsPage() {
                             href={`/super-admin/agents/${agent.slug}`}
                             className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-gray-100 hover:border-adhoc-violet/30 hover:shadow-sm transition-all group"
                         >
-                            <div className="w-12 h-12 rounded-xl bg-adhoc-violet/10 flex items-center justify-center text-2xl flex-shrink-0">
-                                {agent.icon || '🤖'}
+                            <div className="w-12 h-12 rounded-xl bg-adhoc-violet/10 flex items-center justify-center flex-shrink-0 text-adhoc-violet">
+                                <AgentIcon name={agent.icon} className="w-6 h-6" />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
