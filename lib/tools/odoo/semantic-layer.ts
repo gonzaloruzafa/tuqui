@@ -51,8 +51,14 @@ export const ODOO_LITE_SCHEMA: ModelDef[] = [
             { name: 'amount_total', type: 'monetary', description: 'Total con impuestos', isAmount: true },
             { name: 'state', type: 'selection', commonValues: ['draft', 'sent', 'sale', 'done', 'cancel'] },
             { name: 'team_id', type: 'many2one', relation: 'crm.team', description: 'Equipo de ventas' },
+            { name: 'is_subscription', type: 'boolean', description: 'Es suscripción recurrente (Odoo 17+)' },
+            { name: 'subscription_state', type: 'selection', description: 'Estado de suscripción', commonValues: ['draft', 'in_progress', 'paused', 'closed', 'churn'] },
+            { name: 'recurring_monthly', type: 'monetary', description: 'MRR - Ingreso recurrente mensual', isAmount: true },
+            { name: 'start_date', type: 'date', description: 'Inicio de suscripción', isDate: true },
+            { name: 'next_invoice_date', type: 'date', description: 'Próxima facturación', isDate: true },
+            { name: 'end_date', type: 'date', description: 'Fin/cancelación de suscripción', isDate: true },
         ],
-        tips: ['Usar user_id para vendedor, NO create_uid', 'state="sale" son confirmados']
+        tips: ['Usar user_id para vendedor, NO create_uid', 'state="sale" son confirmados', 'is_subscription=True filtra suscripciones recurrentes (Odoo 17+)']
     },
     {
         name: 'sale.order.line',
@@ -156,8 +162,13 @@ export const ODOO_LITE_SCHEMA: ModelDef[] = [
             { name: 'type', type: 'selection', commonValues: ['lead', 'opportunity'] },
             { name: 'create_date', type: 'datetime', isDate: true },
             { name: 'active', type: 'boolean', description: 'perdidas = False' },
+            { name: 'tag_ids', type: 'many2many', relation: 'crm.tag', description: 'Etiquetas del CRM' },
+            { name: 'lost_reason_id', type: 'many2one', relation: 'crm.lost.reason', description: 'Causa de pérdida' },
+            { name: 'date_closed', type: 'datetime', description: 'Fecha en que se ganó/perdió', isDate: true },
+            { name: 'date_last_stage_update', type: 'datetime', description: 'Última vez que cambió de etapa', isDate: true },
+            { name: 'order_ids', type: 'one2many', relation: 'sale.order', description: 'Presupuestos/órdenes vinculadas' },
         ],
-        tips: ['probability=100 = ganadas, probability=0 + active=False = perdidas']
+        tips: ['probability=100 = ganadas, probability=0 + active=False = perdidas', 'tag_ids para filtrar por etiqueta, order_ids para presupuestos vinculados']
     },
     {
         name: 'product.product',
