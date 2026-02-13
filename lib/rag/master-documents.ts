@@ -70,7 +70,7 @@ export async function processMasterDocument(params: ProcessDocumentParams): Prom
     const chunkRows = validChunks.map((chunk, i) => ({
         document_id: doc.id,
         content: chunk,
-        embedding: JSON.stringify(embeddings[i]),
+        embedding: embeddings[i],
         chunk_index: i,
         metadata: { charCount: chunk.length, totalChunks: validChunks.length }
     }))

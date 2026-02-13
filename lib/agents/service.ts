@@ -262,6 +262,7 @@ export async function getAgentBySlug(tenantId: string, slug: string): Promise<Ag
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('slug', slug)
+        .eq('is_active', true)
         .single()
     
     if (error || !agent) {

@@ -5,7 +5,7 @@
  *   npx tsx scripts/process-master-pdf.ts <pdf-path> <master-agent-slug> [title]
  * 
  * Ejemplo:
- *   npx tsx scripts/process-master-pdf.ts tuqui-rag-pdfs/ley-sociedades-19550.pdf contador "Ley de Sociedades 19.550"
+ *   npx tsx scripts/process-master-pdf.ts rag-docs/tuqui-rag-pdfs/ley-sociedades-19550.pdf contador "Ley de Sociedades 19.550"
  */
 
 import * as fs from 'fs'
@@ -79,7 +79,7 @@ async function main() {
 
   if (!pdfPath || !agentSlug) {
     console.error('Uso: npx tsx scripts/process-master-pdf.ts <pdf-path> <master-agent-slug> [title]')
-    console.error('Ejemplo: npx tsx scripts/process-master-pdf.ts tuqui-rag-pdfs/ley-sociedades-19550.pdf contador "Ley de Sociedades"')
+    console.error('Ejemplo: npx tsx scripts/process-master-pdf.ts rag-docs/tuqui-rag-pdfs/ley-sociedades-19550.pdf contador "Ley de Sociedades"')
     process.exit(1)
   }
 
