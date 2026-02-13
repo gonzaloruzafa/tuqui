@@ -165,6 +165,7 @@ describe('processMasterDocument', () => {
 describe('linkDocumentToAgent', () => {
     test('upserts M2M relationship', async () => {
         mockFrom.mockReturnValue({
+            insert: mockInsert, select: mockSelect, delete: mockDelete,
             upsert: mockUpsert.mockReturnValue({ error: null })
         })
 
@@ -179,6 +180,7 @@ describe('linkDocumentToAgent', () => {
 
     test('throws on error', async () => {
         mockFrom.mockReturnValue({
+            insert: mockInsert, select: mockSelect, delete: mockDelete,
             upsert: mockUpsert.mockReturnValue({ error: { message: 'upsert failed' } })
         })
 
@@ -195,6 +197,7 @@ describe('linkDocumentToAgent', () => {
 describe('deleteMasterDocument', () => {
     test('deletes document (cascade removes chunks and links)', async () => {
         mockFrom.mockReturnValue({
+            insert: mockInsert, select: mockSelect, upsert: mockUpsert,
             delete: mockDelete.mockReturnValue({
                 eq: mockEq.mockReturnValue({ error: null })
             })
@@ -209,6 +212,7 @@ describe('deleteMasterDocument', () => {
 
     test('throws on error', async () => {
         mockFrom.mockReturnValue({
+            insert: mockInsert, select: mockSelect, upsert: mockUpsert,
             delete: mockDelete.mockReturnValue({
                 eq: mockEq.mockReturnValue({ error: { message: 'delete failed' } })
             })
@@ -227,6 +231,7 @@ describe('deleteMasterDocument', () => {
 describe('getMasterDocumentsForAgent', () => {
     test('returns documents for agent', async () => {
         mockFrom.mockReturnValue({
+            insert: mockInsert, delete: mockDelete, upsert: mockUpsert,
             select: mockSelect.mockReturnValue({
                 eq: mockEq.mockResolvedValue({
                     data: [{
@@ -253,6 +258,7 @@ describe('getMasterDocumentsForAgent', () => {
 
     test('returns empty array on error', async () => {
         mockFrom.mockReturnValue({
+            insert: mockInsert, delete: mockDelete, upsert: mockUpsert,
             select: mockSelect.mockReturnValue({
                 eq: mockEq.mockResolvedValue({ data: null, error: { message: 'err' } })
             })

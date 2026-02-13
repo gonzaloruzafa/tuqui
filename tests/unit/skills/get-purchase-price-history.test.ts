@@ -52,7 +52,7 @@ describe('Skill: get_purchase_price_history', () => {
   describe('Authentication', () => {
     it('returns AUTH_ERROR when credentials missing', async () => {
       const result = await getPurchasePriceHistory.execute(
-        { productQuery: 'test' },
+        { productQuery: 'test', groupBySupplier: true, limit: 20 },
         { ...mockContext, credentials: {} }
       );
       expect(result.success).toBe(false);
@@ -86,7 +86,7 @@ describe('Skill: get_purchase_price_history', () => {
       ]);
 
       const result = await getPurchasePriceHistory.execute(
-        { productQuery: 'resina' },
+        { productQuery: 'resina', groupBySupplier: true, limit: 20 },
         mockContext
       );
 
@@ -111,7 +111,7 @@ describe('Skill: get_purchase_price_history', () => {
       mockOdoo.searchRead.mockResolvedValueOnce([]);
 
       const result = await getPurchasePriceHistory.execute(
-        { productQuery: 'producto inexistente' },
+        { productQuery: 'producto inexistente', groupBySupplier: true, limit: 20 },
         mockContext
       );
 

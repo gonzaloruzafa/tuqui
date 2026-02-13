@@ -47,7 +47,7 @@ describe('Skill: get_inactive_customers', () => {
 
   describe('Authentication', () => {
     it('returns AUTH_ERROR when credentials missing', async () => {
-      const result = await getInactiveCustomers.execute({}, { ...mockContext, credentials: {} });
+      const result = await getInactiveCustomers.execute({ limit: 20, includeDetails: true }, { ...mockContext, credentials: {} });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error.code).toBe('AUTH_ERROR');
     });
@@ -73,7 +73,7 @@ describe('Skill: get_inactive_customers', () => {
         .mockResolvedValueOnce([{ date_order: '2026-01-15 10:00:00' }])
         .mockResolvedValueOnce([{ date_order: '2026-01-05 14:30:00' }]);
 
-      const result = await getInactiveCustomers.execute({}, mockContext);
+      const result = await getInactiveCustomers.execute({ limit: 20, includeDetails: true }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -89,7 +89,7 @@ describe('Skill: get_inactive_customers', () => {
     it('returns empty when no previous customers', async () => {
       mockOdoo.readGroup.mockResolvedValueOnce([]);
 
-      const result = await getInactiveCustomers.execute({}, mockContext);
+      const result = await getInactiveCustomers.execute({ limit: 20, includeDetails: true }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -107,7 +107,7 @@ describe('Skill: get_inactive_customers', () => {
           { partner_id: [1, 'Cliente Fiel'], partner_id_count: 5 },
         ]);
 
-      const result = await getInactiveCustomers.execute({}, mockContext);
+      const result = await getInactiveCustomers.execute({ limit: 20, includeDetails: true }, mockContext);
 
       expect(result.success).toBe(true);
       if (result.success) {
