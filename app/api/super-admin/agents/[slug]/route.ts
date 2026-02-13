@@ -53,9 +53,16 @@ export async function PATCH(
         return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
-    // Bump version so sync picks up changes
-    updates.version = supabase.rpc ? undefined : undefined // handled below
     updates.updated_at = new Date().toISOString()
+
+    // Get current version for manual bump
+    const { data: current } = await supabase
+        .from('master_agents')
+        .select('version')
+        .eq('slug', slug)
+        .single()
+
+    updates.version = (current?.version || 1) + 1
 
     const { data, error } = await supabase
         .from('master_agents')
@@ -67,12 +74,6 @@ export async function PATCH(
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
-
-    // Bump version separately via raw increment
-    await supabase.rpc('increment_master_agent_version', { agent_slug: slug }).catch(() => {
-        // If RPC doesn't exist, do manual increment
-        supabase.from('master_agents').update({ version: (data as any)?.version ? (data as any).version + 1 : 2 }).eq('slug', slug)
-    })
 
     return NextResponse.json(data)
 }
