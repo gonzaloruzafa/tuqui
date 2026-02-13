@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth/config'
 import { isPlatformAdmin } from '@/lib/platform/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { processMasterDocument, linkDocumentToAgent, deleteMasterDocument } from '@/lib/rag/master-documents'
+import { extractPdfText } from '@/lib/rag/pdf-extract'
 
 // PDF processing + embeddings can take 30s+
 export const maxDuration = 60
@@ -188,55 +189,4 @@ async function handleProcessFromStorage(
     await linkDocumentToAgent(docId, agentId)
 
     return NextResponse.json({ id: docId, title: title || fileName, file_name: fileName })
-}
-
-// --- PDF text extraction ---
-
-function cleanText(text: string): string {
-    return text
-        .replace(/\u0000/g, '')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-}
-
-async function extractPdfText(buffer: Buffer): Promise<string> {
-    // Primary: pdf-parse (works reliably in Vercel serverless)
-    try {
-        const pdfParse = (await import('pdf-parse')).default
-        const data = await pdfParse(buffer)
-        if (data.text && data.text.length > 50) {
-            console.log(`[MasterDocs] pdf-parse OK: ${data.text.length} chars, ${data.numpages} pages`)
-            return cleanText(data.text)
-        }
-    } catch (e: any) {
-        console.error('[MasterDocs] pdf-parse error:', e.message)
-    }
-
-    // Fallback: pdfjs-dist
-    try {
-        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-        pdfjsLib.GlobalWorkerOptions.workerSrc = ''
-
-        const uint8Array = new Uint8Array(buffer)
-        const pdf = await pdfjsLib.getDocument({
-            data: uint8Array,
-            useSystemFonts: true,
-            disableFontFace: true
-        }).promise
-
-        let fullText = ''
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i)
-            const textContent = await page.getTextContent()
-            const pageText = textContent.items.map((item: any) => item.str).join(' ')
-            fullText += pageText + '\n'
-        }
-
-        return cleanText(fullText)
-    } catch (e: any) {
-        console.error('[MasterDocs] pdfjs-dist error:', e.message)
-    }
-
-    throw new Error('Could not extract text from PDF')
 }

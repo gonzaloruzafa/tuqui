@@ -10,3 +10,12 @@ declare module 'pdf-parse' {
   function pdfParse(buffer: Buffer): Promise<PDFData>
   export default pdfParse
 }
+
+declare module 'pdf-parse/lib/pdf-parse.js' {
+  interface PDFData {
+    numpages: number
+    text: string
+  }
+  function pdfParse(buffer: Buffer): Promise<PDFData>
+  export default pdfParse
+}
