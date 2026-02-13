@@ -1,8 +1,9 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Bot, FileText, Wrench, Brain, Lock, Pencil, Info, Database, Trash2 } from 'lucide-react'
+import { ArrowLeft, Bot, FileText, Wrench, Brain, Lock, Pencil, Info, Database, Trash2, BookOpen } from 'lucide-react'
 import { getTenantClient } from '@/lib/supabase/client'
+import { getInheritedDocuments, type InheritedDocument } from '@/lib/rag/inherited-documents'
 import { revalidatePath } from 'next/cache'
 import { Switch } from '@/components/ui/Switch'
 import { SaveButton } from '@/components/ui/SaveButton'
@@ -58,13 +59,10 @@ async function updateAgent(formData: FormData) {
 
     // Tools handling (multi-value) - only for custom agents
     const tools = formData.getAll('tools') as string[]
-    
-    // rag_enabled is now derived from tools - if knowledge_base is in tools, RAG is enabled
-    const ragEnabled = tools.includes('knowledge_base')
 
     // Docs handling
     const docIds = formData.getAll('doc_ids') as string[]
-    console.log('[AgentEditor] Saving:', { slug, docIds, tools, ragEnabled, isBaseAgent })
+    console.log('[AgentEditor] Saving:', { slug, docIds, tools, isBaseAgent })
 
     const session = await auth()
     if (!session?.tenant?.id || !session.isAdmin) return
@@ -79,15 +77,13 @@ async function updateAgent(formData: FormData) {
         // BASE AGENT: Only update custom_instructions and is_active
         await db.from('agents').update({
             custom_instructions: customInstructions,
-            is_active: isActive,
-            rag_enabled: ragEnabled
+            is_active: isActive
         }).eq('tenant_id', session.tenant.id).eq('id', agent.id)
     } else {
         // CUSTOM AGENT: Update everything
         await db.from('agents').update({
             name: name,
             system_prompt: systemPrompt,
-            rag_enabled: ragEnabled,
             is_active: isActive,
             tools: tools
         }).eq('tenant_id', session.tenant.id).eq('id', agent.id)
@@ -144,6 +140,11 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
 
     const allDocs = await getAllDocs(session.tenant!.id)
 
+    // Fetch inherited master docs (only for base agents with knowledge_base)
+    const inheritedDocs = agent.isBaseAgent && (agent.tools || []).includes('knowledge_base')
+        ? await getInheritedDocuments(session.tenant!.id, agent.id)
+        : []
+
     const AVAILABLE_TOOLS = [
         { slug: 'web_search', label: 'Búsqueda Web', description: 'TODO-EN-UNO: Tavily + Google Grounding (precios, noticias, info general)' },
         { slug: 'odoo_intelligent_query', label: 'Odoo ERP', description: 'Consultar ventas, contactos, productos del ERP' },
@@ -151,10 +152,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
         { slug: 'memory', label: 'Memoria', description: 'Recordar notas sobre clientes, productos y proveedores entre conversaciones' }
     ]
     
-    // For display purposes: if rag_enabled but knowledge_base not in tools, add it
-    const displayTools = agent.rag_enabled && !agent.tools?.includes('knowledge_base')
-        ? [...(agent.tools || []), 'knowledge_base']
-        : agent.tools || []
+    const displayTools = agent.tools || []
 
     return (
         <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col">
@@ -309,6 +307,46 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                             )}
                         </div>
                     </section>
+
+                    {/* Inherited Knowledge Base - Only for base agents with docs */}
+                    {inheritedDocs.length > 0 && (
+                        <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
+                            <div className="p-6 sm:p-8 border-b border-gray-50 bg-gray-50/20 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <BookOpen className="w-5 h-5 text-adhoc-violet" />
+                                    <h2 className="text-xl font-bold text-gray-900 font-display">Base de Conocimiento</h2>
+                                </div>
+                                <span className="text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                    {inheritedDocs.length} doc{inheritedDocs.length !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            <div className="p-6 sm:p-8">
+                                <p className="text-sm text-gray-500 mb-4">
+                                    Documentos incluidos en este agente. Se usan automáticamente cuando el usuario hace preguntas relacionadas.
+                                </p>
+                                <div className="space-y-3">
+                                    {inheritedDocs.map((doc: InheritedDocument) => (
+                                        <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                            <FileText className="w-4 h-4 text-adhoc-violet flex-shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-800 truncate">{doc.title}</p>
+                                                {doc.file_name && (
+                                                    <p className="text-[11px] text-gray-400 truncate">{doc.file_name}</p>
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                                                {new Date(doc.created_at).toLocaleDateString('es-AR')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-blue-600 mt-4 flex items-center gap-1">
+                                    <Info className="w-3 h-3" />
+                                    Estos documentos se configuran centralmente por Tuqui y se actualizan automáticamente.
+                                </p>
+                            </div>
+                        </section>
+                    )}
 
                     {/* Save Button - Fixed at bottom */}
                     <div className="sticky bottom-6 z-10 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg">

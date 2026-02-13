@@ -3,16 +3,16 @@
 > Código de referencia para implementación de F5-F7.  
 > El plan estratégico está en `TUQUI_REFACTOR_PLAN.md`.  
 > **Orden de ejecución: F7 → F5 → F6**  
-> Última actualización: 2026-02-10
+> Última actualización: 2026-02-12
 
 ### Convención de migrations
 
 | Número | Fase | Descripción |
 |--------|------|-------------|
-| `300` | F7 | master_documents + chunks + M2M |
-| `301` | F7 | fix match_documents (UNION tenant + master) |
-| `310` | F5 | push_subscriptions |
-| `320` | F6 | user_briefing_config |
+| `208` | F7 | master_documents + chunks + M2M |
+| `209` | F7 | fix match_documents (UNION tenant + master) + cleanup rag_enabled |
+| `210` | F5 | push_subscriptions |
+| `220` | F6 | user_briefing_config |
 
 ---
 

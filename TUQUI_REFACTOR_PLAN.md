@@ -3,7 +3,7 @@
 > **Filosofía:** Llegar a PMF primero, infraestructura enterprise después  
 > **Principio:** Usuarios pagando > Features perfectas  
 > **Para:** Un founder que necesita validar antes de escalar  
-> **Última actualización:** 2026-02-10
+> **Última actualización:** 2026-02-12
 
 ---
 
@@ -233,91 +233,238 @@ d975e90 feat: add delete agent functionality for custom agents
 
 > **Objetivo:** Gestionar master agents y docs RAG sin deploy, docs compartidos entre todos los tenants  
 > **Por qué primera:** Sin contenido en RAG, los agentes `contador` y `abogado` son inútiles  
-> **Spec técnica:** Ver `TUQUI_REFACTOR_SPECS.md` § F7
+> **Spec técnica:** Ver `TUQUI_REFACTOR_SPECS.md` § F7  
+> **Ejecución:** 3 sesiones (~2-3h cada una)
 
 ### Checklist
 
-- [ ] Migration `206_master_documents.sql` (tablas master_documents, master_document_chunks, master_agent_documents)
-- [ ] Migration `207_fix_match_documents.sql` (UNION query tenant + master docs + eliminar check `rag_enabled` dropeado)
-- [ ] `/super-admin/agents` (lista master agents)
-- [ ] `/super-admin/agents/[slug]` (editor con prompt, tools, docs)
-- [ ] `components/super-admin/MasterAgentEditor.tsx`
-- [ ] `components/super-admin/MasterDocUpload.tsx`
-- [ ] `app/api/super-admin/agents/[slug]/documents/route.ts`
-- [ ] `lib/rag/master-documents.ts` (procesador PDF/TXT → chunks + embeddings)
-- [ ] Subir PDFs: Ley IVA, Ley Ganancias, LCT, Ley Sociedades
-- [ ] **@mention agents:** parseo `@slug` + skip orchestrator + autocomplete básico (~50 líneas, 4 archivos)
-- [ ] **Agent attribution en tools:** mostrar qué agente eligió el orchestrator en ExecutionProgress y ToolBadge (~40 líneas, 5 archivos)
+**Sesión 1: DB + Core Lib**
+- [ ] Migration `208_master_documents.sql` (tablas master_documents, master_document_chunks, master_agent_documents)
+- [ ] Migration `209_fix_match_documents.sql` (UNION query tenant + master docs + cleanup `rag_enabled`)
+- [ ] `lib/rag/master-documents.ts` (procesador: chunking + embeddings + insert)
+- [ ] `tests/unit/master-documents.test.ts`
 
-### @mention agents (sub-task)
+**Sesión 2: Super Admin UI**
+- [ ] `/super-admin/agents` (lista master agents — server component)
+- [ ] `/super-admin/agents/[slug]` (editor con server actions: save, sync, delete doc)
+- [ ] `components/super-admin/MasterAgentEditor.tsx` (formulario: prompt, tools, docs)
+- [ ] `components/super-admin/MasterDocUpload.tsx` (reutiliza bucket `rag-documents`, path `master/{slug}/{file}`)
+- [ ] `app/api/super-admin/agents/[slug]/documents/route.ts` (POST process + DELETE)
 
-Permite forzar un agente tipeando `@odoo cuánto vendimos?` en el chat.
+**Sesión 3: PDFs + @mention + Agent Attribution**
+- [ ] Subir PDFs: Ley IVA, LCT (secciones clave) → vincular a `contador`/`abogado`
+- [ ] **@mention agents:** `lib/chat/parse-mention.ts` + skip orchestrator + autocomplete (~80 líneas, 4 archivos)
+- [ ] **Agent attribution:** inyectar agente en ThinkingStep + UI en ExecutionProgress/ToolBadge (~40 líneas, 5 archivos)
+- [ ] `tests/unit/parse-mention.test.ts`
+- [ ] Corrida de evals completa (target ≥85%)
 
-**Cambios (4 archivos, ~80 líneas):**
+### Dependencias entre sesiones
 
-| Archivo | Cambio |
-|---------|--------|
-| `lib/chat/parse-mention.ts` | **NUEVO** ~15 líneas. Extrae `@slug` del inicio del mensaje, valida contra slugs disponibles |
-| `app/api/chat/route.ts` | Destructurar `mentionedAgent` del body, pasar a engine |
-| `lib/chat/engine.ts` | Si `mentionedAgent`, cargar agente directo con `getAgentBySlug()` y skip `orchestrate()` |
-| `components/chat/ChatFooter.tsx` | Al tipear `@`, mostrar lista filtrable de agentes (popover simple con los 5 slugs) |
+```
+S1.1 (mig 208) ─┐
+                 ├→ S1.3 (master-documents.ts) → S2.4 (DocUpload) → S3.1 (PDFs)
+S1.2 (mig 209) ─┘                                S2.5 (API route) ─┘
 
-**Autocomplete minimalista:** Un `<div>` absolute posicionado sobre el textarea. Se muestra cuando el input empieza con `@` o tiene `@` después de un espacio. Se filtra mientras tipea. Click o Enter inserta el slug. Sin librería externa, ~40 líneas de JSX.
+S2.1 (agents list) → S2.2 (agent editor) → S2.3 (MasterAgentEditor)
+                                                  └→ S2.4 (DocUpload)
 
+S3.2 (@mention): independiente — no depende de S1/S2
+S3.3 (attribution): independiente — no depende de S1/S2
+```
+
+---
+
+### Sesión 1: DB + Core Lib (~2-3h)
+
+#### 1.1 — Migration `208_master_documents.sql`
+
+3 tablas nuevas (schema en `TUQUI_REFACTOR_SPECS.md` §7.1):
+
+| Tabla | Propósito |
+|-------|-----------|
+| `master_documents` | Docs a nivel plataforma (sin tenant_id): title, content, source_type, file_name, metadata |
+| `master_document_chunks` | Chunks con embeddings `vector(768)`, sin tenant_id — única copia de vectores |
+| `master_agent_documents` | M2M: qué docs tiene cada master agent (PK: master_agent_id + document_id) |
+
+**Sin IVFFlat index** — pocos vectores al inicio. Se agrega cuando haya >1000 chunks.
+
+#### 1.2 — Migration `209_fix_match_documents.sql`
+
+Reescritura completa de `match_documents()` (schema en `TUQUI_REFACTOR_SPECS.md` §7.2):
+
+| Fix | Detalle |
+|-----|---------|
+| Eliminar check `rag_enabled` | Columna dropeada en mig 202. La función actual falla silenciosamente |
+| UNION tenant + master docs | Busca en `document_chunks` (tenant) + `master_document_chunks` (platform) |
+| Fix `agent_documents` join | Agregar `ad.tenant_id = v_tenant_id` al join (faltaba filtro tenant) |
+| Fix `sync_agents_from_masters()` | Todavía referencia `rag_enabled` (mig 104) — nueva versión sin esa columna |
+| Cleanup agent editor | `app/admin/agents/[slug]/page.tsx` L83 escribe `rag_enabled` en update — eliminar |
+
+**Bugs conocidos que se fixean:**
+- `match_documents` checkea `a.rag_enabled` → **RAG silenciosamente roto** desde mig 202
+- `sync_agents_from_masters` copia `rag_enabled` → **sync falla** si se corre
+- Agent editor escribe `rag_enabled: ragEnabled` → **error silencioso** en save
+
+#### 1.3 — `lib/rag/master-documents.ts` (~80 líneas)
+
+Reutiliza infra existente:
+- `chunkDocument()` de `lib/rag/chunker.ts` (1000 chars, 200 overlap)
+- `generateEmbeddings()` de `lib/rag/embeddings.ts` (gemini-embedding-001, batch 100, retry 5)
+
+| Función | Descripción |
+|---------|-----------|
+| `processMasterDocument({ title, content, sourceType, fileName })` | Chunk + embed + insert a `master_documents` + `master_document_chunks` |
+| `linkDocumentToAgent(documentId, masterAgentId)` | Insert en `master_agent_documents` |
+| `deleteMasterDocument(documentId)` | Cascade borra chunks y links |
+| `getMasterDocumentsForAgent(masterAgentId)` | Lista docs vinculados |
+
+#### 1.4 — Tests
+
+```typescript
+// tests/unit/master-documents.test.ts (mock chunker + embeddings)
+- processMasterDocument: chunking correcto con overlap
+- processMasterDocument: inserta doc + chunks en tablas master_*
+- processMasterDocument: genera embeddings para cada chunk
+- linkDocumentToAgent: crea relación M2M
+- deleteMasterDocument: cascade limpia todo
+```
+
+---
+
+### Sesión 2: Super Admin UI (~3h)
+
+#### 2.1 — `/super-admin/agents/page.tsx` (~100 líneas)
+
+Server component. Patrón: igual a `app/super-admin/tenants/page.tsx` existente.
+
+| Dato | Fuente |
+|------|---------|
+| Nombre + descripción | `master_agents` |
+| Count de tools | `master_agents.tools[]` |
+| Count de docs | `master_agent_documents(count)` |
+| Count de tenants | `agents(count)` donde `master_agent_id = X` |
+| Estado | `is_published` → badge verde/amarillo |
+| Versión | `version` |
+
+Link a `/super-admin/agents/[slug]`.
+
+#### 2.2 — `/super-admin/agents/[slug]/page.tsx` (~120 líneas)
+
+Server component con 3 server actions:
+
+| Action | Qué hace |
+|--------|----------|
+| `saveAgent(formData)` | Update `master_agents` + bump `version` |
+| `syncToTenants(formData)` | Llama `sync_agents_from_masters` (fixeado en S1) |
+| `deleteDocument(formData)` | Cascade delete via `deleteMasterDocument()` |
+
+Renderiza `MasterAgentEditor` (client component).
+
+#### 2.3 — `components/super-admin/MasterAgentEditor.tsx` (~150 líneas)
+
+Client component con formulario:
+- name, description, system_prompt (textarea grande)
+- tools (checkboxes: web_search, odoo, knowledge_base, memory)
+- welcome_message, placeholder_text
+- is_published toggle
+- Lista de docs vinculados con botón eliminar
+- Botón "Sync a todos los tenants" con confirmación
+- Info: cuántos tenants tienen este agente
+
+#### 2.4 — `components/super-admin/MasterDocUpload.tsx` (~80 líneas)
+
+Reutiliza patrón de `components/admin/RAGUpload.tsx` pero para master docs:
+- Mismo bucket `rag-documents`, path: `master/{agentSlug}/{fileName}`
+- Acepta PDF, TXT, MD (mismos que el bucket permite: 50MB max)
+- Progress bar upload + processing
+- Al completar → server action procesa con `processMasterDocument()` + vincula al agente
+
+#### 2.5 — `app/api/super-admin/agents/[slug]/documents/route.ts` (~60 líneas)
+
+| Method | Acción |
+|--------|---------|
+| POST | Recibe `{ storagePath, fileName, fileType }`, procesa con `processMasterDocument()`, vincula con `linkDocumentToAgent()` |
+| DELETE | Recibe `{ documentId }`, llama `deleteMasterDocument()` |
+
+Auth: `requirePlatformAdmin()` en ambos.
+
+---
+
+### Sesión 3: PDFs + @mention + Agent Attribution (~2-3h)
+
+#### 3.1 — Subir PDFs de prueba
+
+| Documento | Master Agent | Contenido esperado |
+|-----------|-------------|--------------------|
+| Ley de IVA (extracto) | `contador` | Alícuotas, exenciones, base imponible |
+| LCT (secciones clave) | `abogado` | Vacaciones, indemnización, jornada laboral |
+
+Verificar que `match_documents` retorna resultados del master doc (test manual).
+
+#### 3.2 — @mention agents (4 archivos, ~80 líneas)
+
+| Archivo | Detalle |
+|---------|----------|
+| `lib/chat/parse-mention.ts` | **NUEVO** ~20 líneas. `parseMention(message, availableSlugs)` → `{ agent: string\|null, cleanMessage: string }`. Regex `/^@(\w+)\s+/`. Valida contra slugs. Si no matchea → null + mensaje original |
+| `app/api/chat/route.ts` | Destructurar `mentionedAgent` del body, pasar a `processChatRequest()` |
+| `lib/chat/engine.ts` | Agregar `mentionedAgent?: string` a `ChatEngineParams`. Si presente: skip `orchestrate()`, cargar agente directo con `getAgentBySlug(tenantId, mentionedAgent)`. ~8 líneas de if/else |
+| `components/chat/ChatFooter.tsx` | Al detectar `@` al inicio o después de espacio: popover con slugs filtrados. Fetch slugs desde `/api/admin/agents` al montar. ~40 líneas JSX: div absolute, flechas + Enter |
+
+**Autocomplete minimalista:**
 ```
 Usuario tipea: @con
                 ┌─────────────┐
                 │ 📊 contador │  ← filtrado
                 └─────────────┘
-Usuario apreta Enter → "@contador " se inserta
+Enter → "@contador " se inserta
 
-Usuario tipea: @contador cuánto debo de IVA?
-→ API recibe: { mentionedAgent: "contador", message: "cuánto debo de IVA?" }
+@contador cuánto debo de IVA?
+→ API: { mentionedAgent: "contador", message: "cuánto debo de IVA?" }
 → Engine: skip orchestrator → agente contador directo
 ```
 
-### Agent attribution en tools (sub-task)
+#### 3.3 — Agent attribution en tools (5 archivos, ~40 líneas)
 
-Mostrar el agente seleccionado por el orchestrator en las notificaciones de tools, tanto en tiempo real como en el badge final. Útil para debuggear routing y dar visibilidad al usuario.
-
-**Layout:** `⚡ Odoo Agent · [logo] Consultando ventas totales` → `✓ vía Odoo Agent · Odoo ERP`
-
-**Cambios (5 archivos, ~40 líneas):**
-
-| Archivo | Cambio |
-|---------|--------|
+| Archivo | Detalle |
+|---------|----------|
 | `lib/thinking/types.ts` | Agregar `agentSlug?: string`, `agentName?: string` opcionales a `ThinkingStep` |
-| `lib/chat/engine.ts` | Wrap `onThinkingStep` callback para inyectar `selectedAgent.slug/name` en cada step (~5 líneas) |
-| `app/chat/[slug]/page.tsx` | Extraer `agentName` del stream, guardar en state, pasar a componentes |
-| `components/chat/ExecutionProgress.tsx` | Mostrar `agentName · toolName` en vez de solo `toolName` |
-| `components/chat/ToolBadge.tsx` | Agregar prop `agentName?`, mostrar antes de sources |
+| `lib/chat/engine.ts` | Después de seleccionar agente: wrap `onThinkingStep` para inyectar `slug`/`name` en cada step (~5 líneas) |
+| `app/chat/[slug]/page.tsx` | Nuevo state `routedAgentName`. Extraer del primer `t:` event. Pasar a `ExecutionProgress` + capturar en `Message.agentName` |
+| `components/chat/ExecutionProgress.tsx` | Layout: `⚡ Odoo Agent · [logo] Consultando ventas totales (1.2s)`. Fallback sin agentName |
+| `components/chat/ToolBadge.tsx` | Agregar prop `agentName?`. Layout: `✓ vía Odoo Agent · [logo] Odoo ERP`. Fallback al badge actual |
 
-**Cero breaking changes** — campos opcionales, mensajes históricos sin `agentName` muestran badge como antes.
+**Cero breaking changes** — campos opcionales, mensajes históricos muestran badge como antes.
 
-### Tests
+#### 3.4 — Tests finales
 
 ```typescript
-// tests/unit/parse-mention.test.ts
-- parseMention('@odoo cuánto vendimos?') → { agent: 'odoo', message: 'cuánto vendimos?' }
-- parseMention('cuánto vendimos?') → { agent: null, message: 'cuánto vendimos?' }
-- parseMention('@invalido hola') → { agent: null, message: '@invalido hola' }
-- parseMention('@contador qué dice la ley?') → { agent: 'contador', message: 'qué dice la ley?' }
+// tests/unit/parse-mention.test.ts (table-driven)
+- parseMention('@odoo cuánto vendimos?') → { agent: 'odoo', cleanMessage: 'cuánto vendimos?' }
+- parseMention('cuánto vendimos?') → { agent: null, cleanMessage: 'cuánto vendimos?' }
+- parseMention('@invalido hola') → { agent: null, cleanMessage: '@invalido hola' }
+- parseMention('@contador qué dice la ley?') → { agent: 'contador', cleanMessage: 'qué dice la ley?' }
 
-// tests/unit/master-documents.test.ts
-- processMasterDocument: chunking con overlap correcto
-- processMasterDocument: genera embeddings para cada chunk
-- processMasterDocument: maneja PDF y TXT
-
-// tests/unit/match-documents.test.ts
-- match_documents retorna docs del tenant
-- match_documents retorna docs del master agent vinculado
-- match_documents NO retorna docs de otros tenants
-- match_documents respeta threshold
-
-// tests/evals (manual post-deploy)
-- "¿Cuál es la alícuota de IVA?" → responde con cita de ley
-- "¿Qué dice la LCT sobre vacaciones?" → responde con artículo
+// tests/evals completa → target ≥85%
+// Test manual: "¿Cuál es la alícuota de IVA?" → responde con cita de ley (RAG)
+// Test manual: @odoo cuánto vendimos → skip orchestrator visible en ExecutionProgress
+// Test manual: verificar ToolBadge muestra "✓ vía Odoo Agent · Odoo ERP"
 ```
+
+### Infraestructura existente que se reutiliza
+
+| Componente | Archivo | Qué aporta |
+|------------|---------|------------|
+| Chunker | `lib/rag/chunker.ts` | 1000 chars, 200 overlap, split párrafos/oraciones |
+| Embeddings | `lib/rag/embeddings.ts` | `gemini-embedding-001`, 768 dims, batch 100, retry 5 |
+| RAG search | `lib/rag/search.ts` | `searchDocuments()` → `match_documents` RPC |
+| RAG tool | `lib/tools/definitions/rag-tool.ts` | `search_knowledge_base` con descripción rica |
+| Upload flow | `app/admin/rag/actions.ts` + `components/admin/RAGUpload.tsx` | Signed URL → Storage → process |
+| Storage bucket | `rag-documents` (mig 128) | Private, 50MB, PDF/TXT/MD/CSV/JSON |
+| Platform auth | `lib/platform/auth.ts` | `isPlatformAdmin()` + `requirePlatformAdmin()` ✅ ya existe |
+| Super admin layout | `app/super-admin/layout.tsx` | Gates con `requirePlatformAdmin()` ✅ ya existe |
+| Tenants UI pattern | `app/super-admin/tenants/` | Lista + detail pages como referencia |
+| Agent service | `lib/agents/service.ts` | `getAgentBySlug()`, `getMasterAgents()`, `syncAgentWithMaster()` |
+| PDF parsing | `pdf-parse` + `pdfjs-dist` | Ya instalados en package.json |
 
 ### Riesgos
 
@@ -325,8 +472,11 @@ Mostrar el agente seleccionado por el orchestrator en las notificaciones de tool
 |--------|---------|------------|
 | `pdf-parse` pesado en serverless | Timeout en docs grandes | Chunks < 1000 chars, procesar async |
 | IVFFlat index con pocos vectores | Performance pobre | Empezar sin index, agregar con >1000 chunks |
-| Embeddings cost para docs grandes | $$ en API calls | Batch de 20 chunks, cachear embeddings |
-| `match_documents` checkea `rag_enabled` (dropeado) | RAG silenciosamente roto | Fix en migration 207 |
+| Embeddings cost para docs grandes | $$ en API calls | Batch de 100 chunks (existente), cachear |
+| `match_documents` checkea `rag_enabled` dropeado | RAG silenciosamente roto | **Fix en migration 209** |
+| `sync_agents_from_masters` referencia `rag_enabled` | Sync falla | **Fix en migration 209** |
+| Agent editor escribe `rag_enabled` en update | Error silencioso | **Cleanup en S1** |
+| Duplicate migrations (120×2, 203×2) | Confusión en numeración | Documentado, no bloquea |
 
 ---
 
@@ -349,7 +499,7 @@ Mostrar el agente seleccionado por el orchestrator en las notificaciones de tool
 - [ ] `public/manifest.json` + icons (192px, 512px)
 - [ ] `public/sw.js` (service worker para push)
 - [ ] Meta tags PWA en `app/layout.tsx`
-- [ ] Migration `310_push_subscriptions.sql`
+- [ ] Migration `210_push_subscriptions.sql`
 - [ ] `lib/push/sender.ts` (sendPushToUser, sendPushToTenant)
 - [ ] `app/api/push/subscribe/route.ts`
 - [ ] `lib/hooks/use-push-notifications.ts`
@@ -389,7 +539,7 @@ Mostrar el agente seleccionado por el orchestrator en las notificaciones de tool
 
 ### Checklist
 
-- [ ] Migration `320_briefing_config.sql`
+- [ ] Migration `220_briefing_config.sql`
 - [ ] `lib/briefings/generator.ts` (generateBriefingData, formatBriefingText)
 - [ ] `app/api/cron/briefings/route.ts`
 - [ ] Configurar cron en `vercel.json`
@@ -506,10 +656,12 @@ Mostrar el agente seleccionado por el orchestrator en las notificaciones de tool
 
 | Rango | Dominio | Ejemplos |
 |-------|---------|----------|
-| 200-299 | Core features | 200 company_context, 203 memories, 204 memory_tool, 205 fix_duplicates |
-| 300-309 | Platform admin (RAG) | 300 master_documents, 301 fix_match_documents |
-| 310-319 | Engagement (Push) | 310 push_subscriptions |
-| 320-329 | Engagement (Briefings) | 320 briefing_config |
+| 100-131 | Schema original + fixes | 100 unified_schema, 103 master_agents, 105 fix_match_documents |
+| 200-209 | Core features + platform | 200 company_context, 203 memories, 206 slim_odoo_prompt, **208 master_documents, 209 fix_match_documents** |
+| 210-219 | Engagement (Push) | 210 push_subscriptions |
+| 220-229 | Engagement (Briefings) | 220 briefing_config |
+
+⚠️ **Duplicados conocidos:** 120×2 (`add_auth_user_id` + `meli_force_tool_execution`), 203×2 (`memories` + `platform_admin`). No bloquean — Supabase corre por orden alfabético.
 
 ### Estructura de archivos
 
@@ -551,10 +703,10 @@ app/
 ## 📅 TIMELINE
 
 ```
-Semana 1 (F7 — Master Agents + RAG):
-├── Día 1: Migrations + lib/platform/auth.ts + lib/rag/master-documents.ts + tests
-├── Día 2: Super admin pages (lista + editor) + upload component
-├── Día 3: API upload + procesador + subir PDFs de prueba + tests
+Semana 1 (F7 — Master Agents + RAG — 3 sesiones):
+├── S1: Migrations 208/209 + lib/rag/master-documents.ts + cleanup rag_enabled + tests
+├── S2: Super admin UI (lista + editor + upload component + API route)
+├── S3: Subir PDFs + @mention agents + agent attribution en tools + tests
 
 Semana 1-2 (F5 + F6 — Engagement):
 ├── Día 4: F5 completo (PWA + Push) + tests
@@ -590,16 +742,19 @@ lib/errors/friendly-messages.ts     # Errores → mensajes amigables
 ### Archivos nuevos por fase
 
 ```
-# F7 — Master Agents + RAG (PRIMERA)
-supabase/migrations/300_master_documents.sql
-supabase/migrations/301_fix_match_documents.sql
-lib/platform/auth.ts
-lib/rag/master-documents.ts
-app/super-admin/agents/page.tsx
-app/super-admin/agents/[slug]/page.tsx
-components/super-admin/MasterAgentEditor.tsx
-components/super-admin/MasterDocUpload.tsx
-app/api/super-admin/agents/[slug]/documents/route.ts
+# F7 — Master Agents + RAG (PRIMERA — 3 sesiones)
+supabase/migrations/208_master_documents.sql              # S1
+supabase/migrations/209_fix_match_documents.sql            # S1
+lib/rag/master-documents.ts                                # S1
+tests/unit/master-documents.test.ts                        # S1
+app/super-admin/agents/page.tsx                            # S2
+app/super-admin/agents/[slug]/page.tsx                     # S2
+components/super-admin/MasterAgentEditor.tsx                # S2
+components/super-admin/MasterDocUpload.tsx                  # S2
+app/api/super-admin/agents/[slug]/documents/route.ts       # S2
+lib/chat/parse-mention.ts                                  # S3
+tests/unit/parse-mention.test.ts                           # S3
+# Nota: lib/platform/auth.ts YA EXISTE — no crear
 
 # F5 — PWA + Push (SEGUNDA)
 public/manifest.json
@@ -625,7 +780,7 @@ components/BriefingSettings.tsx
 
 ---
 
-*Última actualización: 2026-02-10*  
+*Última actualización: 2026-02-12*  
 *PRs mergeados: #2-#10 | PR abierto: #11 (feat/memory)*  
 *Spec técnica detallada: `TUQUI_REFACTOR_SPECS.md`*  
 *Versión anterior archivada: `docs/archive/TUQUI_REFACTOR_PLAN_v3.md`*  
