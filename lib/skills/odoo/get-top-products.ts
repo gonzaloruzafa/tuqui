@@ -46,6 +46,7 @@ Para: "productos más vendidos", "qué se vende más", "ranking de productos", "
 Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'products', 'reporting'],
+  resultMeta: { entityLabel: 'PRODUCTOS TOP', warning: 'Estos son PRODUCTOS del catálogo. NO son clientes ni vendedores.' },
   inputSchema: GetTopProductsInputSchema,
 
   async execute(input, context): Promise<SkillResult<TopProductsOutput>> {

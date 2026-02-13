@@ -93,6 +93,7 @@ Retorna total cobrado, cantidad de pagos. Acepta período (this_month, last_mont
   inputSchema: GetPaymentsReceivedInputSchema,
 
   tags: ['payments', 'collections', 'cash-flow', 'customers'],
+  resultMeta: { entityLabel: 'PAGOS RECIBIDOS', warning: 'Los nombres son CLIENTES que pagaron. NO son vendedores.' },
 
   priority: 10,
 

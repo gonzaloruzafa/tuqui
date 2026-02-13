@@ -10,6 +10,7 @@
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai'
 import { ThinkingStep, OnThinkingStep, getToolSource, ThinkingSource } from '@/lib/thinking/types'
 import { withRetry } from '@/lib/skills/errors'
+import { enrichToolResult } from '@/lib/validation/tool-result-enricher'
 
 /**
  * Map string literals to ThinkingLevel enum values (gemini-3-*)
@@ -389,7 +390,7 @@ export async function generateTextWithThinking({
                 functionResponses.push({
                     functionResponse: {
                         name,
-                        response: toolResult
+                        response: enrichToolResult(name, toolResult, tool?.resultMeta)
                     }
                 })
             }

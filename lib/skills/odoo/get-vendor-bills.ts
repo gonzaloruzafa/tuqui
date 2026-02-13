@@ -35,6 +35,7 @@ export const getVendorBills: Skill<
 USAR PARA: "cuánto le debemos a proveedores", "facturas pendientes de pago", "deuda con proveedores", "cuentas por pagar", "accounts payable".`,
   tool: 'odoo',
   tags: ['purchases', 'bills', 'accounting'],
+  resultMeta: { entityLabel: 'FACTURAS DE PROVEEDORES', warning: 'Los nombres son PROVEEDORES. NO son clientes.' },
   inputSchema: GetVendorBillsInputSchema,
 
   async execute(input, context): Promise<SkillResult<VendorBillsOutput>> {

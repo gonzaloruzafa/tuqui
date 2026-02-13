@@ -82,6 +82,7 @@ Si un producto tiene variantes (ej: distintos tamaños), el templateId es el mis
 Para ver ventas agregadas de TODAS las variantes, usar el templateId con get_product_sales_history.`,
   tool: 'odoo',
   tags: ['products', 'search', 'inventory'],
+  resultMeta: { entityLabel: 'PRODUCTOS', warning: 'Resultados de búsqueda de PRODUCTOS. NO son clientes ni vendedores.' },
   inputSchema: SearchProductsInputSchema,
 
   async execute(input, context): Promise<SkillResult<SearchProductsOutput>> {

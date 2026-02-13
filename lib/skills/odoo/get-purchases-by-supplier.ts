@@ -44,6 +44,7 @@ Para: "a quién le compramos más", "cuánto le compramos a cada proveedor", "pr
 "top suppliers", "compras por proveedor", "supplier spending".`,
   tool: 'odoo',
   tags: ['purchases', 'suppliers', 'reporting'],
+  resultMeta: { entityLabel: 'COMPRAS POR PROVEEDOR', warning: 'Los nombres son PROVEEDORES. NO son clientes ni vendedores del equipo.' },
   inputSchema: GetPurchasesBySupplierInputSchema,
 
   async execute(input, context): Promise<SkillResult<PurchasesBySupplierOutput>> {

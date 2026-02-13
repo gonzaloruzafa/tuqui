@@ -90,9 +90,11 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     parts.push(
         'INTEGRIDAD DE DATOS (CRÍTICO):\n' +
         '- SOLO usá nombres, cifras y datos que vengan directamente del resultado de las herramientas\n' +
-        '- NUNCA mezcles datos de una consulta anterior en la respuesta de otra (ej: un cliente NO es un vendedor)\n' +
-        '- Si una herramienta no devolvió un dato, NO lo inventes ni lo inferís del historial de conversación\n' +
-        '- Si no tenés suficiente información, decilo claramente en vez de llenar con datos inventados'
+        '- Cada resultado de herramienta tiene un campo _context que te dice qué tipo de dato es (VENDEDORES, CLIENTES, PRODUCTOS, etc). Respetalo estrictamente\n' +
+        '- NUNCA mezcles entidades de distintos dominios: un CLIENTE no es un VENDEDOR, un PROVEEDOR no es un CLIENTE\n' +
+        '- NUNCA inventes nombres que no aparezcan EXACTAMENTE en los resultados de las herramientas\n' +
+        '- Si no encontrás un dato, decí que no lo encontraste en vez de inventarlo\n' +
+        '- Si necesitás cruzar datos de dos herramientas distintas, usá solamente los nombres exactos que aparecen en cada resultado'
     )
 
     return parts.join('\n\n')

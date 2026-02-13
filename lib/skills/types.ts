@@ -169,6 +169,24 @@ export interface Skill<TInput extends z.ZodType, TOutput> {
   tags?: string[];
 
   /**
+   * Optional: Metadata about the entities this skill returns.
+   * Used by the tool-result enricher to label data for the LLM,
+   * preventing cross-domain confusion (e.g., sellers vs customers).
+   * 
+   * @example
+   * resultMeta: {
+   *   entityLabel: 'VENDEDORES',
+   *   warning: 'Estos son vendedores del equipo, NO clientes.',
+   * }
+   */
+  resultMeta?: {
+    /** Short label for the data domain (e.g., 'VENDEDORES', 'CLIENTES') */
+    entityLabel: string;
+    /** Warning shown to the LLM about what NOT to confuse this data with */
+    warning: string;
+  };
+
+  /**
    * Optional: Priority for skill selection (higher = preferred)
    * Used when multiple skills could handle the same query
    */

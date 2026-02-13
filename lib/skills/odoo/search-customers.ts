@@ -68,6 +68,7 @@ Para buscar PROVEEDORES usar search_suppliers (son herramientas distintas).
 Devuelve: nombre, email, teléfono, CUIT, ciudad.`,
   tool: 'odoo',
   tags: ['customers', 'search', 'crm'],
+  resultMeta: { entityLabel: 'CLIENTES', warning: 'Resultados de búsqueda de CLIENTES. NO son vendedores.' },
   inputSchema: SearchCustomersInputSchema,
 
   async execute(input, context): Promise<SkillResult<SearchCustomersOutput>> {

@@ -83,6 +83,7 @@ para agregar stock de TODAS las variantes. Sin él, solo verás variantes indivi
   inputSchema: GetProductStockInputSchema,
 
   tags: ['stock', 'inventory', 'products', 'warehouse'],
+  resultMeta: { entityLabel: 'STOCK DE PRODUCTOS', warning: 'Los nombres son PRODUCTOS. NO son clientes ni vendedores.' },
 
   priority: 10,
 

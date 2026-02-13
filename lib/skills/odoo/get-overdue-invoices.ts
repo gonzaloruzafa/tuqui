@@ -88,6 +88,7 @@ Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero 
 RETORNA: invoiceNumber, monto total, monto pendiente, fecha vencimiento, días de atraso, nombre del vendedor.`,
   tool: 'odoo',
   tags: ['invoices', 'debt', 'collections', 'accounting'],
+  resultMeta: { entityLabel: 'FACTURAS VENCIDAS', warning: 'Los nombres son CLIENTES morosos. sellerName = VENDEDOR asignado. No confundir.' },
   inputSchema: GetOverdueInvoicesInputSchema,
 
   async execute(input, context): Promise<SkillResult<OverdueInvoicesOutput>> {

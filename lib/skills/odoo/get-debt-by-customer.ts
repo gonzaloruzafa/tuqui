@@ -98,6 +98,7 @@ Devuelve cliente, monto adeudado, fecha vencimiento.`,
   inputSchema: GetDebtByCustomerInputSchema,
 
   tags: ['invoices', 'debt', 'customers', 'accounts-receivable'],
+  resultMeta: { entityLabel: 'DEUDA DE CLIENTES', warning: 'Los nombres son CLIENTES que deben dinero. NO son vendedores.' },
 
   priority: 12,
 

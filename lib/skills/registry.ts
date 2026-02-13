@@ -21,6 +21,8 @@ export interface AITool {
   description: string;
   parameters: z.ZodType;
   execute: (input: unknown, context: SkillContext) => Promise<SkillResult<any>>;
+  /** Metadata about the entities this tool returns (from Skill.resultMeta) */
+  resultMeta?: { entityLabel: string; warning: string };
 }
 
 /**
@@ -223,6 +225,7 @@ export function skillsToAITools(
     tools[skill.name] = {
       description: skill.description,
       parameters: skill.inputSchema,
+      resultMeta: skill.resultMeta,
       execute: async (input: unknown) => {
         // Auto-clamp numeric values to prevent LLM validation errors
         const clamped = clampNumericInputs(input, skill.inputSchema);

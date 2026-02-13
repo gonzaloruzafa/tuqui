@@ -71,6 +71,7 @@ USAR PARA: "ventas por vendedor", "quién vendió más", "comisiones", "ranking 
 Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para obtener el ID.`,
   tool: 'odoo',
   tags: ['sales', 'sellers', 'commissions', 'reporting'],
+  resultMeta: { entityLabel: 'VENDEDORES', warning: 'Estos son VENDEDORES (salespersons del equipo). NO son clientes.' },
   inputSchema: GetSalesBySellerInputSchema,
 
   async execute(input, context): Promise<SkillResult<SalesBySellerOutput>> {

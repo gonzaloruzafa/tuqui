@@ -49,6 +49,7 @@ Soporta filtro por provincia (customerState) y equipo (teamId).
 SIEMPRE llamar get_sales_teams primero para obtener el teamId, NO adivinarlo.`,
   tool: 'odoo',
   tags: ['sales', 'customers', 'reporting'],
+  resultMeta: { entityLabel: 'CLIENTES TOP', warning: 'Estos son CLIENTES (compradores). NO son vendedores del equipo.' },
   inputSchema: GetTopCustomersInputSchema,
 
   async execute(input, context): Promise<SkillResult<TopCustomersOutput>> {

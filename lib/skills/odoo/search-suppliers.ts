@@ -45,6 +45,7 @@ Devuelve: nombre, email, teléfono, CUIT, ciudad.`,
 
   tool: 'odoo',
   tags: ['suppliers', 'search', 'purchases'],
+  resultMeta: { entityLabel: 'PROVEEDORES', warning: 'Estos son PROVEEDORES. NO son clientes ni vendedores del equipo.' },
   inputSchema: SearchSuppliersInputSchema,
 
   async execute(input, context): Promise<SkillResult<SearchSuppliersOutput>> {

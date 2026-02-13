@@ -101,6 +101,7 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
   inputSchema: GetSalesByCustomerInputSchema,
 
   tags: ['sales', 'customers', 'aggregation', 'reporting'],
+  resultMeta: { entityLabel: 'CLIENTES', warning: 'Estos son CLIENTES (compradores). NO son vendedores del equipo.' },
 
   priority: 10,
 

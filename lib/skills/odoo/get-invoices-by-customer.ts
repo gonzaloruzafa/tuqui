@@ -78,6 +78,7 @@ Soporta filtro por compañía (companyId). SIEMPRE llamar get_companies primero 
 Ejemplo: customerName="Acme Corp" devuelve solo facturas de ese cliente.`,
   tool: 'odoo',
   tags: ['invoices', 'customers', 'accounting'],
+  resultMeta: { entityLabel: 'FACTURAS', warning: 'customerName/partnerName = CLIENTE. sellerName = VENDEDOR. No confundir roles.' },
   inputSchema: GetInvoicesByCustomerInputSchema,
 
   async execute(input, context): Promise<SkillResult<InvoicesByCustomerOutput>> {
