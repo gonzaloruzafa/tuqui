@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     const insert: Record<string, any> = { slug, name, system_prompt }
-    const optional = ['description', 'icon', 'color', 'welcome_message', 'placeholder_text', 'tools', 'is_published', 'rag_enabled', 'sort_order']
+    const optional = ['description', 'icon', 'color', 'welcome_message', 'placeholder_text', 'tools', 'is_published', 'sort_order']
     for (const key of optional) {
         if (key in body) insert[key] = body[key]
     }

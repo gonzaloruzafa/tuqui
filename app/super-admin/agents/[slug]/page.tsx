@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Bot, Save, FileText, Trash2, Upload, Loader2, BookOpen, Wrench, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { AgentIcon } from '@/components/ui/AgentIcon'
+import { TOOL_LABELS } from '@/lib/constants/tools'
 
 interface MasterAgent {
     id: string
@@ -18,7 +19,6 @@ interface MasterAgent {
     placeholder_text: string | null
     tools: string[]
     is_published: boolean
-    rag_enabled: boolean
     sort_order: number
 }
 
@@ -30,19 +30,13 @@ interface MasterDoc {
     created_at: string
 }
 
-const TOOL_LABELS: Record<string, string> = {
-    web_search: 'Búsqueda Web',
-    odoo_intelligent_query: 'Odoo ERP',
-    knowledge_base: 'Base de Conocimiento',
-    memory: 'Memoria',
-}
-
 export default function SuperAdminAgentEditorPage() {
     const params = useParams()
     const router = useRouter()
     const slug = params.slug as string
+    const isCreateMode = slug === 'new'
 
-    const [agent, setAgent] = useState<MasterAgent | null>(null)
+    const [agent, setAgent] = useState<MasterAgent | null>(isCreateMode ? { id: '', slug: '', name: '', description: null, icon: 'Bot', color: 'violet', system_prompt: '', welcome_message: null, placeholder_text: null, tools: [], is_published: true, sort_order: 0 } : null)
     const [docs, setDocs] = useState<MasterDoc[]>([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -64,11 +58,11 @@ export default function SuperAdminAgentEditorPage() {
         is_published: true,
         icon: '',
         color: 'violet',
-        rag_enabled: false,
         sort_order: 0,
     })
 
     const fetchAgent = useCallback(async () => {
+        if (isCreateMode) return
         try {
             const res = await fetch(`/api/super-admin/agents/${slug}`)
             if (!res.ok) { setError('Agent not found'); return }
@@ -85,15 +79,15 @@ export default function SuperAdminAgentEditorPage() {
                 is_published: data.is_published ?? true,
                 icon: data.icon || '',
                 color: data.color || 'violet',
-                rag_enabled: data.rag_enabled ?? false,
                 sort_order: data.sort_order ?? 0,
             })
         } catch (err: any) {
             setError(err.message)
         }
-    }, [slug])
+    }, [slug, isCreateMode])
 
     const fetchDocs = useCallback(async () => {
+        if (isCreateMode) return
         try {
             const res = await fetch(`/api/super-admin/agents/${slug}/documents`)
             if (res.ok) {
@@ -101,9 +95,10 @@ export default function SuperAdminAgentEditorPage() {
                 setDocs(Array.isArray(data) ? data : [])
             }
         } catch { /* fail silently */ }
-    }, [slug])
+    }, [slug, isCreateMode])
 
     useEffect(() => {
+        if (isCreateMode) { setLoading(false); return }
         Promise.all([fetchAgent(), fetchDocs()]).finally(() => setLoading(false))
     }, [fetchAgent, fetchDocs])
 
@@ -111,23 +106,51 @@ export default function SuperAdminAgentEditorPage() {
         setSaving(true)
         setError(null)
         setSuccess(null)
+
+        // Validate slug
+        if (!form.slug || !/^[a-z][a-z0-9_-]{1,48}$/.test(form.slug)) {
+            setError('Slug inválido: solo minúsculas, números, guiones. 2-49 chars, empieza con letra.')
+            setSaving(false)
+            return
+        }
+        if (!form.name || !form.system_prompt) {
+            setError('Nombre y system prompt son requeridos')
+            setSaving(false)
+            return
+        }
+
         try {
-            const res = await fetch(`/api/super-admin/agents/${slug}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
-            })
-            if (res.ok) {
+            if (isCreateMode) {
+                const res = await fetch('/api/super-admin/agents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(form),
+                })
                 const data = await res.json()
-                if (data.slug && data.slug !== slug) {
+                if (res.ok) {
                     router.push(`/super-admin/agents/${data.slug}`)
                     return
+                } else {
+                    setError(data.error || 'Error al crear agente')
                 }
-                setSuccess('Guardado correctamente')
-                setTimeout(() => setSuccess(null), 3000)
             } else {
-                const data = await res.json()
-                setError(data.error || 'Error al guardar')
+                const res = await fetch(`/api/super-admin/agents/${slug}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(form),
+                })
+                if (res.ok) {
+                    const data = await res.json()
+                    if (data.slug && data.slug !== slug) {
+                        router.push(`/super-admin/agents/${data.slug}`)
+                        return
+                    }
+                    setSuccess('Guardado correctamente')
+                    setTimeout(() => setSuccess(null), 3000)
+                } else {
+                    const data = await res.json()
+                    setError(data.error || 'Error al guardar')
+                }
             }
         } catch (err: any) {
             setError(err.message)
@@ -287,17 +310,19 @@ export default function SuperAdminAgentEditorPage() {
                     <AgentIcon name={agent.icon} className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-900 font-display">{form.name || agent.name}</h1>
-                    <span className="text-sm text-gray-400 font-mono">{form.slug || agent.slug}</span>
+                    <h1 className="text-2xl font-bold text-gray-900 font-display">{isCreateMode ? 'Nuevo Agente' : (form.name || agent.name)}</h1>
+                    <span className="text-sm text-gray-400 font-mono">{isCreateMode ? 'Crear un nuevo master agent' : (form.slug || agent.slug)}</span>
                 </div>
-                <button
-                    onClick={syncToTenants}
-                    disabled={syncing}
-                    className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                    {syncing ? 'Sincronizando...' : 'Sync a tenants'}
-                </button>
+                {!isCreateMode && (
+                    <button
+                        onClick={syncToTenants}
+                        disabled={syncing}
+                        className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                        {syncing ? 'Sincronizando...' : 'Sync a tenants'}
+                    </button>
+                )}
             </div>
 
             {/* Notifications */}
@@ -423,16 +448,6 @@ export default function SuperAdminAgentEditorPage() {
                                 />
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setForm(prev => ({ ...prev, rag_enabled: !prev.rag_enabled }))}
-                                className={`relative w-10 h-6 rounded-full transition-colors ${form.rag_enabled ? 'bg-adhoc-violet' : 'bg-gray-200'}`}
-                            >
-                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.rag_enabled ? 'translate-x-4' : ''}`} />
-                            </button>
-                            <span className="text-sm text-gray-600">RAG Habilitado</span>
-                        </div>
                     </div>
                 </section>
 
@@ -462,7 +477,8 @@ export default function SuperAdminAgentEditorPage() {
                     </div>
                 </section>
 
-                {/* Documents / RAG */}
+                {/* Documents / RAG — only in edit mode */}
+                {!isCreateMode && (
                 <section className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="p-6 border-b border-gray-50 bg-gray-50/20 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -543,6 +559,7 @@ export default function SuperAdminAgentEditorPage() {
                         )}
                     </div>
                 </section>
+                )}
 
                 {/* Save */}
                 <div className="sticky bottom-6 z-10 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg">
@@ -553,7 +570,7 @@ export default function SuperAdminAgentEditorPage() {
                         className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-adhoc-violet text-white rounded-xl text-sm font-medium hover:bg-adhoc-violet/90 transition-colors disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        {saving ? 'Guardando...' : 'Guardar Cambios'}
+                        {saving ? (isCreateMode ? 'Creando...' : 'Guardando...') : (isCreateMode ? 'Crear Agente' : 'Guardar Cambios')}
                     </button>
                 </div>
             </div>

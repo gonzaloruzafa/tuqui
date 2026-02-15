@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Bot, FileText, Loader2, RefreshCw, Eye, EyeOff, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { AgentIcon } from '@/components/ui/AgentIcon'
+import { TOOL_LABELS } from '@/lib/constants/tools'
 
 interface MasterAgent {
     id: string
@@ -106,7 +107,7 @@ export default function SuperAdminAgentsPage() {
                                 <div className="flex items-center gap-3 mt-1">
                                     {agent.tools?.map(tool => (
                                         <span key={tool} className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                                            {tool}
+                                            {TOOL_LABELS[tool] ?? tool}
                                         </span>
                                     ))}
                                 </div>

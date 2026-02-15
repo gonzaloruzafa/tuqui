@@ -17,7 +17,7 @@ export async function GET(
 
     const { data: agent, error } = await supabase
         .from('master_agents')
-        .select('id, slug, name, description, icon, color, system_prompt, welcome_message, placeholder_text, tools, is_published, rag_enabled, sort_order')
+        .select('id, slug, name, description, icon, color, system_prompt, welcome_message, placeholder_text, tools, is_published, sort_order')
         .eq('slug', slug)
         .single()
 
@@ -43,7 +43,7 @@ export async function PATCH(
     const supabase = supabaseAdmin()
 
     // Only allow updating safe fields
-    const allowed = ['name', 'description', 'system_prompt', 'welcome_message', 'placeholder_text', 'tools', 'is_published', 'icon', 'slug', 'color', 'rag_enabled', 'sort_order']
+    const allowed = ['name', 'description', 'system_prompt', 'welcome_message', 'placeholder_text', 'tools', 'is_published', 'icon', 'slug', 'color', 'sort_order']
     const updates: Record<string, any> = {}
     for (const key of allowed) {
         if (key in body) updates[key] = body[key]
