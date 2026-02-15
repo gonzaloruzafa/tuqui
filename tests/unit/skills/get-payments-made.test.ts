@@ -7,7 +7,10 @@ import { getPaymentsMade, GetPaymentsMadeInputSchema } from '@/lib/skills/odoo/g
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    formatMonto: actual.formatMonto,
   createOdooClient: vi.fn(),
   dateRange: (field: string, start: string, end: string) => [
     [field, '>=', start],
@@ -15,7 +18,8 @@ vi.mock('@/lib/skills/odoo/_client', () => ({
   ],
   combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
   getDefaultPeriod: () => ({ start: '2025-01-01', end: '2025-01-31' }),
-}));
+  };
+});
 
 describe('Skill: get_payments_made', () => {
   const mockContext: SkillContext = {

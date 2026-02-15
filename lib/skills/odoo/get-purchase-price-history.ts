@@ -86,7 +86,10 @@ Busca el producto por nombre, muestra las purchase.order.line y agrupa por prove
       );
 
       if (products.length === 0) {
+        const _descripcion = `PROVEEDORES (historial de precios de compra): no se encontró el producto "${input.productQuery}". IMPORTANTE: son precios de PROVEEDORES, NO precios de venta.`;
+
         return success({
+          _descripcion,
           productId: 0,
           productName: input.productQuery,
           history: [],
@@ -187,7 +190,10 @@ Busca el producto por nombre, muestra las purchase.order.line y agrupa por prove
         };
       }
 
+      const _descripcion = `PROVEEDORES (historial de precios de compra) para "${product.name}": ${history.length} compras registradas.${bySupplier ? ` ${bySupplier.length} proveedores, más barato: ${bySupplier[0].supplierName} (avg $${bySupplier[0].avgPrice}).` : ''}${priceChange ? ` Tendencia: ${priceChange.trend} (${priceChange.changePercent}%).` : ''} IMPORTANTE: son precios de PROVEEDORES, NO precios de venta.`;
+
       return success({
+        _descripcion,
         productId: product.id,
         productName: product.name,
         history,

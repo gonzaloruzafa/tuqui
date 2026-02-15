@@ -11,7 +11,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetSubscriptionChurnInputSchema = z.object({
@@ -181,7 +181,10 @@ Lista los clientes que más MRR perdimos para acción de retención.`,
         subscriptionName: r.name,
       }));
 
+      const _descripcion = `SUSCRIPCIONES (churn) del ${period.start} al ${period.end}: ${current.churnedCount} canceladas (MRR perdido ${formatMonto(current.churnedMRR)}), ${current.newCount} nuevas (MRR ganado ${formatMonto(current.newMRR)}), crecimiento neto ${current.netGrowth} suscripciones. Churn rate: ${churnRate}%. ${activeCount} activas al cierre. Tendencia: ${trend}. Top ${topChurnedCustomers.length} clientes que churnearon listados. IMPORTANTE: los clientes que churnearon son CLIENTES suscriptores, NO son vendedores.`;
+
       return success({
+        _descripcion,
         current,
         churnRate,
         totalActiveAtEnd: activeCount,

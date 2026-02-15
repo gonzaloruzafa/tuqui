@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema, DocumentStateSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -107,7 +107,10 @@ Para pendientes usar state='confirmed' sin período.`,
         const totalAmountWithoutTax = grouped[0]?.amount_untaxed || 0;
         const orderCount = grouped[0]?.id_count || 0;
 
+        const _descripcion = `Órdenes de compra (${period.start} a ${period.end}): ${orderCount} órdenes, total con impuestos ${formatMonto(totalAmountWithTax)}, sin impuestos ${formatMonto(totalAmountWithoutTax)}. IMPORTANTE: son COMPRAS a proveedores, NO ventas a clientes.`;
+
         return success({
+          _descripcion,
           totalAmountWithTax,
           totalAmountWithoutTax,
           orderCount,
@@ -150,7 +153,10 @@ Para pendientes usar state='confirmed' sin período.`,
           orderCount += g.id_count || 1;
         }
 
+        const _descripcion = `Órdenes de compra agrupadas por ${input.groupBy} (${period.start} a ${period.end}): ${orderCount} órdenes en ${Object.keys(groups).length} grupos, total con impuestos ${formatMonto(totalAmountWithTax)}, sin impuestos ${formatMonto(totalAmountWithoutTax)}. IMPORTANTE: son COMPRAS a proveedores, NO ventas a clientes.`;
+
         return success({
+          _descripcion,
           totalAmountWithTax,
           totalAmountWithoutTax,
           orderCount,

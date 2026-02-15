@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient } from './_client';
+import { createOdooClient, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -90,7 +90,10 @@ IMPORTANTE: Usar el ID del equipo como teamId en otros skills de ventas.`,
       );
 
       if (!input.includeStats) {
+        const _descripcion = `EQUIPOS de venta: ${teams.length} equipos encontrados (sin estadísticas). IMPORTANTE: son equipos/departamentos internos, NO son clientes ni proveedores.`;
+
         return success({
+          _descripcion,
           teams: teams.map((t: any) => ({
             id: t.id,
             name: t.name,
@@ -130,7 +133,10 @@ IMPORTANTE: Usar el ID del equipo como teamId en otros skills de ventas.`,
         ? teamsWithStats.filter((t) => (t.orderCount || 0) > 0)
         : teamsWithStats;
 
+      const _descripcion = `EQUIPOS de venta: ${result.length} equipos, revenue total ${formatMonto(result.reduce((s, t) => s + (t.totalRevenue || 0), 0))}. IMPORTANTE: son equipos/departamentos internos, NO son clientes ni proveedores.`;
+
       return success({
+        _descripcion,
         teams: result,
         totalTeams: result.length,
       });

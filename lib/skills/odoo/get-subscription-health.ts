@@ -11,7 +11,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient } from './_client';
+import { createOdooClient, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetSubscriptionHealthInputSchema = z.object({
@@ -185,7 +185,10 @@ Top clientes por MRR para saber dónde está concentrado el ingreso.`,
           state: 'in_progress',
         }));
 
+      const _descripcion = `SUSCRIPCIONES (health overview): MRR total ${formatMonto(totalMRR)}, ${totalActiveSubscriptions} activas de ${totalAllSubscriptions} totales. En riesgo: ${atRisk.totalAtRiskCount} suscripciones (${formatMonto(atRisk.totalAtRiskMRR)} MRR). Top ${topCustomersByMRR.length} clientes por MRR listados. IMPORTANTE: los clientes son SUSCRIPTORES, NO son vendedores.`;
+
       return success({
+        _descripcion,
         totalMRR,
         totalActiveSubscriptions,
         totalAllSubscriptions,

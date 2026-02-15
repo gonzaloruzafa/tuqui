@@ -13,7 +13,7 @@
 import { z } from 'zod'
 import type { Skill, SkillContext, SkillResult, Period } from '../types'
 import { PeriodSchema, DocumentStateSchema, success, authError } from '../types'
-import { createOdooClient, dateRange, stateFilter, combineDomains, getDefaultPeriod, getPreviousMonthPeriod, type OdooDomain, type DomainFilter } from './_client'
+import { createOdooClient, dateRange, stateFilter, combineDomains, getDefaultPeriod, getPreviousMonthPeriod, formatMonto, type OdooDomain, type DomainFilter } from './_client'
 import { errorToResult } from '../errors'
 
 // ============================================
@@ -321,7 +321,10 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         })
       }
 
+      const _descripcion = `Comparación de VENTAS: actual (${current.periodLabel}) ${formatMonto(current.totalSalesWithTax)} vs anterior (${previous.periodLabel}) ${formatMonto(previous.totalSalesWithTax)}, tendencia ${trend}${salesChangePercent !== null ? ` (${salesChangePercent > 0 ? '+' : ''}${salesChangePercent}%)` : ''}.${productComparison ? ' Incluye breakdown por PRODUCTOS.' : ''}${customerComparison ? ' Incluye breakdown por CLIENTES.' : ''} IMPORTANTE: si hay customerComparison, son CLIENTES compradores; si hay productComparison, son PRODUCTOS.`
+
       return success({
+        _descripcion,
         current,
         previous,
         salesChange,

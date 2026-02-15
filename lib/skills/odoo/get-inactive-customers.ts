@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, getDefaultPeriod, getPreviousMonthPeriod } from './_client';
+import { createOdooClient, dateRange, getDefaultPeriod, getPreviousMonthPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetInactiveCustomersInputSchema = z.object({
@@ -75,7 +75,10 @@ Incluye datos de contacto para reactivación.`,
       );
 
       if (prevBuyers.length === 0) {
+        const _descripcion = `CLIENTES INACTIVOS: no se encontraron compradores en el período anterior (${previousPeriod.start} a ${previousPeriod.end}), no hay churn que reportar. IMPORTANTE: son CLIENTES que compraban y dejaron de hacerlo, NO son vendedores.`;
+
         return success({
+          _descripcion,
           totalInactive: 0,
           totalLostRevenue: 0,
           customers: [],
@@ -160,7 +163,10 @@ Incluye datos de contacto para reactivación.`,
 
       const totalLostRevenue = inactive.reduce((sum, c) => sum + c.previousPeriodAmount, 0);
 
+      const _descripcion = `CLIENTES INACTIVOS (churn): ${inactive.length} clientes dejaron de comprar, revenue perdido ${formatMonto(totalLostRevenue)}. Comparando ${previousPeriod.start}/${previousPeriod.end} vs ${currentPeriod.start}/${currentPeriod.end}.${inactive.length > 0 ? ` Top: ${inactive[0].customerName} (${formatMonto(inactive[0].previousPeriodAmount)}).` : ''} IMPORTANTE: son CLIENTES que compraban y dejaron de hacerlo, NO son vendedores.`;
+
       return success({
+        _descripcion,
         totalInactive: inactive.length,
         totalLostRevenue,
         customers: inactive,

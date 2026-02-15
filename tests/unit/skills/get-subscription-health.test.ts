@@ -7,9 +7,13 @@ import { getSubscriptionHealth, GetSubscriptionHealthInputSchema } from '@/lib/s
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    formatMonto: actual.formatMonto,
   createOdooClient: vi.fn(),
-}));
+  };
+});
 
 describe('Skill: get_subscription_health', () => {
   const mockContext: SkillContext = {

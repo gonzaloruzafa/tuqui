@@ -119,7 +119,10 @@ Use for: "qué productos tienen poco stock", "stock bajo", "productos con bajo i
         reorderingRule: false, // Would need additional query to check orderpoint rules
       }));
 
+      const _descripcion = `Productos con stock bajo (umbral ≤ ${input.threshold} unidades): ${results.length} producto(s) encontrado(s). ${results.length > 0 ? `El más crítico es "${results[0].productName}" con ${results[0].qtyAvailable} unidades.` : 'No hay productos bajo el umbral.'} IMPORTANTE: son PRODUCTOS del inventario, NO son clientes ni vendedores.`;
+
       return success({
+        _descripcion,
         products: results,
         total: results.length,
         threshold: input.threshold,
