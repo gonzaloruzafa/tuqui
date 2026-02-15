@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bot, FileText, Loader2, RefreshCw, Eye, EyeOff } from 'lucide-react'
+import { Bot, FileText, Loader2, RefreshCw, Eye, EyeOff, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { AgentIcon } from '@/components/ui/AgentIcon'
 
@@ -52,14 +52,23 @@ export default function SuperAdminAgentsPage() {
                         Agentes base de la plataforma y sus documentos RAG
                     </p>
                 </div>
-                <button
-                    onClick={fetchAgents}
-                    disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    Recargar
-                </button>
+                <div className="flex items-center gap-2">
+                    <Link
+                        href="/super-admin/agents/new"
+                        className="flex items-center gap-2 px-4 py-2 text-sm bg-adhoc-violet text-white rounded-xl hover:bg-adhoc-violet/90 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nuevo Agente
+                    </Link>
+                    <button
+                        onClick={fetchAgents}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        Recargar
+                    </button>
+                </div>
             </div>
 
             {error && (

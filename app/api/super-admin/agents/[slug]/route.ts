@@ -17,7 +17,7 @@ export async function GET(
 
     const { data: agent, error } = await supabase
         .from('master_agents')
-        .select('id, slug, name, description, icon, system_prompt, welcome_message, placeholder_text, tools, is_published, sort_order')
+        .select('id, slug, name, description, icon, color, system_prompt, welcome_message, placeholder_text, tools, is_published, rag_enabled, sort_order')
         .eq('slug', slug)
         .single()
 
@@ -43,7 +43,7 @@ export async function PATCH(
     const supabase = supabaseAdmin()
 
     // Only allow updating safe fields
-    const allowed = ['name', 'description', 'system_prompt', 'welcome_message', 'placeholder_text', 'tools', 'is_published', 'icon']
+    const allowed = ['name', 'description', 'system_prompt', 'welcome_message', 'placeholder_text', 'tools', 'is_published', 'icon', 'slug', 'color', 'rag_enabled', 'sort_order']
     const updates: Record<string, any> = {}
     for (const key of allowed) {
         if (key in body) updates[key] = body[key]
@@ -53,21 +53,38 @@ export async function PATCH(
         return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
+    // Validate slug format if changing
+    if (updates.slug && !/^[a-z][a-z0-9_-]{1,48}$/.test(updates.slug)) {
+        return NextResponse.json({ error: 'Slug inválido (lowercase, hyphens, 2-49 chars)' }, { status: 400 })
+    }
+
+    // Check slug uniqueness if changing
+    if (updates.slug && updates.slug !== slug) {
+        const { data: existing } = await supabase.from('master_agents').select('id').eq('slug', updates.slug).single()
+        if (existing) {
+            return NextResponse.json({ error: `El slug "${updates.slug}" ya existe` }, { status: 409 })
+        }
+    }
+
     updates.updated_at = new Date().toISOString()
 
-    // Get current version for manual bump
+    // Get current agent by slug (need id for WHERE in case slug changes)
     const { data: current } = await supabase
         .from('master_agents')
-        .select('version')
+        .select('id, version')
         .eq('slug', slug)
         .single()
 
-    updates.version = (current?.version || 1) + 1
+    if (!current) {
+        return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
+    }
+
+    updates.version = (current.version || 1) + 1
 
     const { data, error } = await supabase
         .from('master_agents')
         .update(updates)
-        .eq('slug', slug)
+        .eq('id', current.id)
         .select('id, slug, name')
         .single()
 

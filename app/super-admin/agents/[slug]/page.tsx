@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Bot, Save, FileText, Trash2, Upload, Loader2, BookOpen, Wrench, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { AgentIcon } from '@/components/ui/AgentIcon'
@@ -12,11 +12,14 @@ interface MasterAgent {
     name: string
     description: string | null
     icon: string
+    color: string
     system_prompt: string
     welcome_message: string | null
     placeholder_text: string | null
     tools: string[]
     is_published: boolean
+    rag_enabled: boolean
+    sort_order: number
 }
 
 interface MasterDoc {
@@ -36,6 +39,7 @@ const TOOL_LABELS: Record<string, string> = {
 
 export default function SuperAdminAgentEditorPage() {
     const params = useParams()
+    const router = useRouter()
     const slug = params.slug as string
 
     const [agent, setAgent] = useState<MasterAgent | null>(null)
@@ -50,6 +54,7 @@ export default function SuperAdminAgentEditorPage() {
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const [form, setForm] = useState({
+        slug: '',
         name: '',
         description: '',
         system_prompt: '',
@@ -58,6 +63,9 @@ export default function SuperAdminAgentEditorPage() {
         tools: [] as string[],
         is_published: true,
         icon: '',
+        color: 'violet',
+        rag_enabled: false,
+        sort_order: 0,
     })
 
     const fetchAgent = useCallback(async () => {
@@ -67,6 +75,7 @@ export default function SuperAdminAgentEditorPage() {
             const data = await res.json()
             setAgent(data)
             setForm({
+                slug: data.slug || '',
                 name: data.name || '',
                 description: data.description || '',
                 system_prompt: data.system_prompt || '',
@@ -75,6 +84,9 @@ export default function SuperAdminAgentEditorPage() {
                 tools: data.tools || [],
                 is_published: data.is_published ?? true,
                 icon: data.icon || '',
+                color: data.color || 'violet',
+                rag_enabled: data.rag_enabled ?? false,
+                sort_order: data.sort_order ?? 0,
             })
         } catch (err: any) {
             setError(err.message)
@@ -106,6 +118,11 @@ export default function SuperAdminAgentEditorPage() {
                 body: JSON.stringify(form),
             })
             if (res.ok) {
+                const data = await res.json()
+                if (data.slug && data.slug !== slug) {
+                    router.push(`/super-admin/agents/${data.slug}`)
+                    return
+                }
                 setSuccess('Guardado correctamente')
                 setTimeout(() => setSuccess(null), 3000)
             } else {
@@ -270,8 +287,8 @@ export default function SuperAdminAgentEditorPage() {
                     <AgentIcon name={agent.icon} className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-900 font-display">{agent.name}</h1>
-                    <span className="text-sm text-gray-400 font-mono">{agent.slug}</span>
+                    <h1 className="text-2xl font-bold text-gray-900 font-display">{form.name || agent.name}</h1>
+                    <span className="text-sm text-gray-400 font-mono">{form.slug || agent.slug}</span>
                 </div>
                 <button
                     onClick={syncToTenants}
@@ -317,13 +334,28 @@ export default function SuperAdminAgentEditorPage() {
                         </button>
                     </div>
                     <div className="p-6 space-y-5">
-                        <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre</label>
-                            <input
-                                value={form.name}
-                                onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Slug</label>
+                                <input
+                                    value={form.slug}
+                                    onChange={e => setForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') }))}
+                                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all ${
+                                        form.slug && !/^[a-z][a-z0-9_-]{1,48}$/.test(form.slug) ? 'border-red-300' : 'border-gray-100'
+                                    }`}
+                                />
+                                {form.slug && !/^[a-z][a-z0-9_-]{1,48}$/.test(form.slug) && (
+                                    <p className="text-xs text-red-500 mt-1">Debe empezar con letra, solo a-z 0-9 _ -, 2-49 chars</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre</label>
+                                <input
+                                    value={form.name}
+                                    onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
+                                />
+                            </div>
                         </div>
                         <div>
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Descripción</label>
@@ -361,6 +393,45 @@ export default function SuperAdminAgentEditorPage() {
                                     className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all resize-none"
                                 />
                             </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Ícono</label>
+                                <input
+                                    value={form.icon}
+                                    onChange={e => setForm(prev => ({ ...prev, icon: e.target.value }))}
+                                    placeholder="Bot"
+                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Color</label>
+                                <input
+                                    value={form.color}
+                                    onChange={e => setForm(prev => ({ ...prev, color: e.target.value }))}
+                                    placeholder="violet"
+                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Orden</label>
+                                <input
+                                    type="number"
+                                    value={form.sort_order}
+                                    onChange={e => setForm(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
+                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setForm(prev => ({ ...prev, rag_enabled: !prev.rag_enabled }))}
+                                className={`relative w-10 h-6 rounded-full transition-colors ${form.rag_enabled ? 'bg-adhoc-violet' : 'bg-gray-200'}`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.rag_enabled ? 'translate-x-4' : ''}`} />
+                            </button>
+                            <span className="text-sm text-gray-600">RAG Habilitado</span>
                         </div>
                     </div>
                 </section>
