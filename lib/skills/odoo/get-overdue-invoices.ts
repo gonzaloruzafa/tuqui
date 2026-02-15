@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient, combineDomains } from './_client';
+import { createOdooClient, combineDomains, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -179,7 +179,10 @@ RETORNA: invoiceNumber, monto total, monto pendiente, fecha vencimiento, días d
 
         const totalOverdue = results.reduce((sum, inv) => sum + inv.amountResidual, 0);
 
+        const _descripcion = `Facturas vencidas individuales. ${results.length} facturas con total vencido: ${formatMonto(totalOverdue)}. IMPORTANTE: los customerName son CLIENTES morosos, los sellerName son VENDEDORES del equipo (NO confundir).`;
+
         return success({
+          _descripcion,
           invoices: results,
           totalOverdue,
           totalInvoices: results.length,
@@ -210,7 +213,11 @@ RETORNA: invoiceNumber, monto total, monto pendiente, fecha vencimiento, días d
         const totalOverdue = customers.reduce((sum, c) => sum + c.totalOverdue, 0);
         const totalInvoices = customers.reduce((sum, c) => sum + c.invoiceCount, 0);
 
+        const _top = customers[0];
+        const _descripcion = `Facturas vencidas agrupadas por CLIENTE. ${customers.length} clientes morosos.${_top ? ` Mayor moroso: ${_top.customerName} con ${formatMonto(_top.totalOverdue)}.` : ''} Total vencido: ${formatMonto(totalOverdue)}. IMPORTANTE: estos son CLIENTES que nos deben, NO son vendedores.`;
+
         return success({
+          _descripcion,
           customers,
           totalOverdue,
           totalInvoices,

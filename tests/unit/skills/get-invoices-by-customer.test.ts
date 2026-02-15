@@ -7,16 +7,20 @@ import { getInvoicesByCustomer, GetInvoicesByCustomerInputSchema } from '@/lib/s
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
-  createOdooClient: vi.fn(),
-  dateRange: (field: string, start: string, end: string) => [
-    [field, '>=', start],
-    [field, '<=', end],
-  ],
-  stateFilter: () => [],
-  combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
-  getDefaultPeriod: () => ({ start: '2025-01-01', end: '2025-01-31' }),
-}));
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    createOdooClient: vi.fn(),
+    dateRange: (field: string, start: string, end: string) => [
+      [field, '>=', start],
+      [field, '<=', end],
+    ],
+    stateFilter: () => [],
+    combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
+    getDefaultPeriod: () => ({ start: '2025-01-01', end: '2025-01-31' }),
+    formatMonto: actual.formatMonto,
+  };
+});
 
 describe('Skill: get_invoices_by_customer', () => {
   const mockContext: SkillContext = {

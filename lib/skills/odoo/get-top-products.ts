@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetTopProductsInputSchema = z.object({
@@ -89,9 +89,14 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
           revenueWithoutTax: g.price_subtotal || 0,
         }));
 
+      const _totalRev = products.reduce((sum, p) => sum + p.revenueWithTax, 0);
+      const _top = products[0];
+      const _descripcion = `Top PRODUCTOS más vendidos. ${products.length} productos.${_top ? ` #1: ${_top.productName} con ${formatMonto(_top.revenueWithTax)}.` : ''} Total: ${formatMonto(_totalRev)}. IMPORTANTE: estos son PRODUCTOS del catálogo, NO son clientes ni vendedores.`;
+
       return success({
+        _descripcion,
         products,
-        totalRevenueWithTax: products.reduce((sum, p) => sum + p.revenueWithTax, 0),
+        totalRevenueWithTax: _totalRev,
         totalRevenueWithoutTax: products.reduce((sum, p) => sum + p.revenueWithoutTax, 0),
         totalQuantity: products.reduce((sum, p) => sum + p.quantitySold, 0),
         period,

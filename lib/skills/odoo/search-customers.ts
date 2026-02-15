@@ -128,7 +128,10 @@ Devuelve: nombre, email, teléfono, CUIT, ciudad.`,
         active: c.active,
       }));
 
+      const _descripcion = `Búsqueda de CLIENTES. Se encontraron ${results.length} clientes. IMPORTANTE: estos son CLIENTES (compradores), NO son vendedores ni proveedores.`;
+
       return success({
+        _descripcion,
         customers: results,
         total: results.length,
       });

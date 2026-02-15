@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetTopCustomersInputSchema = z.object({
@@ -105,9 +105,14 @@ SIEMPRE llamar get_sales_teams primero para obtener el teamId, NO adivinarlo.`,
 
       customers = customers.slice(0, input.limit);
 
+      const _totalRev = customers.reduce((sum, c) => sum + c.totalRevenueWithTax, 0);
+      const _top = customers[0];
+      const _descripcion = `Top CLIENTES por facturación. ${customers.length} clientes.${_top ? ` #1: ${_top.customerName} con ${formatMonto(_top.totalRevenueWithTax)}.` : ''} Total: ${formatMonto(_totalRev)}. IMPORTANTE: estos son CLIENTES (compradores), NO son vendedores del equipo.`;
+
       return success({
+        _descripcion,
         customers,
-        totalRevenueWithTax: customers.reduce((sum, c) => sum + c.totalRevenueWithTax, 0),
+        totalRevenueWithTax: _totalRev,
         totalRevenueWithoutTax: customers.reduce((sum, c) => sum + c.totalRevenueWithoutTax, 0),
         period,
       });

@@ -18,6 +18,7 @@ import {
   dateRange,
   combineDomains,
   getDefaultPeriod,
+  formatMonto,
   type OdooDomain,
   type DomainFilter,
 } from './_client';
@@ -201,7 +202,10 @@ Retorna total cobrado, cantidad de pagos. Acepta período (this_month, last_mont
           }));
       }
 
+      const _descripcion = `Cobros recibidos (ingresos). Total: ${formatMonto(totalAmount)}, ${paymentCount} pagos. IMPORTANTE: los nombres de clientes que pagaron NO son vendedores. Estos son cobros que recibimos de CLIENTES.`;
+
       return success({
+        _descripcion,
         totalAmount,
         paymentCount,
         byJournal,

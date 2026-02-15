@@ -19,6 +19,7 @@ import {
   stateFilter,
   combineDomains,
   getDefaultPeriod,
+  formatMonto,
   type OdooDomain,
 } from './_client';
 import { errorToResult } from '../errors';
@@ -178,7 +179,11 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
       const grandTotalWithoutTax = customers.reduce((sum, c) => sum + c.totalWithoutTax, 0);
       const totalOrders = customers.reduce((sum, c) => sum + c.orderCount, 0);
 
+      const _top = customers[0];
+      const _descripcion = `Ventas por CLIENTE. ${customers.length} clientes.${_top ? ` Top: ${_top.customerName} con ${formatMonto(_top.totalWithTax)}.` : ''} Total: ${formatMonto(grandTotalWithTax)}. IMPORTANTE: estos son CLIENTES que nos compran, NO son vendedores del equipo.`;
+
       return success({
+        _descripcion,
         customers,
         grandTotalWithTax,
         grandTotalWithoutTax,

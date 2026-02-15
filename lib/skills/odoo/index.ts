@@ -43,7 +43,6 @@ export { searchCustomers } from './search-customers';
 export { searchProducts } from './search-products';
 
 // Accounting Skills
-export { getCustomerBalance } from './get-customer-balance';
 export { getAccountBalance, type GetAccountBalanceInput, type GetAccountBalanceOutput } from './get-account-balance';
 export { getJournalEntries, type GetJournalEntriesInput, type GetJournalEntriesOutput } from './get-journal-entries';
 export { getAccountsPayable, type GetAccountsPayableInput, type GetAccountsPayableOutput } from './get-accounts-payable';
@@ -105,7 +104,6 @@ import { getVendorBills } from './get-vendor-bills';
 import { searchCustomers } from './search-customers';
 import { searchProducts } from './search-products';
 import { searchSuppliers } from './search-suppliers';
-import { getCustomerBalance } from './get-customer-balance';
 import { getCashBalance } from './get-cash-balance';
 import { getAccountsReceivable } from './get-accounts-receivable';
 import { compareSalesPeriods } from './compare-sales-periods';
@@ -176,8 +174,7 @@ export const odooSkills = [
   searchCustomers,
   searchProducts,
   searchSuppliers, // NEW - search suppliers separately from customers
-  // Accounting/Treasury (7)
-  getCustomerBalance,
+  // Accounting/Treasury (6)
   getCashBalance, // NEW
   getAccountsReceivable, // NEW
   getAccountBalance, // NEW - chart of accounts balances
