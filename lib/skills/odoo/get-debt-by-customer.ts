@@ -17,6 +17,7 @@ import {
   createOdooClient,
   combineDomains,
   invoiceTypeFilter,
+  formatMonto,
   type OdooDomain,
   type DomainFilter,
 } from './_client';
@@ -194,7 +195,11 @@ Devuelve cliente, monto adeudado, fecha vencimiento.`,
       const grandTotal = customers.reduce((sum, c) => sum + c.totalDebt, 0);
       const totalInvoices = customers.reduce((sum, c) => sum + c.invoiceCount, 0);
 
+      const _top = customers[0];
+      const _descripcion = `Deuda pendiente por CLIENTE. ${customers.length} clientes con deuda.${_top ? ` Mayor deudor: ${_top.customerName} con ${formatMonto(_top.totalDebt)}.` : ''} Total: ${formatMonto(grandTotal)}. IMPORTANTE: estos son CLIENTES que le deben plata a la empresa, NO son vendedores ni empleados.`;
+
       return success({
+        _descripcion,
         customers,
         grandTotal,
         totalInvoices,

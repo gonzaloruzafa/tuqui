@@ -85,7 +85,10 @@ USA MES ACTUAL si no hay período. Cuenta clientes tipo cliente (no proveedores)
         }),
       }));
 
+      const _descripcion = `CLIENTES NUEVOS: ${totalCount} clientes creados del ${period.start} al ${period.end}. Mostrando ${result.length} de ${totalCount}. IMPORTANTE: son CLIENTES nuevos (compradores), NO son vendedores ni proveedores.`;
+
       return success({
+        _descripcion,
         customers: result,
         totalCount,
         period,

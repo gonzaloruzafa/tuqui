@@ -108,7 +108,7 @@ para agregar stock de TODAS las variantes. Sin él, solo verás variantes indivi
         );
         productIds = variants.map(v => v.id);
         if (productIds.length === 0) {
-          return success({ products: [], totalQuantity: 0, productCount: 0 });
+          return success({ _descripcion: 'Sin resultados de stock para el template buscado.', products: [], totalQuantity: 0, productCount: 0 });
         }
       } else if (input.productSearch) {
         const products = await odoo.searchRead<{ id: number; name: string }>(
@@ -123,6 +123,7 @@ para agregar stock de TODAS las variantes. Sin él, solo verás variantes indivi
         
         if (products.length === 0) {
           return success({
+            _descripcion: 'Sin resultados de stock para el producto buscado.',
             products: [],
             totalQuantity: 0,
             productCount: 0,
@@ -192,7 +193,10 @@ para agregar stock de TODAS las variantes. Sin él, solo verás variantes indivi
 
       const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
 
+      const _descripcion = `Stock de PRODUCTOS. ${products.length} productos, cantidad total: ${totalQuantity}. IMPORTANTE: estos son PRODUCTOS del inventario, NO son clientes ni vendedores.`;
+
       return success({
+        _descripcion,
         products,
         totalQuantity,
         productCount: products.length,

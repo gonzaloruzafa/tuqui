@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult, Period } from '../types';
 import { PeriodSchema, success, authError } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -117,7 +117,9 @@ Retorna: debit, credit, balance por cuenta.`,
       const totalCredit = accounts.reduce((s, a) => s + a.credit, 0);
       const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
 
-      return success({ accounts, totalDebit, totalCredit, totalBalance, period });
+      const _descripcion = `CUENTAS CONTABLES (plan de cuentas): ${accounts.length} cuentas encontradas. Totales — Debe: ${formatMonto(totalDebit)}, Haber: ${formatMonto(totalCredit)}, Saldo neto: ${formatMonto(totalBalance)}. Período: ${period.start} a ${period.end}. IMPORTANTE: son cuentas del plan de cuentas, NO son clientes ni proveedores.`;
+
+      return success({ _descripcion, accounts, totalDebit, totalCredit, totalBalance, period });
     } catch (error) {
       return errorToResult(error);
     }

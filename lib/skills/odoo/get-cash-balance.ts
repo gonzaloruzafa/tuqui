@@ -13,7 +13,7 @@
 import { z } from 'zod'
 import type { Skill, SkillContext, SkillResult } from '../types'
 import { success, authError } from '../types'
-import { createOdooClient, type OdooDomain } from './_client'
+import { createOdooClient, formatMonto, type OdooDomain } from './_client'
 import { errorToResult } from '../errors'
 
 // ============================================
@@ -175,7 +175,10 @@ Retorna: saldo por caja/banco y total combinado.`,
         }
       }
 
+      const _descripcion = `CAJA Y BANCOS — Saldos actuales: Efectivo ${formatMonto(totalCash)}, Bancos ${formatMonto(totalBank)}, Total ${formatMonto(totalCash + totalBank)}. ${journalBalances.length} diarios encontrados. Moneda: ${defaultCurrency}. IMPORTANTE: son saldos de medios de pago, NO son ventas ni cobros.`;
+
       return success({
+        _descripcion,
         totalCash,
         totalBank,
         grandTotal: totalCash + totalBank,

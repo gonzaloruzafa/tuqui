@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema, DocumentStateSchema } from '../types';
-import { createOdooClient, dateRange, stateFilter, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, stateFilter, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -129,7 +129,11 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
       const grandTotalWithoutTax = sellers.reduce((sum, s) => sum + s.totalWithoutTax, 0);
       const totalOrders = sellers.reduce((sum, s) => sum + s.orderCount, 0);
 
+      const _top = sellers[0];
+      const _descripcion = `Ventas por VENDEDOR del equipo. ${sellers.length} vendedores.${_top ? ` Top: ${_top.sellerName} con ${formatMonto(_top.totalWithTax)}.` : ''} Total: ${formatMonto(grandTotalWithTax)}. IMPORTANTE: estos son VENDEDORES del equipo de ventas, NO son clientes ni proveedores.`;
+
       return success({
+        _descripcion,
         sellers,
         grandTotalWithTax,
         grandTotalWithoutTax,

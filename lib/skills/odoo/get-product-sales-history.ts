@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetProductSalesHistoryInputSchema = z.object({
@@ -68,13 +68,17 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         );
         const variantIds = variants.map(v => v.id);
         if (variantIds.length === 0) {
-          return success({ productId: 0, totalQuantity: 0, totalRevenue: 0, orderCount: 0, period });
+          const _descripcion = `PRODUCTO (historial de ventas): no se encontraron variantes para template ID ${input.productTemplateId}. IMPORTANTE: son ventas de un PRODUCTO, NO datos de clientes.`;
+
+          return success({ _descripcion, productId: 0, totalQuantity: 0, totalRevenue: 0, orderCount: 0, period });
         }
         productFilter = ['product_id', 'in', variantIds];
       } else if (input.productId) {
         productFilter = ['product_id', '=', input.productId];
       } else {
-        return success({ productId: 0, totalQuantity: 0, totalRevenue: 0, orderCount: 0, period });
+        const _descripcion = `PRODUCTO (historial de ventas): no se especificó producto. IMPORTANTE: son ventas de un PRODUCTO, NO datos de clientes.`;
+
+        return success({ _descripcion, productId: 0, totalQuantity: 0, totalRevenue: 0, orderCount: 0, period });
       }
 
       // sale.order.line doesn't have date_order or state directly
@@ -105,7 +109,10 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         const totalQuantity = lines.reduce((sum, l) => sum + l.product_uom_qty, 0);
         const totalRevenue = lines.reduce((sum, l) => sum + l.price_total, 0);
 
+        const _descripcion = `PRODUCTO (historial de ventas): ${lines.length} líneas de venta, ${totalQuantity} unidades, revenue ${formatMonto(totalRevenue)}. Período: ${period.start} a ${period.end}. IMPORTANTE: son ventas de un PRODUCTO, NO datos de clientes.`;
+
         return success({
+          _descripcion,
           productId: input.productId || input.productTemplateId || 0,
           totalQuantity,
           totalRevenue,
@@ -145,7 +152,10 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         totalRevenue += g.price_total || 0;
       }
 
+      const _descripcion = `PRODUCTO (historial de ventas, agrupado por ${input.groupBy}): ${Object.keys(groups).length} grupos, ${totalQuantity} unidades, revenue ${formatMonto(totalRevenue)}. Período: ${period.start} a ${period.end}. IMPORTANTE: son ventas de un PRODUCTO, NO datos de clientes.`;
+
       return success({
+        _descripcion,
         productId: input.productId || input.productTemplateId || 0,
         totalQuantity,
         totalRevenue,

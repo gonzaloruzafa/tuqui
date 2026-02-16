@@ -13,7 +13,7 @@
 import { z } from 'zod'
 import type { Skill, SkillContext, SkillResult, Period } from '../types'
 import { PeriodSchema, success, authError } from '../types'
-import { createOdooClient, dateRange, combineDomains, type OdooDomain } from './_client'
+import { createOdooClient, dateRange, combineDomains, formatMonto, type OdooDomain } from './_client'
 import { errorToResult } from '../errors'
 
 // ============================================
@@ -179,7 +179,10 @@ Keywords: "total por cobrar", "monto de cuentas por cobrar", "deuda total de cli
         }))
       }
 
+      const _descripcion = `CLIENTES — Cuentas por cobrar: ${formatMonto(totalReceivable)} total a cobrar, ${formatMonto(totalOverdue)} vencido. ${invoiceCount} facturas de ${customerCount} clientes. Moneda: ARS. IMPORTANTE: estos son CLIENTES que nos deben, NO son proveedores.`;
+
       return success({
+        _descripcion,
         totalReceivable,
         totalOverdue,
         invoiceCount,

@@ -7,13 +7,17 @@ import { getDebtByCustomer, GetDebtByCustomerInputSchema } from '@/lib/skills/od
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
-  createOdooClient: vi.fn(),
-  dateRange: () => [],
-  stateFilter: () => [],
-  combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
-  invoiceTypeFilter: (type: string) => [['move_type', '=', type]],
-}));
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    createOdooClient: vi.fn(),
+    dateRange: () => [],
+    stateFilter: () => [],
+    combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
+    invoiceTypeFilter: (type: string) => [['move_type', '=', type]],
+    formatMonto: actual.formatMonto,
+  };
+});
 
 describe('Skill: get_debt_by_customer', () => {
   const mockContext: SkillContext = {

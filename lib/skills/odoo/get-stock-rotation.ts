@@ -9,7 +9,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetStockRotationInputSchema = z.object({
@@ -82,7 +82,8 @@ Devuelve productos con alto stock y pocas/ninguna venta, ordenados por valor par
         );
         const variantIds = variants.map(v => v.id);
         if (variantIds.length === 0) {
-          return success({ products: [], period, totalStockValue: 0 });
+          const _descripcion = 'No se encontraron variantes para el producto indicado.';
+          return success({ _descripcion, products: [], period, totalStockValue: 0 });
         }
         stockDomain.push(['product_id', 'in', variantIds]);
       }
@@ -96,7 +97,8 @@ Devuelve productos con alto stock y pocas/ninguna venta, ordenados por valor par
       );
 
       if (stockData.length === 0) {
-        return success({ products: [], period, totalStockValue: 0 });
+        const _descripcion = 'No se encontró stock para analizar rotación.';
+        return success({ _descripcion, products: [], period, totalStockValue: 0 });
       }
 
       const productIds = stockData
@@ -178,8 +180,11 @@ Devuelve productos con alto stock y pocas/ninguna venta, ordenados por valor par
         .slice(0, input.limit);
 
       const totalStockValue = products.reduce((sum, p) => sum + p.stockValue, 0);
+      const zeroSales = products.filter(p => p.orderCount === 0).length;
 
-      return success({ products, period, totalStockValue });
+      const _descripcion = `Rotación de stock: ${products.length} producto(s) analizados, valor total en stock ${formatMonto(totalStockValue)}. ${zeroSales} producto(s) con cero ventas en el período ${period.start} a ${period.end}. ${products.length > 0 ? `Mayor valor parado: "${products[0].productName}" con ${formatMonto(products[0].stockValue)}.` : ''} IMPORTANTE: son PRODUCTOS del inventario, NO son clientes.`;
+
+      return success({ _descripcion, products, period, totalStockValue });
     } catch (error) {
       return errorToResult(error);
     }

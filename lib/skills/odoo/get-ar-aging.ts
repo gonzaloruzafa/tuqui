@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient } from './_client';
+import { createOdooClient, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetArAgingInputSchema = z.object({
@@ -82,7 +82,10 @@ Analiza facturas abiertas y calcula la antigüedad promedio.`,
       );
 
       if (invoices.length === 0) {
+        const _descripcion = 'CLIENTES — Antigüedad de cuentas por cobrar: no hay facturas abiertas. IMPORTANTE: son deudas de CLIENTES, NO cuentas a pagar.';
+
         return success({
+          _descripcion,
           avgAgeDays: 0,
           totalAmount: 0,
           invoiceCount: 0,
@@ -159,7 +162,10 @@ Analiza facturas abiertas y calcula la antigüedad promedio.`,
           .slice(0, input.limit);
       }
 
+      const _descripcion = `CLIENTES — Antigüedad de cuentas por cobrar: ${invoices.length} facturas abiertas por ${formatMonto(totalAmount)}. Antigüedad promedio: ${avgAgeDays} días. Buckets: ${buckets.map(b => `${b.range}: ${b.count} fact. por ${formatMonto(b.amount)}`).join(', ')}. IMPORTANTE: son deudas de CLIENTES, NO cuentas a pagar.`;
+
       return success({
+        _descripcion,
         avgAgeDays,
         totalAmount,
         invoiceCount: invoices.length,

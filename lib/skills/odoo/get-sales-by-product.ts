@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema, DocumentStateSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -154,7 +154,10 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
       const totalQuantity = products.reduce((sum, p) => sum + p.quantitySold, 0);
       const totalOrders = products.reduce((sum, p) => sum + p.orderCount, 0);
 
+      const _descripcion = `PRODUCTOS vendidos del ${period.start} al ${period.end}: ${products.length} productos, total ${formatMonto(grandTotalWithTax)} con impuestos, ${totalQuantity} unidades. IMPORTANTE: son PRODUCTOS del catálogo, NO son clientes ni vendedores.`;
+
       return success({
+        _descripcion,
         products,
         grandTotalWithTax,
         grandTotalWithoutTax,

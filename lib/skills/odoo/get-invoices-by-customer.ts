@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -152,7 +152,11 @@ Ejemplo: customerName="Acme Corp" devuelve solo facturas de ese cliente.`,
       const grandTotal = customers.reduce((sum, c) => sum + c.totalAmount, 0);
       const totalInvoices = customers.reduce((sum, c) => sum + c.invoiceCount, 0);
 
+      const _top = customers[0];
+      const _descripcion = `Facturas emitidas por CLIENTE. ${customers.length} clientes.${_top ? ` Top: ${_top.customerName} con ${formatMonto(_top.totalAmount)}.` : ''} Total facturado: ${formatMonto(grandTotal)}. IMPORTANTE: estos son CLIENTES a quienes se facturó, NO son vendedores.`;
+
       return success({
+        _descripcion,
         customers,
         grandTotal,
         totalInvoices,

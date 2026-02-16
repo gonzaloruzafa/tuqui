@@ -9,7 +9,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange } from './_client';
+import { createOdooClient, dateRange, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const SearchCrmOpportunitiesInputSchema = z.object({
@@ -209,7 +209,10 @@ IMPORTANTE: Usar get_crm_tags para obtener tagId, get_crm_pipeline para stageId.
         };
       });
 
+      const _descripcion = `OPORTUNIDADES CRM (${input.status}): ${totalCount} oportunidades por ${formatMonto(totalExpectedRevenue)}${input.stageId ? ', filtradas por etapa' : ''}${input.tagId ? ', filtradas por etiqueta' : ''}${input.userId ? ', filtradas por vendedor' : ''}. Mostrando ${opportunities.length} resultados. IMPORTANTE: los partners son CLIENTES POTENCIALES (prospectos), NO son vendedores.`;
+
       return success({
+        _descripcion,
         totalCount,
         totalExpectedRevenue,
         opportunities,

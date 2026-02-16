@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetVendorBillsInputSchema = z.object({
@@ -71,7 +71,10 @@ USAR PARA: "cuánto le debemos a proveedores", "facturas pendientes de pago", "d
       const totalAmountWithTax = bills.reduce((sum, b) => sum + b.amount_total, 0);
       const totalAmountWithoutTax = bills.reduce((sum, b) => sum + (b.amount_untaxed || 0), 0);
 
+      const _descripcion = `Facturas de proveedores (${period.start} a ${period.end}): ${bills.length} facturas, total con impuestos ${formatMonto(totalAmountWithTax)}, sin impuestos ${formatMonto(totalAmountWithoutTax)}. IMPORTANTE: son facturas que nos emitieron PROVEEDORES, NO son facturas a clientes.`;
+
       return success({
+        _descripcion,
         totalAmountWithTax,
         totalAmountWithoutTax,
         billCount: bills.length,

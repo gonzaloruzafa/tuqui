@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetProductMarginInputSchema = z.object({
@@ -84,7 +84,10 @@ Filtra por maxMarginPercent para encontrar productos con bajo margen.`,
       );
 
       if (grouped.length === 0) {
+        const _descripcion = `PRODUCTOS (margen): sin datos de ventas en el período ${period.start} a ${period.end}. IMPORTANTE: son PRODUCTOS del catálogo, NO son clientes.`;
+
         return success({
+          _descripcion,
           products: [],
           totals: { revenue: 0, cost: 0, marginTotal: 0, marginPercent: 0 },
           period,
@@ -144,7 +147,9 @@ Filtra por maxMarginPercent para encontrar productos con bajo margen.`,
       );
       totals.marginPercent = totals.revenue > 0 ? Math.round((totals.marginTotal / totals.revenue) * 100) : 0;
 
-      return success({ products, totals, period });
+      const _descripcion = `PRODUCTOS (margen): ${products.length} productos, revenue total ${formatMonto(totals.revenue)}, margen ${totals.marginPercent}%. Período: ${period.start} a ${period.end}.${products.length > 0 ? ` Top: ${products[0].productName} (margen ${products[0].marginPercent}%).` : ''} IMPORTANTE: son PRODUCTOS del catálogo, NO son clientes.`;
+
+      return success({ _descripcion, products, totals, period });
     } catch (error) {
       return errorToResult(error);
     }

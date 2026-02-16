@@ -51,7 +51,7 @@ export default async function RAGPage() {
                             No hay documentos cargados aún.
                         </div>
                     ) : (
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
                             {documents.map((doc: any) => (
                                 <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-adhoc-lavender/5 transition-all group">
                                     <div className="flex items-center gap-4">

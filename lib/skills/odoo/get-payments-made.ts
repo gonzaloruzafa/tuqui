@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult, Period } from '../types';
 import { PeriodSchema, success, authError } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain, type DomainFilter } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto, type OdooDomain, type DomainFilter } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -144,7 +144,9 @@ Retorna total pagado, cantidad de pagos. Acepta período y agrupación por diari
           }));
       }
 
-      return success({ totalAmount, paymentCount, byJournal, bySupplier, period });
+      const _descripcion = `Pagos realizados a proveedores (${period.start} a ${period.end}): ${paymentCount} pagos por un total de ${formatMonto(totalAmount)}${byJournal ? `. Por diario: ${byJournal.map(j => `${j.groupName}: ${formatMonto(j.amount)}`).join(', ')}` : ''}${bySupplier ? `. Por proveedor: ${bySupplier.slice(0, 5).map(s => `${s.groupName}: ${formatMonto(s.amount)}`).join(', ')}` : ''}. IMPORTANTE: son pagos que NOSOTROS hicimos a PROVEEDORES, NO son cobros de clientes.`;
+
+      return success({ _descripcion, totalAmount, paymentCount, byJournal, bySupplier, period });
     } catch (error) {
       return errorToResult(error);
     }

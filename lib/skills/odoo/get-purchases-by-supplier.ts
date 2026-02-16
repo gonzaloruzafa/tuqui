@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetPurchasesBySupplierInputSchema = z.object({
@@ -85,11 +85,18 @@ Para: "a quién le compramos más", "cuánto le compramos a cada proveedor", "pr
           totalAmountWithoutTax: g.amount_untaxed || 0,
         }));
 
+      const grandTotalWithTax = suppliers.reduce((sum, s) => sum + s.totalAmountWithTax, 0);
+      const grandTotalWithoutTax = suppliers.reduce((sum, s) => sum + s.totalAmountWithoutTax, 0);
+      const totalOrders = suppliers.reduce((sum, s) => sum + s.orderCount, 0);
+
+      const _descripcion = `Compras agrupadas por proveedor (${period.start} a ${period.end}): ${suppliers.length} proveedores, ${totalOrders} órdenes, total con impuestos ${formatMonto(grandTotalWithTax)}, sin impuestos ${formatMonto(grandTotalWithoutTax)}. Top proveedor: ${suppliers[0]?.supplierName || 'N/A'} (${suppliers[0] ? formatMonto(suppliers[0].totalAmountWithTax) : '$0'}). IMPORTANTE: estos son PROVEEDORES a quienes les compramos, NO son clientes ni vendedores del equipo.`;
+
       return success({
+        _descripcion,
         suppliers,
-        grandTotalWithTax: suppliers.reduce((sum, s) => sum + s.totalAmountWithTax, 0),
-        grandTotalWithoutTax: suppliers.reduce((sum, s) => sum + s.totalAmountWithoutTax, 0),
-        totalOrders: suppliers.reduce((sum, s) => sum + s.orderCount, 0),
+        grandTotalWithTax,
+        grandTotalWithoutTax,
+        totalOrders,
         period,
       });
     } catch (error) {

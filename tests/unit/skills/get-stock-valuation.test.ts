@@ -7,12 +7,16 @@ import { getStockValuation, GetStockValuationInputSchema } from '@/lib/skills/od
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    formatMonto: actual.formatMonto,
   createOdooClient: vi.fn(),
   dateRange: () => [],
   stateFilter: () => [],
   combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
-}));
+  };
+});
 
 describe('Skill: get_stock_valuation', () => {
   const mockContext: SkillContext = {

@@ -7,12 +7,16 @@ import { getOverdueInvoices, GetOverdueInvoicesInputSchema } from '@/lib/skills/
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
-  createOdooClient: vi.fn(),
-  dateRange: () => [],
-  stateFilter: () => [],
-  combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
-}));
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    createOdooClient: vi.fn(),
+    dateRange: () => [],
+    stateFilter: () => [],
+    combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
+    formatMonto: actual.formatMonto,
+  };
+});
 
 describe('Skill: get_overdue_invoices', () => {
   const mockContext: SkillContext = {

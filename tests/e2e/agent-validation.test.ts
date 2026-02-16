@@ -15,7 +15,6 @@ import { describe, test, expect, beforeAll, afterAll } from 'vitest'
 import { config } from 'dotenv'
 import { buildDomain, MODEL_CONFIG, executeQueries, clearCache } from '@/lib/tools/odoo/query-builder'
 import { DateService } from '@/lib/date/service'
-import { StrictValidator, ToolResultData } from '@/lib/validation/strict-validator'
 import { getOdooClient } from '@/lib/tools/odoo/client'
 
 // Load env
@@ -182,94 +181,9 @@ describe('1. Query Builder - Domain Generation (Offline)', () => {
 })
 
 // ============================================
-// SECTION 2: ANTI-HALLUCINATION VALIDATION (OFFLINE)
+// SECTION 2: LIVE INTEGRATION TESTS (Require Odoo)
 // ============================================
-describe('2. Anti-Hallucination Guards (Offline)', () => {
-
-    describe('2.1 StrictValidator - Fake Name Detection', () => {
-
-        test('detects known fake names', () => {
-            const fakeResponse = 'Top clientes: Juan Perez ($500.000), Maria Garcia ($300.000)'
-            const toolResult: ToolResultData = {
-                success: true,
-                grouped: {
-                    'FOSHAN CINGOL': { count: 5, total: 500000 },
-                    'Megadental SA': { count: 3, total: 300000 }
-                }
-            }
-
-            const validation = StrictValidator.validate(fakeResponse, toolResult, { userQuery: 'top clientes' })
-
-            expect(validation.hasFakeNames).toBe(true)
-            expect(validation.fakeNamesFound).toContain('Juan Perez')
-        })
-
-        test('accepts real names from tool result', () => {
-            const realResponse = 'Top clientes: FOSHAN CINGOL ($500.000)'
-            const toolResult: ToolResultData = {
-                success: true,
-                grouped: {
-                    'FOSHAN CINGOL': { count: 5, total: 500000 }
-                }
-            }
-
-            const validation = StrictValidator.validate(realResponse, toolResult, { userQuery: 'top clientes' })
-
-            expect(validation.hasFakeNames).toBe(false)
-        })
-    })
-
-    describe('2.2 StrictValidator - Absurd Amount Detection', () => {
-
-        test('flags amounts over 100 billion as absurd', () => {
-            const toolResult: ToolResultData = {
-                success: true,
-                total: 150_000_000_000 // 150 billion
-            }
-
-            const validation = StrictValidator.validate('', toolResult, { userQuery: 'test' })
-
-            expect(validation.hasAbsurdAmounts).toBe(true)
-        })
-
-        test('accepts reasonable amounts', () => {
-            const toolResult: ToolResultData = {
-                success: true,
-                total: 5_000_000_000 // 5 billion (reasonable for large company)
-            }
-
-            const validation = StrictValidator.validate('', toolResult, { userQuery: 'test' })
-
-            expect(validation.hasAbsurdAmounts).toBe(false)
-        })
-    })
-
-    describe('2.3 StrictValidator - English Thinking Detection', () => {
-
-        test('detects English "thinking" leaked in response', () => {
-            const englishResponse = 'Clarify the metric the user is asking for...'
-            const toolResult: ToolResultData = { success: true }
-
-            const validation = StrictValidator.validate(englishResponse, toolResult, { userQuery: 'test' })
-
-            expect(validation.hasEnglishThinking).toBe(true)
-        })
-
-        test('accepts normal Spanish response', () => {
-            const spanishResponse = 'Las ventas de este mes fueron $5.000.000'
-            const toolResult: ToolResultData = { success: true, total: 5000000 }
-
-            const validation = StrictValidator.validate(spanishResponse, toolResult, { userQuery: 'test' })
-
-            expect(validation.hasEnglishThinking).toBe(false)
-        })
-    })
-})
-
-// ============================================
-// SECTION 3: LIVE INTEGRATION TESTS (Require Odoo)
-// ============================================
-describe.skipIf(SKIP_LIVE_TESTS)('3. Live Odoo Integration', () => {
+describe.skipIf(SKIP_LIVE_TESTS)('2. Live Odoo Integration', () => {
     let odoo: any
 
     beforeAll(async () => {

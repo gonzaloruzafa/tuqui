@@ -89,7 +89,9 @@ Devuelve: nombre, email, teléfono, CUIT, ciudad.`,
         isCompany: s.is_company,
       }));
 
-      return success({ suppliers: results, total: results.length });
+      const _descripcion = `Búsqueda de proveedores "${input.query}": ${results.length} resultados encontrados${results.length > 0 ? `. Primeros: ${results.slice(0, 3).map(s => s.name).join(', ')}` : ''}. IMPORTANTE: son PROVEEDORES a quienes les compramos, NO son clientes.`;
+
+      return success({ _descripcion, suppliers: results, total: results.length });
     } catch (error) {
       return errorToResult(error);
     }

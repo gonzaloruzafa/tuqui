@@ -13,6 +13,14 @@ import type { OdooCredentials, SkillContext } from '../types';
 import { AuthenticationError } from '../errors';
 
 // ============================================
+// READ-ONLY GUARD
+// ============================================
+
+const ALLOWED_METHODS = Object.freeze([
+  'search_read', 'read', 'search_count', 'fields_get', 'read_group',
+] as const);
+
+// ============================================
 // TYPES
 // ============================================
 
@@ -221,7 +229,7 @@ export class SkillOdooClient {
   }
 
   /**
-   * Execute any Odoo model method
+   * Execute Odoo model method (read-only guard enforced)
    */
   async execute(
     model: string,
@@ -229,6 +237,10 @@ export class SkillOdooClient {
     args: any[] = [],
     kwargs: Record<string, any> = {}
   ): Promise<any> {
+    if (!ALLOWED_METHODS.includes(method as any)) {
+      throw new Error(`Odoo read-only: método "${method}" bloqueado`);
+    }
+
     const uid = await this.authenticate();
     return this.rpc(
       'object',
@@ -487,4 +499,17 @@ export function combineDomains(...domains: (DomainFilter[] | undefined)[]): Odoo
   return domains
     .filter((d): d is DomainFilter[] => d !== undefined && d.length > 0)
     .flat();
+}
+
+/**
+ * Format monetary amount for human-readable _descripcion.
+ * Examples: $3.900M, $2,7M, $150.000, $0
+ */
+export function formatMonto(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000).toLocaleString('es-AR', { maximumFractionDigits: 0 })}M`;
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  if (abs >= 1_000) return `${sign}$${Math.round(abs).toLocaleString('es-AR')}`;
+  return `${sign}$${abs.toFixed(0)}`;
 }

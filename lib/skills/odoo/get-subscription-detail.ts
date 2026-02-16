@@ -11,7 +11,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient } from './_client';
+import { createOdooClient, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetSubscriptionDetailInputSchema = z.object({
@@ -124,7 +124,10 @@ Muestra cada suscripción con sus líneas de producto, precio unitario y subtota
           [['id', '=', input.partnerId]],
           { fields: ['name'], limit: 1 }
         );
+        const _descripcion = `SUSCRIPCIONES de cliente ID ${input.partnerId}: no se encontraron suscripciones para este cliente. IMPORTANTE: es un CLIENTE suscriptor, NO un vendedor.`;
+
         return success({
+          _descripcion,
           customerName: partners[0]?.name || 'Cliente no encontrado',
           customerId: input.partnerId,
           totalMRR: 0,
@@ -189,7 +192,10 @@ Muestra cada suscripción con sus líneas de producto, precio unitario y subtota
         };
       });
 
+      const _descripcion = `SUSCRIPCIONES de ${customerName} (ID ${input.partnerId}): ${subs.length} suscripciones encontradas, MRR total ${formatMonto(totalMRR)}. Estados: ${subscriptions.map(s => s.stateLabel).join(', ')}. IMPORTANTE: es un CLIENTE suscriptor, NO un vendedor.`;
+
       return success({
+        _descripcion,
         customerName,
         customerId: input.partnerId,
         totalMRR,

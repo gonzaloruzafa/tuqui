@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -164,7 +164,10 @@ Soporta filtro por equipo (teamId). SIEMPRE llamar get_sales_teams primero para 
         status: o.delivery_status || o.state,
       }));
 
+      const _descripcion = `VENTAS PENDIENTES: ${totalCount} órdenes pendientes de ${input.pendingType === 'delivery' ? 'entrega' : input.pendingType === 'invoice' ? 'facturación' : 'entrega/facturación'} por ${formatMonto(totalAmountWithTax)} (con imp). Mostrando ${orderSummaries.length} de ${totalCount}.${period ? ` Período: ${period.start} a ${period.end}.` : ''} IMPORTANTE: son VENTAS pendientes de entrega/facturación, NO son compras.`;
+
       return success({
+        _descripcion,
         totalCount,
         totalAmountWithTax,
         totalAmountWithoutTax,

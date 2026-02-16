@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult, Period } from '../types';
 import { PeriodSchema, success, authError } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -138,7 +138,9 @@ RETORNA: name (número de factura/asiento, ej FAC-A 00001-00000123), monto, part
         )];
 
         if (moveIds.length === 0) {
-          return success({ entries: [], totalAmount: 0, entryCount: 0, period });
+          const _descripcion = `ASIENTOS CONTABLES: no se encontraron movimientos para la cuenta ${input.accountCode} en el período ${period.start} a ${period.end}. IMPORTANTE: son movimientos contables, los partners pueden ser clientes o proveedores según el tipo de asiento.`;
+
+          return success({ _descripcion, entries: [], totalAmount: 0, entryCount: 0, period });
         }
         domain = [...domain, ['id', 'in', moveIds]];
       }
@@ -175,7 +177,9 @@ RETORNA: name (número de factura/asiento, ej FAC-A 00001-00000123), monto, part
 
       const totalAmount = entries.reduce((s, e) => s + e.amount, 0);
 
-      return success({ entries, totalAmount, entryCount: entries.length, period });
+      const _descripcion = `ASIENTOS CONTABLES: ${entries.length} asientos por ${formatMonto(totalAmount)}. Período: ${period.start} a ${period.end}. IMPORTANTE: son movimientos contables, los partners pueden ser clientes o proveedores según el tipo de asiento.`;
+
+      return success({ _descripcion, entries, totalAmount, entryCount: entries.length, period });
     } catch (error) {
       return errorToResult(error);
     }

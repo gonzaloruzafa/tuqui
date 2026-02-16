@@ -9,7 +9,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetLostOpportunitiesInputSchema = z.object({
@@ -156,7 +156,11 @@ Incluye los deals más grandes que se perdieron.`,
         user: Array.isArray(r.user_id) ? r.user_id[1] : 'Sin asignar',
       }));
 
+      const topReason = lostReasons.length > 0 ? lostReasons[0].reasonName : 'sin datos';
+      const _descripcion = `OPORTUNIDADES PERDIDAS: ${totalLost} oportunidades perdidas por ${formatMonto(totalLostRevenue)} en el período ${period.start} a ${period.end}. Principal causa: ${topReason} (${lostReasons.length > 0 ? lostReasons[0].percentage : 0}%). Top ${topLostDeals.length} deals perdidos incluidos. IMPORTANTE: los partners son CLIENTES POTENCIALES que se perdieron, NO son vendedores.`;
+
       return success({
+        _descripcion,
         totalLost,
         totalLostRevenue,
         lostReasons,
