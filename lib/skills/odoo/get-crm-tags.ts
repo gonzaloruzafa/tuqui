@@ -64,7 +64,10 @@ Retorna ID y nombre de cada tag para usar como tagId en search_crm_opportunities
       );
 
       if (!input.includeStats) {
+        const _descripcion = `ETIQUETAS CRM: ${tags.length} etiquetas disponibles (sin estadísticas). IMPORTANTE: son categorías internas para clasificar oportunidades, NO son clientes.`;
+
         return success({
+          _descripcion,
           tags: tags.map((t) => ({ id: t.id, name: t.name })),
           totalTags: tags.length,
         });
@@ -87,7 +90,11 @@ Retorna ID y nombre de cada tag para usar como tagId en search_crm_opportunities
         }
       }
 
+      const topTags = tags.filter((t) => (countMap.get(t.id) || 0) > 0).slice(0, 3).map((t) => `${t.name} (${countMap.get(t.id)})`).join(', ');
+      const _descripcion = `ETIQUETAS CRM: ${tags.length} etiquetas con estadísticas de oportunidades${topTags ? `, más usadas: ${topTags}` : ''}. IMPORTANTE: son categorías internas para clasificar oportunidades, NO son clientes.`;
+
       return success({
+        _descripcion,
         tags: tags.map((t) => ({
           id: t.id,
           name: t.name,

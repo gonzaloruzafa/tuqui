@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError, PeriodSchema, DocumentStateSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, type OdooDomain } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetSalesByCategoryInputSchema = z.object({
@@ -117,7 +117,10 @@ RETORNA: lista con categoryName, totalAmount, quantitySold, percentage del total
           };
         });
 
+      const _descripcion = `CATEGORÍAS de producto del ${period.start} al ${period.end}: ${categories.length} categorías, total ${formatMonto(grandTotalWithTax)} con impuestos. IMPORTANTE: son categorías del catálogo, NO son vendedores ni clientes.`;
+
       return success({
+        _descripcion,
         categories,
         grandTotalWithTax,
         grandTotalWithoutTax,

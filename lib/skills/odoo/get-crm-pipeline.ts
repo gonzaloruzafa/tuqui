@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange } from './_client';
+import { createOdooClient, dateRange, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetCrmPipelineInputSchema = z.object({
@@ -138,7 +138,10 @@ Soporta filtros por vendedor (userId) y estado (open/won/lost/all).`,
         lostCount = await odoo.searchCount('crm.lead', lostDomain);
       }
 
+      const _descripcion = `OPORTUNIDADES CRM (pipeline ${input.status}): ${totalOpportunities} oportunidades por ${formatMonto(totalExpectedRevenue)}, probabilidad promedio ${avgProbability}%${stages.length > 0 ? `, distribuidas en ${stages.length} etapas` : ''}${wonCount !== undefined ? `, ganadas: ${wonCount}` : ''}${lostCount !== undefined ? `, perdidas: ${lostCount}` : ''}. IMPORTANTE: los contactos son CLIENTES POTENCIALES (prospectos), NO son vendedores del equipo.`;
+
       return success({
+        _descripcion,
         totalOpportunities,
         totalExpectedRevenue,
         avgProbability,

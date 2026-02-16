@@ -15,7 +15,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -222,7 +222,10 @@ Usar groupBy=product + customerName para ver productos vendidos a un cliente esp
         const grandTotal = results.reduce((sum, r) => sum + r.totalAmount, 0);
         const lineCount = results.reduce((sum, r) => sum + r.lineCount, 0);
 
+        const _descripcion = `LÍNEAS DE FACTURA (agrupado por ${input.groupBy}): ${results.length} grupos, ${lineCount} líneas, total ${formatMonto(grandTotal)}. Período: ${period.start} a ${period.end}. IMPORTANTE: los partners pueden ser CLIENTES o PROVEEDORES según el tipo de factura.`;
+
         return success({
+          _descripcion,
           grouped: results,
           grandTotal,
           lineCount,
@@ -302,7 +305,10 @@ Usar groupBy=product + customerName para ver productos vendidos a un cliente esp
 
       const grandTotal = results.reduce((sum, l) => sum + l.subtotal, 0);
 
+      const _descripcion = `LÍNEAS DE FACTURA (detalle individual): ${results.length} líneas, total ${formatMonto(grandTotal)}. Período: ${period.start} a ${period.end}.${Object.keys(filters).length > 0 ? ` Filtros: ${JSON.stringify(filters)}.` : ''} IMPORTANTE: los partners pueden ser CLIENTES o PROVEEDORES según el tipo de factura.`;
+
       return success({
+        _descripcion,
         lines: results,
         grandTotal,
         lineCount: results.length,

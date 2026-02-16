@@ -63,7 +63,9 @@ NO adivinar el companyId — siempre llamar este skill primero.`,
         currency: c.currency_id[1],
       }));
 
-      return success({ companies: results, total: results.length });
+      const _descripcion = `EMPRESAS PROPIAS (multi-empresa): ${results.length} compañías disponibles${results.length > 0 ? `: ${results.map(c => `${c.name} (ID ${c.id}, ${c.currency})`).join(', ')}` : ''}. IMPORTANTE: son empresas propias (multi-empresa), NO son clientes ni proveedores.`;
+
+      return success({ _descripcion, companies: results, total: results.length });
     } catch (error) {
       return errorToResult(error);
     }

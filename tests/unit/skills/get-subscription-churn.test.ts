@@ -7,14 +7,18 @@ import { getSubscriptionChurn, GetSubscriptionChurnInputSchema } from '@/lib/ski
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    formatMonto: actual.formatMonto,
   createOdooClient: vi.fn(),
   dateRange: (field: string, start: string, end: string) => [
     [field, '>=', start],
     [field, '<=', end],
   ],
   getDefaultPeriod: () => ({ start: '2026-02-01', end: '2026-02-28', label: 'Este mes' }),
-}));
+  };
+});
 
 describe('Skill: get_subscription_churn', () => {
   const mockContext: SkillContext = {

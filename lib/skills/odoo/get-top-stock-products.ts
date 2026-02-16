@@ -100,7 +100,10 @@ Usa stock.quant (modelo real de stock) agrupado por producto.`,
 
       const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
 
+      const _descripcion = `Top ${products.length} producto(s) con mayor stock: ${totalQuantity} unidades totales.${products.length > 0 ? ` #1: "${products[0].productName}" con ${products[0].quantity} ${products[0].uom}.` : ''}${input.locationId ? ` Filtrado por ubicación ID ${input.locationId}.` : ''} IMPORTANTE: son PRODUCTOS del inventario, NO son clientes.`;
+
       return success({
+        _descripcion,
         products,
         totalProducts: products.length,
         totalQuantity,

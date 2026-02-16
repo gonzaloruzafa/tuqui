@@ -9,7 +9,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient } from './_client';
+import { createOdooClient, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetStaleOpportunitiesInputSchema = z.object({
@@ -164,7 +164,11 @@ Incluye detalle de las oportunidades más grandes estancadas.`,
 
       const avgDaysStuck = totalStaleCount > 0 ? Math.round(totalWeightedDays / totalStaleCount) : 0;
 
+      const topStage = stageBreakdown.length > 0 ? stageBreakdown[0].stageName : 'ninguna';
+      const _descripcion = `OPORTUNIDADES ESTANCADAS (>${input.staleDays} días sin movimiento): ${totalStaleCount} oportunidades por ${formatMonto(totalStaleRevenue)}, promedio ${avgDaysStuck} días estancadas. Etapa con más plata trabada: ${topStage}. IMPORTANTE: los partners son CLIENTES POTENCIALES, NO son vendedores.`;
+
       return success({
+        _descripcion,
         totalStaleCount,
         totalStaleRevenue,
         avgDaysStuck,

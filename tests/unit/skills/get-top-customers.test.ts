@@ -7,18 +7,22 @@ import { getTopCustomers, GetTopCustomersInputSchema } from '@/lib/skills/odoo/g
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
-  createOdooClient: vi.fn(),
-  dateRange: (field: string, start: string, end: string) => [
-    [field, '>=', start],
-    [field, '<=', end],
-  ],
-  stateFilter: (state: string) => {
-    if (state === 'confirmed') return [['state', 'in', ['sale', 'done']]];
-    return [];
-  },
-  combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
-}));
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    createOdooClient: vi.fn(),
+    dateRange: (field: string, start: string, end: string) => [
+      [field, '>=', start],
+      [field, '<=', end],
+    ],
+    stateFilter: (state: string) => {
+      if (state === 'confirmed') return [['state', 'in', ['sale', 'done']]];
+      return [];
+    },
+    combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
+    formatMonto: actual.formatMonto,
+  };
+});
 
 describe('Skill: get_top_customers', () => {
   const mockContext: SkillContext = {

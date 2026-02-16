@@ -187,7 +187,9 @@ Los resultados se ordenan por fecha de vencimiento ASC (más urgente primero).`,
       );
 
       if (lots.length === 0) {
+        const _descripcion = 'No se encontraron productos con vencimiento en el rango solicitado.';
         return success({
+          _descripcion,
           products: [],
           summary: { totalProducts: 0, totalQuantity: 0, buckets: [] },
         });
@@ -254,13 +256,17 @@ Los resultados se ordenan por fecha de vencimiento ASC (más urgente primero).`,
         .slice(0, input.limit);
 
       const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
+      const buckets = buildBuckets(products);
+
+      const _descripcion = `Productos con vencimiento próximo: ${products.length} producto(s), ${totalQuantity} unidades totales en stock. Rango: próximos ${input.days_ahead} días${input.include_expired ? ' (incluye vencidos)' : ''}. Distribución: ${buckets.map(b => `${b.label}: ${b.count}`).join(', ')}. IMPORTANTE: son PRODUCTOS del inventario con fecha de vencimiento, NO son clientes.`;
 
       return success({
+        _descripcion,
         products,
         summary: {
           totalProducts: products.length,
           totalQuantity,
-          buckets: buildBuckets(products),
+          buckets,
         },
       });
     } catch (error) {

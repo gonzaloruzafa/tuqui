@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult } from '../types';
 import { success, authError } from '../types';
-import { createOdooClient, type OdooDomain } from './_client';
+import { createOdooClient, formatMonto, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetStockValuationInputSchema = z.object({
@@ -61,7 +61,10 @@ export const getStockValuation: Skill<
         totalQuantity += p.qty_available;
       }
 
+      const _descripcion = `Valuación total del inventario: ${formatMonto(totalValue)}. ${products.length} producto(s) almacenables, ${totalQuantity} unidades totales.${input.categoryId ? ` Filtrado por categoría ID ${input.categoryId}.` : ''} IMPORTANTE: son PRODUCTOS valorados del inventario, NO son ventas ni compras.`;
+
       return success({
+        _descripcion,
         totalValue,
         productCount: products.length,
         totalQuantity,

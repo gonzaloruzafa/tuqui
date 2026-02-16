@@ -7,7 +7,10 @@ import { getInactiveCustomers, GetInactiveCustomersInputSchema } from '@/lib/ski
 import type { SkillContext } from '@/lib/skills/types';
 import * as clientModule from '@/lib/skills/odoo/_client';
 
-vi.mock('@/lib/skills/odoo/_client', () => ({
+vi.mock('@/lib/skills/odoo/_client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/skills/odoo/_client')>('@/lib/skills/odoo/_client');
+  return {
+    formatMonto: actual.formatMonto,
   createOdooClient: vi.fn(),
   dateRange: (field: string, start: string, end: string) => [
     [field, '>=', start],
@@ -16,7 +19,8 @@ vi.mock('@/lib/skills/odoo/_client', () => ({
   combineDomains: (...domains: any[]) => domains.flat().filter(Boolean),
   getDefaultPeriod: () => ({ start: '2026-02-01', end: '2026-02-28', label: 'Este mes' }),
   getPreviousMonthPeriod: () => ({ start: '2026-01-01', end: '2026-01-31', label: 'Mes pasado' }),
-}));
+  };
+});
 
 describe('Skill: get_inactive_customers', () => {
   const mockContext: SkillContext = {

@@ -13,72 +13,71 @@ export function RAGUpload() {
     const [message, setMessage] = useState('')
     const [progress, setProgress] = useState(0)
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        // Validate file size
+    const processOneFile = async (file: File, prefix: string) => {
         if (file.size > MAX_FILE_SIZE) {
-            setStatus('error')
-            setMessage(`El archivo es muy grande. Máximo: 50MB (archivo: ${(file.size / 1024 / 1024).toFixed(1)}MB)`)
-            setTimeout(() => { setStatus('idle'); setMessage('') }, 5000)
-            return
+            throw new Error(`${file.name}: muy grande (${(file.size / 1024 / 1024).toFixed(1)}MB > 50MB)`)
         }
 
-        try {
-            // Step 1: Get signed upload URL from server
-            setStatus('uploading')
-            setMessage('Preparando upload...')
-            setProgress(10)
+        setStatus('uploading')
+        setMessage(`${prefix}Preparando ${file.name}...`)
 
-            const urlResult = await getUploadSignedUrl(file.name)
-            if (urlResult.error || !urlResult.signedUrl) {
-                setStatus('error')
-                setMessage(`Error: ${urlResult.error || 'No se pudo generar URL'}`)
-                setTimeout(() => { setStatus('idle'); setMessage('') }, 5000)
-                return
-            }
-
-            // Step 2: Upload directly to Storage
-            setMessage('Subiendo archivo...')
-            setProgress(30)
-
-            const { error: uploadError } = await uploadWithSignedUrl(urlResult.signedUrl, file)
-            
-            if (uploadError) {
-                setStatus('error')
-                setMessage(`Error subiendo: ${uploadError}`)
-                setTimeout(() => { setStatus('idle'); setMessage('') }, 5000)
-                return
-            }
-
-            // Step 3: Process document (extract text, chunk, embed)
-            setStatus('processing')
-            setMessage('Procesando documento...')
-            setProgress(60)
-
-            const result = await processDocumentFromStorage({
-                storagePath: urlResult.path!,
-                fileName: file.name,
-                fileType: file.type,
-                fileSize: file.size
-            })
-
-            if (result.error) {
-                setStatus('error')
-                setMessage(result.error)
-            } else {
-                setStatus('success')
-                setMessage(`Documento indexado: ${result.chunks} chunks creados`)
-                setProgress(100)
-                formRef.current?.reset()
-            }
-        } catch (e: any) {
-            setStatus('error')
-            setMessage(e.message || 'Error desconocido')
+        const urlResult = await getUploadSignedUrl(file.name)
+        if (urlResult.error || !urlResult.signedUrl) {
+            throw new Error(`${file.name}: ${urlResult.error || 'No se pudo generar URL'}`)
         }
 
-        // Reset status after a delay
+        setMessage(`${prefix}Subiendo ${file.name}...`)
+        const { error: uploadError } = await uploadWithSignedUrl(urlResult.signedUrl, file)
+        if (uploadError) throw new Error(`${file.name}: ${uploadError}`)
+
+        setStatus('processing')
+        setMessage(`${prefix}Procesando ${file.name}...`)
+
+        const result = await processDocumentFromStorage({
+            storagePath: urlResult.path!,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size
+        })
+        if (result.error) throw new Error(`${file.name}: ${result.error}`)
+        return result.chunks || 0
+    }
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (!files || files.length === 0) return
+
+        const fileList = Array.from(files)
+        const total = fileList.length
+        let successCount = 0
+        let totalChunks = 0
+        const errors: string[] = []
+
+        setProgress(5)
+
+        for (let i = 0; i < total; i++) {
+            const prefix = total > 1 ? `[${i + 1}/${total}] ` : ''
+            try {
+                const chunks = await processOneFile(fileList[i], prefix)
+                totalChunks += chunks
+                successCount++
+                setProgress(Math.round(((i + 1) / total) * 100))
+            } catch (err: any) {
+                errors.push(err.message)
+            }
+        }
+
+        if (successCount > 0) {
+            setStatus('success')
+            setMessage(`${successCount} documento${successCount > 1 ? 's' : ''} indexado${successCount > 1 ? 's' : ''}: ${totalChunks} chunks`)
+            setProgress(100)
+            formRef.current?.reset()
+        }
+        if (errors.length > 0) {
+            setStatus('error')
+            setMessage(errors.join(' | '))
+        }
+
         setTimeout(() => {
             setStatus('idle')
             setMessage('')
@@ -132,6 +131,7 @@ export function RAGUpload() {
                     name="file"
                     type="file"
                     accept=".txt,.md,.csv,.json,.pdf"
+                    multiple
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     onChange={handleFileChange}
                     disabled={status === 'uploading' || status === 'processing'}
@@ -145,7 +145,7 @@ export function RAGUpload() {
                 >
                     {status === 'uploading' ? 'Subiendo...' : 
                      status === 'processing' ? 'Procesando...' : 
-                     'Seleccionar Archivo'}
+                     'Seleccionar Archivos'}
                 </div>
             </form>
         </div>

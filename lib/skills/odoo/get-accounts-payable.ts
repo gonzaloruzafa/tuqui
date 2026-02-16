@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import type { Skill, SkillContext, SkillResult, Period } from '../types';
 import { PeriodSchema, success, authError } from '../types';
-import { createOdooClient, dateRange, type OdooDomain } from './_client';
+import { createOdooClient, dateRange, formatMonto, type OdooDomain } from './_client';
 import { errorToResult } from '../errors';
 
 // ============================================
@@ -141,7 +141,9 @@ Retorna total adeudado, total vencido, cantidad de facturas y proveedores.`,
         }));
       }
 
-      return success({ totalPayable, totalOverdue, billCount, supplierCount, bySupplier, currency: 'ARS' });
+      const _descripcion = `PROVEEDORES — Cuentas por pagar: ${formatMonto(totalPayable)} total adeudado, ${formatMonto(totalOverdue)} vencido. ${billCount} facturas de ${supplierCount} proveedores. Moneda: ARS. IMPORTANTE: estos PROVEEDORES son a quienes les debemos, NO son clientes que nos deben.`;
+
+      return success({ _descripcion, totalPayable, totalOverdue, billCount, supplierCount, bySupplier, currency: 'ARS' });
     } catch (error) {
       return errorToResult(error);
     }

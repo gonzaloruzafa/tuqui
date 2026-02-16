@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { Skill, SkillResult } from '../types';
 import { success, authError, PeriodSchema } from '../types';
-import { createOdooClient, dateRange, combineDomains, getDefaultPeriod } from './_client';
+import { createOdooClient, dateRange, combineDomains, getDefaultPeriod, formatMonto } from './_client';
 import { errorToResult } from '../errors';
 
 export const GetSalesMarginSummaryInputSchema = z.object({
@@ -67,7 +67,10 @@ Vista agregada más simple que get_product_margin (no desglosa por producto).`,
       );
 
       if (totalAgg.length === 0 || !totalAgg[0].price_subtotal) {
+        const _descripcion = 'MARGEN de ventas: sin datos para el período consultado.';
+
         return success({
+          _descripcion,
           totalRevenue: 0,
           totalCost: 0,
           totalMargin: 0,
@@ -122,7 +125,10 @@ Vista agregada más simple que get_product_margin (no desglosa por producto).`,
       if (input.teamId) orderDomain.push(['team_id', '=', input.teamId]);
       const orderCount = await odoo.searchCount('sale.order', orderDomain);
 
+      const _descripcion = `MARGEN de ventas del ${period.start} al ${period.end}: revenue ${formatMonto(totalRevenue)}, costo ${formatMonto(totalCost)}, margen ${formatMonto(totalMargin)} (${marginPercent}%). IMPORTANTE: son montos de VENTAS (vendido vs costó), NO son compras.`;
+
       return success({
+        _descripcion,
         totalRevenue,
         totalCost,
         totalMargin,

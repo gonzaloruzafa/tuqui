@@ -19,6 +19,7 @@ import {
   stateFilter,
   combineDomains,
   getDefaultPeriod,
+  formatMonto,
   type OdooDomain,
 } from './_client';
 import { errorToResult } from '../errors';
@@ -148,7 +149,10 @@ SIEMPRE llamar get_sales_teams primero para obtener el teamId, NO adivinarlo.`,
       const orderCount = totals[0]?.__count || 0;
       const customerCount = partnerCount.filter((p) => p.partner_id).length;
 
+      const _descripcion = `VENTAS totales del ${period.start} al ${period.end}: ${formatMonto(totalWithTax)} con impuestos (${orderCount} pedidos, ${customerCount} clientes). IMPORTANTE: son VENTAS nuestras a clientes, NO son compras.`;
+
       return success({
+        _descripcion,
         totalWithTax,
         totalWithoutTax,
         taxAmount: totalWithTax - totalWithoutTax,

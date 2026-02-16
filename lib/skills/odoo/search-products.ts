@@ -166,7 +166,10 @@ Para ver ventas agregadas de TODAS las variantes, usar el templateId con get_pro
         templateName: p.product_tmpl_id?.[1] || p.name,
       }));
 
+      const _descripcion = `Búsqueda de productos "${input.query}": ${results.length} resultados encontrados${results.length > 0 ? `. Primeros: ${results.slice(0, 3).map(p => `${p.name}${p.code ? ` [${p.code}]` : ''}`).join(', ')}` : ''}. IMPORTANTE: son PRODUCTOS del catálogo, NO son clientes ni vendedores.`;
+
       return success({
+        _descripcion,
         products: results,
         total: results.length,
       });
