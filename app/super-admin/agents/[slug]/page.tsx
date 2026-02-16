@@ -159,70 +159,73 @@ export default function SuperAdminAgentEditorPage() {
         }
     }
 
-    const uploadDoc = async (file: File) => {
+    const uploadDocs = async (files: File[]) => {
         setUploading(true)
         setError(null)
-        setUploadProgress('Obteniendo URL de subida...')
-        try {
-            // 1. Get signed upload URL
-            const urlRes = await fetch(`/api/super-admin/agents/${slug}/documents`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_upload_url', fileName: file.name }),
-            })
-            if (!urlRes.ok) {
-                let errorMsg = 'Error obteniendo URL de subida'
-                try { const data = await urlRes.json(); errorMsg = data.error || errorMsg } catch {}
-                throw new Error(errorMsg)
-            }
-            const { signedUrl, path } = await urlRes.json()
+        const total = files.length
+        let successCount = 0
+        const errors: string[] = []
 
-            // 2. Upload file directly to Supabase Storage
-            setUploadProgress(`Subiendo ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`)
-            const uploadRes = await fetch(signedUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': file.type || 'application/pdf' },
-                body: file,
-            })
-            if (!uploadRes.ok) {
-                throw new Error('Error subiendo archivo a Storage')
-            }
-
-            // 3. Process from Storage (chunk + embed)
-            setUploadProgress('Procesando: extrayendo texto, generando chunks y embeddings...')
-            const processRes = await fetch(`/api/super-admin/agents/${slug}/documents`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'process_from_storage',
-                    storagePath: path,
-                    fileName: file.name,
-                    fileSize: file.size,
-                    title: file.name.replace(/\.pdf$/i, ''),
-                }),
-            })
-
-            // Parse response safely (Vercel timeout returns HTML/empty body)
-            let responseData: any = null
+        for (let i = 0; i < total; i++) {
+            const file = files[i]
+            const prefix = total > 1 ? `[${i + 1}/${total}] ` : ''
             try {
-                responseData = await processRes.json()
-            } catch {
-                throw new Error('El procesamiento tardó demasiado. El documento puede haberse guardado — recargá la página.')
-            }
+                // 1. Get signed upload URL
+                setUploadProgress(`${prefix}Obteniendo URL para ${file.name}...`)
+                const urlRes = await fetch(`/api/super-admin/agents/${slug}/documents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_upload_url', fileName: file.name }),
+                })
+                if (!urlRes.ok) {
+                    let errorMsg = 'Error obteniendo URL de subida'
+                    try { const data = await urlRes.json(); errorMsg = data.error || errorMsg } catch {}
+                    throw new Error(errorMsg)
+                }
+                const { signedUrl, path } = await urlRes.json()
 
-            if (processRes.ok) {
-                await fetchDocs() // Re-fetch to ensure list is fresh
-                setSuccess(`"${responseData.title}" procesado correctamente`)
-                setTimeout(() => setSuccess(null), 5000)
-            } else {
-                setError(responseData?.error || 'Error procesando documento')
+                // 2. Upload file directly to Supabase Storage
+                setUploadProgress(`${prefix}Subiendo ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`)
+                const uploadRes = await fetch(signedUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': file.type || 'application/pdf' },
+                    body: file,
+                })
+                if (!uploadRes.ok) throw new Error('Error subiendo archivo a Storage')
+
+                // 3. Process from Storage (chunk + embed)
+                setUploadProgress(`${prefix}Procesando ${file.name}: chunks + embeddings...`)
+                const processRes = await fetch(`/api/super-admin/agents/${slug}/documents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'process_from_storage',
+                        storagePath: path,
+                        fileName: file.name,
+                        fileSize: file.size,
+                        title: file.name.replace(/\.(pdf|txt|md)$/i, ''),
+                    }),
+                })
+
+                let responseData: any = null
+                try { responseData = await processRes.json() } catch {
+                    throw new Error(`${file.name}: procesamiento tardó demasiado — recargá la página.`)
+                }
+                if (!processRes.ok) throw new Error(responseData?.error || `Error procesando ${file.name}`)
+                successCount++
+            } catch (err: any) {
+                errors.push(err.message)
             }
-        } catch (err: any) {
-            setError(err.message)
-        } finally {
-            setUploading(false)
-            setUploadProgress('')
         }
+
+        await fetchDocs()
+        if (successCount > 0) {
+            setSuccess(`${successCount} documento${successCount > 1 ? 's' : ''} procesado${successCount > 1 ? 's' : ''} correctamente`)
+            setTimeout(() => setSuccess(null), 5000)
+        }
+        if (errors.length > 0) setError(errors.join(' | '))
+        setUploading(false)
+        setUploadProgress('')
     }
 
     const deleteDoc = async (docId: string) => {
@@ -518,11 +521,12 @@ export default function SuperAdminAgentEditorPage() {
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept=".pdf,.txt"
+                                accept=".pdf,.txt,.md"
+                                multiple
                                 className="hidden"
                                 onChange={e => {
-                                    const file = e.target.files?.[0]
-                                    if (file) uploadDoc(file)
+                                    const files = e.target.files
+                                    if (files && files.length > 0) uploadDocs(Array.from(files))
                                     e.target.value = ''
                                 }}
                             />
@@ -537,7 +541,7 @@ export default function SuperAdminAgentEditorPage() {
                                 ) : (
                                     <Upload className="w-4 h-4" />
                                 )}
-                                {uploading ? 'Procesando...' : 'Subir PDF'}
+                                {uploading ? 'Procesando...' : 'Subir Documentos'}
                             </button>
                             {uploadProgress ? (
                                 <p className="text-[11px] text-adhoc-violet mt-2 flex items-center gap-1">
@@ -546,7 +550,7 @@ export default function SuperAdminAgentEditorPage() {
                                 </p>
                             ) : (
                                 <p className="text-[11px] text-gray-400 mt-2">
-                                    Sube vía Storage (sin límite de tamaño). Se procesan chunks y embeddings automáticamente.
+                                    Podés seleccionar varios archivos a la vez. Se procesan chunks y embeddings automáticamente.
                                 </p>
                             )}
                         </div>
