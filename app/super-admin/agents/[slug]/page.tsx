@@ -556,7 +556,7 @@ export default function SuperAdminAgentEditorPage() {
                                 No hay documentos cargados para este agente
                             </p>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-3 max-h-80 overflow-y-auto">
                                 {docs.map(doc => (
                                     <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <FileText className="w-4 h-4 text-adhoc-violet flex-shrink-0" />
@@ -584,6 +584,19 @@ export default function SuperAdminAgentEditorPage() {
                     </div>
                 </section>
                 )}
+
+                {/* Save */}
+                <div className="sticky bottom-6 z-10 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg">
+                    <button
+                        type="button"
+                        onClick={saveAgent}
+                        disabled={saving}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-adhoc-violet text-white rounded-xl text-sm font-medium hover:bg-adhoc-violet/90 transition-colors disabled:opacity-50"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? (isCreateMode ? 'Creando...' : 'Guardando...') : (isCreateMode ? 'Crear Agente' : 'Guardar Cambios')}
+                    </button>
+                </div>
 
                 {/* Danger Zone */}
                 {!isCreateMode && (
@@ -639,19 +652,6 @@ export default function SuperAdminAgentEditorPage() {
                     </div>
                 </section>
                 )}
-
-                {/* Save */}
-                <div className="sticky bottom-6 z-10 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-lg">
-                    <button
-                        type="button"
-                        onClick={saveAgent}
-                        disabled={saving}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-adhoc-violet text-white rounded-xl text-sm font-medium hover:bg-adhoc-violet/90 transition-colors disabled:opacity-50"
-                    >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        {saving ? (isCreateMode ? 'Creando...' : 'Guardando...') : (isCreateMode ? 'Crear Agente' : 'Guardar Cambios')}
-                    </button>
-                </div>
             </div>
         </div>
     )
