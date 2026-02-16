@@ -477,8 +477,8 @@ export default function SuperAdminAgentEditorPage() {
                     </div>
                 </section>
 
-                {/* Documents / RAG — only in edit mode */}
-                {!isCreateMode && (
+                {/* Documents / RAG — visible when knowledge_base tool is active */}
+                {!isCreateMode && form.tools.includes('knowledge_base') && (
                 <section className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="p-6 border-b border-gray-50 bg-gray-50/20 flex items-center justify-between">
                         <div className="flex items-center gap-2">
