@@ -506,6 +506,7 @@ modelo de negocio, etc. Se guarda en `company_contexts.discovery_profile`.
 - [ ] `lib/company/discovery-runner.ts` — ejecuta queries en paralelo con retry
 - [ ] `app/api/admin/discover/route.ts` — botón "Descubrir empresa" en admin
 - [ ] Enriquecer `context-injector.ts` para incluir `discovery_profile`
+- [ ] 🎤 Agregar icono mic en textareas de `/admin/company` — usa `useDictation` hook para dictar descripciones
 - [ ] Tests: discovery-runner con mocks, synthesizer con data real parcial
 
 ### Riesgos
@@ -581,6 +582,7 @@ Sesión 2 — Investigator + Delivery:
 - [ ] `app/api/cron/intelligence/route.ts` — cron matutino (~30 líneas)
 - [ ] Configurar cron en `vercel.json`
 - [ ] Onboarding flow: detectar user sin profile → pregunta inicial
+- [ ] 🎤 Agregar icono mic en textarea de onboarding de user profile — usa `useDictation` hook para dictar
 - [ ] Feedback tracking: `tapped` cuando user clickea pregunta sugerida
 - [ ] Tests: cron, feedback
 - [ ] Eval: correr 5 días contra Cedent, medir variedad + relevancia
