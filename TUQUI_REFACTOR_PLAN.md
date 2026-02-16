@@ -16,7 +16,7 @@
 | Unit tests | ~337 passing (~1.5s) |
 | Eval baseline | 98.5% (66/67) |
 | Eval cases | 75 (67 originales + 8 quality) |
-| Skills Odoo | 36 |
+| Skills Odoo | 50 |
 | Memory Skills | 2 (recall_memory, save_memory) |
 | Docs en RAG | ⚠️ 0 (crítico) |
 | Master Agents UI | ❌ Solo via SQL |
@@ -78,21 +78,27 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 | Fase | Tiempo | Descripción | Impacto en PMF |
 |------|--------|-------------|----------------|
 | F7 | 2-3 días | Master Agents + RAG Centralizado | ⭐⭐⭐⭐ Diferenciación |
+| F7.5 | 0.5 días | Company Discovery (Deep Research Odoo) | ⭐⭐⭐⭐ Contexto brutal |
+| F7.6 | 2-3 días | Intelligence Layer (Curious Analyst Agent) | ⭐⭐⭐⭐⭐ Adicción |
 | F5 | 1.5 días | PWA + Push Notifications | ⭐⭐⭐ Engagement diario |
 | F6 | 1 día | Briefings Matutinos | ⭐⭐⭐ Hábito de uso |
 | F8 | 0.5 días | Piloto Cedent | ⭐⭐⭐ Validación real |
 | F9 | — | Cobrar ($50-100/mes) | ⭐⭐⭐⭐⭐ PMF signal |
 | FX | 5 min | Optimizar modelo Gemini → bajar costos ~70% | ⭐⭐ Margen |
 
-**Total: ~5-6 días de código + validación continua**
+**Total: ~8-10 días de código + validación continua**
 
 ### Orden de ejecución
 
 ```
-F7 → F5 → F6 → F8 → F9
+F7 → F7.5 → F7.6 → F5 → F6 → F8 → F9
 ```
 
 **¿Por qué F7 primero?** El valor de Tuqui es que SABE cosas. Hoy los agentes `contador` y `abogado` tienen 0 docs en RAG. Si mandás push sin contenido, el usuario se decepciona. Primero contenido, después engagement.
+
+**¿Por qué F7.5 después de F7?** Con RAG armado, el Company Discovery automatiza el onboarding: corre todas las skills de Odoo, sintetiza un dossier de la empresa, y alimenta el company context con data REAL. Tuqui arranca sabiendo todo desde el día 1.
+
+**¿Por qué F7.6 después de F7.5?** Con contenido (RAG) y contexto de empresa (discovery), el Intelligence Layer tiene data de calidad para generar insights. Un agente curioso que investiga usando las mismas tools del chat — no hardcodea queries, el LLM decide qué buscar. Spec completa: `INTELLIGENCE_LAYER_PLAN.md`.
 
 ### Lo que se POSPONE (post-PMF)
 
@@ -480,6 +486,166 @@ Enter → "@contador " se inserta
 
 ---
 
+## 🔜 FASE 7.5: COMPANY DISCOVERY (~0.5 días)
+
+> **Objetivo:** Auto-generar perfil profundo de la empresa corriendo skills de Odoo  
+> **Depende de:** F7 (skills funcionando con `_descripcion`)  
+> **Valida:** POC `scripts/company-discovery.ts` — 57/61 queries en 73s sobre Cedent
+
+### Concepto
+
+Cuando un tenant conecta Odoo, Tuqui corre automáticamente ~50 skills y sintetiza 
+un dossier de la empresa: industria, escala, productos clave, clientes top, 
+modelo de negocio, etc. Se guarda en `company_contexts.discovery_profile`.
+
+### Checklist
+
+- [ ] Migration `211_company_discovery.sql` (campo `discovery_profile TEXT` en `company_contexts`)
+- [ ] `lib/company/discovery.ts` — define las queries a correr por categoría
+- [ ] `lib/company/discovery-synthesizer.ts` — LLM sintetiza resultados en perfil (~500 tokens)
+- [ ] `lib/company/discovery-runner.ts` — ejecuta queries en paralelo con retry
+- [ ] `app/api/admin/discover/route.ts` — botón "Descubrir empresa" en admin
+- [ ] Enriquecer `context-injector.ts` para incluir `discovery_profile`
+- [ ] Tests: discovery-runner con mocks, synthesizer con data real parcial
+
+### Riesgos
+
+| Riesgo | Impacto | Mitigación |
+|--------|---------|------------|
+| Odoo rate limits con 50 queries | Timeout / bloqueo | Batch de 10, delay entre batches |
+| Skills que fallan (sin datos) | Resultados parciales | `Promise.allSettled`, ignorar fallos |
+| Perfil genérico / poco útil | Contexto débil | Prompt del synthesizer con ejemplos ricos |
+
+---
+
+## 🔜 FASE 7.6: INTELLIGENCE LAYER (~2-3 días) ⭐ DOPAMINE LOOP
+
+> **Objetivo:** Cada vez que el usuario abre Tuqui, hay algo nuevo e interesante  
+> **Depende de:** F7 (RAG) + F7.5 (company context rico)  
+> **Spec completa:** `INTELLIGENCE_LAYER_PLAN.md`  
+> **Ejecución:** F7.6a (2 sesiones) + F7.6b (1 sesión)
+
+### Concepto: Curious Analyst Agent
+
+**No son collectors hardcodeados ni 38 archivos de discoveries.**
+**El prompt del analista vive en DB como master agent, no en código.**
+
+Es un master agent `analista` que:
+1. Recibe contexto rico: empresa + usuario + chats recientes + memoria + historial
+2. Usa las MISMAS tools del chat (50 Odoo skills, MeLi, Tavily, RAG)
+3. El LLM decide qué investigar (3-8 tool calls)
+4. Sintetiza hallazgos en 2-3 teasers con emoji + dato + pregunta disparadora
+5. Se muestra como session opener al abrir el chat
+
+```
+┌─ Context Assembler ─┐    ┌─ Investigator ──────────┐    ┌─ Synthesizer ──┐
+│ Company profile     │    │ generateText() con       │    │ Hallazgos →    │
+│ User profile        │───▶│ maxSteps: 8              │───▶│ 2-3 teasers    │
+│ Recent chats        │    │ USA LAS MISMAS TOOLS     │    │ emoji+dato+    │
+│ Memories            │    │ El LLM decide qué buscar │    │ pregunta       │
+│ Insight history     │    └──────────────────────────┘    └────────────────┘
+└─────────────────────┘
+```
+
+### Data model
+
+4 tablas: `user_profiles`, `entity_mentions`, `insight_history`, `insight_cache` + RLS.
+Schema completo en `INTELLIGENCE_LAYER_PLAN.md` § 8.
+
+### Fases
+
+**F7.6a (2 sesiones): Profiles + Engine + Session Opener**
+
+Sesión 1 — DB + Profiles + Context + Master Agent:
+- [ ] Migration `212_intelligence.sql` (4 tablas + RLS — schema en `INTELLIGENCE_LAYER_PLAN.md` § 8)
+- [ ] INSERT master agent `analista` (prompt + tools en DB)
+- [ ] `lib/intelligence/types.ts` — interfaces (~30 líneas)
+- [ ] `lib/intelligence/profiles/extract-profile.ts` — LLM extrae de texto (~40 líneas)
+- [ ] `lib/intelligence/profiles/user-profile.ts` — CRUD (~50 líneas)
+- [ ] `lib/intelligence/profiles/memory-enricher.ts` — auto-watchlist (~50 líneas)
+- [ ] `lib/intelligence/context-assembler.ts` — junta todo el contexto (~60 líneas)
+- [ ] Tests: extract-profile, user-profile, memory-enricher, context-assembler
+
+Sesión 2 — Investigator + Delivery:
+- [ ] `lib/intelligence/investigator.ts` — carga agente `analista` de DB + agentic loop (~50 líneas)
+- [ ] `lib/intelligence/synthesizer.ts` — hallazgos → teasers (~50 líneas)
+- [ ] `lib/intelligence/engine.ts` — orquesta todo (~40 líneas)
+- [ ] `lib/intelligence/history.ts` — insight_history CRUD (~40 líneas)
+- [ ] `lib/intelligence/delivery.ts` — session opener + cache (~50 líneas)
+- [ ] Integrar session opener en `app/chat/[slug]/page.tsx` (~10 líneas)
+- [ ] Integrar memory-enricher hook en `lib/chat/engine.ts` (~5 líneas)
+- [ ] Tests: investigator (mocks), synthesizer, engine, delivery
+- [ ] Test E2E: generar insights para Cedent con data real
+
+**F7.6b (1 sesión): Cron + Onboarding + Polish**
+- [ ] `app/api/cron/intelligence/route.ts` — cron matutino (~30 líneas)
+- [ ] Configurar cron en `vercel.json`
+- [ ] Onboarding flow: detectar user sin profile → pregunta inicial
+- [ ] Feedback tracking: `tapped` cuando user clickea pregunta sugerida
+- [ ] Tests: cron, feedback
+- [ ] Eval: correr 5 días contra Cedent, medir variedad + relevancia
+
+### Tests
+
+| Test | Validación |
+|------|-----------|
+| `extractProfile("soy el dueño, me mata la cobranza")` | `role=dueno`, painPoints includes cobranza |
+| `extractProfile("quiero seguir siliconas y Córdoba")` | watchlist includes siliconas, Córdoba |
+| `assembleContext()` con mocks | Incluye company + profile + sessions + memories + history |
+| `investigate()` con tools mockeadas | ≥3 tool calls, retorna texto con hallazgos |
+| `synthesize()` con hallazgos variados | 2-3 teasers con emoji + dato + pregunta |
+| `synthesize()` con historial | No repite insights ya mostrados |
+| Mention 3x "Macrodental" | Auto-agrega a watchlist |
+| `getSessionOpener()` con cache fresco | Retorna del cache, marca served |
+| `getSessionOpener()` sin cache | Genera on-demand |
+
+### Por qué funciona
+
+```
+El LLM ya sabe hacer esto. Cuando el usuario pregunta "¿cómo estamos?",
+el agente Odoo llama 3-4 skills y arma un resumen. El Curious Analyst
+hace lo mismo pero SIN que el usuario pregunte.
+
+No hay 38 archivos de "discoveries". No hay collectors fijos.
+Hay un agente con acceso a tools que decide qué buscar.
+
+~13 archivos, ~520 líneas. El LLM hace el trabajo pesado.
+```
+
+### Flujo completo
+
+```
+7:00 AM  → Cron → generateInsights() → cache (served=false)
+9:15 AM  → Usuario abre → getSessionOpener() → lee cache → 2 teasers
+         → 👻 Macrodental no compra hace 47 días
+           ¿Qué dejó de llevar?
+         → 🛒 Composite: vos $45K, MeLi $62K
+           ¿Estoy regalando margen?
+         → Usuario toca pregunta → chat normal → Tuqui responde
+         → cache marcado served=true
+13:00    → Abre de nuevo → cache served → on-demand refresh → nuevos teasers
+```
+
+### Impacto en otros módulos
+
+| Módulo | Cambio |
+|--------|--------|
+| `lib/chat/engine.ts` | Hook post-mensaje: `enrichFromMessage()` (~5 líneas) |
+| `app/chat/[slug]/page.tsx` | Session opener al crear sesión nueva (~10 líneas) |
+| `vercel.json` | Agregar cron `/api/cron/intelligence` (~3 líneas) |
+
+### Riesgos
+
+| Riesgo | Impacto | Mitigación |
+|--------|---------|------------|
+| Investigator usa demasiados tokens | Costo alto | `maxSteps: 8`, gemini-2.0-flash (~$0.003/run) |
+| Insights genéricos / aburridos | No engancha | Prompt rico + user profile + feedback loop |
+| Cron timeout en Vercel Hobby (10s) | No pre-computa | Vercel Pro o generar solo 1 user por invocación |
+| User sin profile → contexto pobre | Teasers genéricos | Onboarding conversacional al primer uso |
+| Tools fallan (Odoo down, MeLi timeout) | Sin insights | `Promise.allSettled` en el investigator, retry |
+
+---
+
 ## 🔜 FASE 5: PWA + PUSH NOTIFICATIONS (~1.5 días) — SEGUNDA
 
 > **Objetivo:** Tuqui en el teléfono del usuario, notificaciones nativas  
@@ -499,7 +665,7 @@ Enter → "@contador " se inserta
 - [ ] `public/manifest.json` + icons (192px, 512px)
 - [ ] `public/sw.js` (service worker para push)
 - [ ] Meta tags PWA en `app/layout.tsx`
-- [ ] Migration `210_push_subscriptions.sql`
+- [ ] Migration `213_push_subscriptions.sql`
 - [ ] `lib/push/sender.ts` (sendPushToUser, sendPushToTenant)
 - [ ] `app/api/push/subscribe/route.ts`
 - [ ] `lib/hooks/use-push-notifications.ts`
@@ -658,7 +824,9 @@ Enter → "@contador " se inserta
 |-------|---------|----------|
 | 100-131 | Schema original + fixes | 100 unified_schema, 103 master_agents, 105 fix_match_documents |
 | 200-209 | Core features + platform | 200 company_context, 203 memories, 206 slim_odoo_prompt, **208 master_documents, 209 fix_match_documents** |
-| 210-219 | Engagement (Push) | 210 push_subscriptions |
+| 210 | Agent sync fix | **210 sync_slug_name_icon** (ya en disco) |
+| 211-212 | Intelligence | **211 company_discovery, 212 intelligence** |
+| 213-219 | Engagement (Push) | 213 push_subscriptions |
 | 220-229 | Engagement (Briefings) | 220 briefing_config |
 
 ⚠️ **Duplicados conocidos:** 120×2 (`add_auth_user_id` + `meli_force_tool_execution`), 203×2 (`memories` + `platform_admin`). No bloquean — Supabase corre por orden alfabético.
@@ -673,6 +841,7 @@ lib/
 ├── company/          # Contexto de empresa
 ├── push/             # Push notifications (F5)
 ├── briefings/        # Briefings matutinos (F6)
+├── intelligence/     # Curious Analyst Agent (F7.6)
 ├── platform/         # Super admin auth (F7)
 ├── rag/              # Procesamiento de documentos (F7)
 ├── errors/           # Manejo de errores amigables
@@ -681,7 +850,7 @@ lib/
 app/
 ├── super-admin/      # UI platform admin (F7)
 ├── api/push/         # Push subscription API (F5)
-├── api/cron/         # Cron jobs (F6)
+├── api/cron/         # Cron jobs (F6 + F7.6)
 └── api/super-admin/  # Platform admin API (F7)
 ```
 
@@ -708,17 +877,32 @@ Semana 1 (F7 — Master Agents + RAG — 3 sesiones):
 ├── S2: Super admin UI (lista + editor + upload component + API route)
 ├── S3: Subir PDFs + @mention agents + agent attribution en tools + tests
 
-Semana 1-2 (F5 + F6 — Engagement):
-├── Día 4: F5 completo (PWA + Push) + tests
-├── Día 5: F6.1-6.3 (briefing config + generator + cron)
-└── Día 6: F6.4-6.5 (vercel cron + UI) + tests
+Semana 1 (F7.5 — Company Discovery — 1 sesión):
+├── Migration 211 + lib/company/discovery*.ts + API route
+├── Enriquecer context-injector.ts con discovery_profile
+└── Tests + corrida contra Cedent real
 
-Semana 2 (F8 — Piloto):
-├── Día 7: Setup Cedent + onboarding
-├── Días 8-12: Silencio, medir uso
-└── Día 13: Contactar, feedback
+Semana 2 (F7.6a — Intelligence: Profiles + Engine — 2 sesiones):
+├── S1: Migration 212 + profiles/ + context-assembler + tests
+├── S2: investigator + synthesizer + engine + delivery + tests
+└── S2: Integrar session opener en chat + memory-enricher hook
 
-Semana 3:
+Semana 2 (F7.6b — Intelligence: Cron + Polish — 1 sesión):
+├── Cron matutino + vercel.json
+├── Onboarding flow (user sin profile)
+└── Feedback tracking + eval contra Cedent
+
+Semana 3 (F5 + F6 — Engagement):
+├── Día 1: F5 completo (PWA + Push) + tests
+├── Día 2: F6.1-6.3 (briefing config + generator + cron)
+└── Día 3: F6.4-6.5 (vercel cron + UI) + tests
+
+Semana 3-4 (F8 — Piloto):
+├── Setup Cedent + onboarding
+├── Silencio 5 días, medir uso + insights
+└── Contactar, feedback
+
+Semana 4:
 └── F9: Ofrecer precio, cobrar o iterar
 ```
 
@@ -756,7 +940,37 @@ lib/chat/parse-mention.ts                                  # S3
 tests/unit/parse-mention.test.ts                           # S3
 # Nota: lib/platform/auth.ts YA EXISTE — no crear
 
-# F5 — PWA + Push (SEGUNDA)
+# F7.5 — Company Discovery (1 sesión)
+supabase/migrations/211_company_discovery.sql
+lib/company/discovery.ts
+lib/company/discovery-synthesizer.ts
+lib/company/discovery-runner.ts
+tests/unit/discovery.test.ts
+app/api/admin/discover/route.ts
+
+# F7.6 — Intelligence Layer (3 sesiones)
+supabase/migrations/212_intelligence.sql                   # F7.6a S1
+lib/intelligence/types.ts                                  # F7.6a S1
+lib/intelligence/profiles/extract-profile.ts               # F7.6a S1
+lib/intelligence/profiles/user-profile.ts                  # F7.6a S1
+lib/intelligence/profiles/memory-enricher.ts               # F7.6a S1
+lib/intelligence/context-assembler.ts                      # F7.6a S1
+lib/intelligence/investigator.ts                           # F7.6a S2
+lib/intelligence/synthesizer.ts                            # F7.6a S2
+lib/intelligence/engine.ts                                 # F7.6a S2
+lib/intelligence/history.ts                                # F7.6a S2
+lib/intelligence/delivery.ts                               # F7.6a S2
+app/api/cron/intelligence/route.ts                         # F7.6b
+tests/unit/intelligence/extract-profile.test.ts
+tests/unit/intelligence/context-assembler.test.ts
+tests/unit/intelligence/investigator.test.ts
+tests/unit/intelligence/synthesizer.test.ts
+tests/unit/intelligence/engine.test.ts
+tests/unit/intelligence/delivery.test.ts
+tests/unit/intelligence/memory-enricher.test.ts
+# Spec completa: INTELLIGENCE_LAYER_PLAN.md
+
+# F5 — PWA + Push
 public/manifest.json
 public/sw.js
 lib/push/sender.ts
@@ -764,7 +978,7 @@ app/api/push/subscribe/route.ts
 lib/hooks/use-push-notifications.ts
 components/PushNotificationToggle.tsx
 
-# F6 — Briefings (TERCERA)
+# F6 — Briefings
 lib/briefings/generator.ts
 app/api/cron/briefings/route.ts
 components/BriefingSettings.tsx
@@ -780,8 +994,9 @@ components/BriefingSettings.tsx
 
 ---
 
-*Última actualización: 2026-02-12*  
+*Última actualización: 2026-02-16*  
 *PRs mergeados: #2-#10 | PR abierto: #11 (feat/memory)*  
 *Spec técnica detallada: `TUQUI_REFACTOR_SPECS.md`*  
+*Intelligence Layer spec: `INTELLIGENCE_LAYER_PLAN.md`*  
 *Versión anterior archivada: `docs/archive/TUQUI_REFACTOR_PLAN_v3.md`*  
 *Filosofía: Ship > Perfect*
