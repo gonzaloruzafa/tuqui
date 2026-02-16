@@ -3,7 +3,7 @@
 > **Filosofía:** Llegar a PMF primero, infraestructura enterprise después  
 > **Principio:** Usuarios pagando > Features perfectas  
 > **Para:** Un founder que necesita validar antes de escalar  
-> **Última actualización:** 2026-02-12
+> **Última actualización:** 2026-02-15
 
 ---
 
@@ -78,21 +78,27 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 | Fase | Tiempo | Descripción | Impacto en PMF |
 |------|--------|-------------|----------------|
 | F7 | 2-3 días | Master Agents + RAG Centralizado | ⭐⭐⭐⭐ Diferenciación |
+| F7.5 | 0.5 días | Company Discovery (Deep Research Odoo) | ⭐⭐⭐⭐ Contexto brutal |
+| F7.6 | 1 día | Perfiles de Usuario (Onboarding Conversacional) | ⭐⭐⭐⭐ Personalización |
 | F5 | 1.5 días | PWA + Push Notifications | ⭐⭐⭐ Engagement diario |
 | F6 | 1 día | Briefings Matutinos | ⭐⭐⭐ Hábito de uso |
 | F8 | 0.5 días | Piloto Cedent | ⭐⭐⭐ Validación real |
 | F9 | — | Cobrar ($50-100/mes) | ⭐⭐⭐⭐⭐ PMF signal |
 | FX | 5 min | Optimizar modelo Gemini → bajar costos ~70% | ⭐⭐ Margen |
 
-**Total: ~5-6 días de código + validación continua**
+**Total: ~6-7 días de código + validación continua**
 
 ### Orden de ejecución
 
 ```
-F7 → F5 → F6 → F8 → F9
+F7 → F7.5 → F7.6 → F5 → F6 → F8 → F9
 ```
 
 **¿Por qué F7 primero?** El valor de Tuqui es que SABE cosas. Hoy los agentes `contador` y `abogado` tienen 0 docs en RAG. Si mandás push sin contenido, el usuario se decepciona. Primero contenido, después engagement.
+
+**¿Por qué F7.5 después de F7?** Con RAG armado, el Company Discovery automatiza el onboarding: corre todas las skills de Odoo, sintetiza un dossier de la empresa, y alimenta el company context + briefings con data REAL. Tuqui arranca sabiendo todo desde el día 1.
+
+**¿Por qué F7.6 después de F7.5?** Con el perfil de empresa (F7.5) resuelto, ahora el perfil de USUARIO personaliza la experiencia. Se hace via conversación libre (no formularios), el LLM extrae rol + intereses + watchlist. Esto alimenta briefings personalizados (F6), scoring de discoveries futuro, y avisos proactivos. Ver visión completa en `INTELLIGENCE_LAYER_PLAN.md`.
 
 ### Lo que se POSPONE (post-PMF)
 
@@ -572,6 +578,219 @@ Enter → "@contador " se inserta
 
 ---
 
+## 🔜 FASE 7.5: COMPANY DISCOVERY — DEEP RESEARCH ODOO (~0.5 días)
+
+> **Objetivo:** Al configurar una empresa, correr automáticamente ~60 queries Odoo para generar un dossier completo que alimenta el company context, los briefings, y el conocimiento general de Tuqui  
+> **Por qué:** Hoy el company context se carga manual (nombre, rubro, descripción). Con Discovery, Tuqui sabe TODO desde el día 1: facturación, vendedores, clientes top, morosidad, stock, CRM, márgenes  
+> **POC validado:** `scripts/company-discovery.ts` — 57/61 queries OK en 73s, output de ~15K chars  
+> **Depende de:** F7 (para inyectar el resultado en company context)
+
+### Concepto
+
+```
+Onboarding flow:
+  1. Admin conecta Odoo (credenciales) ← ya existe
+  2. Admin carga web scraping ← ya existe
+  3. 🆕 Tuqui corre Company Discovery automáticamente
+  4. LLM sintetiza dossier → se guarda en company_contexts
+  5. Cada conversación usa este contexto enriquecido
+```
+
+### Qué descubre (validado con Cedent)
+
+| Dimensión | Data real extraída |
+|-----------|-------------------|
+| Identidad | Rubro (insumos odontológicos), multiempresa (CEDENT + Cedent SRL + CDT Internacional LLC), monedas (ARS + USD) |
+| Ventas | $22.451M/año, 22.777 pedidos, 1000 clientes, ticket $985K |
+| Equipo | 30 vendedores, top Martín Travella C. (15.6% del total), 7 equipos |
+| Clientes | Top: Ministerio Salud Santa Fe ($1.826M), 1735 nuevos en 6m, 50 churned ($297,9M perdido) |
+| Morosidad | $414,2M vencido, aging concentrado 61-90 días, mayor: Ministerio SF ($312,3M) |
+| Productos | Placas termoformado, eyectores, scanners. Stock parado $96M |
+| Finanzas | CxC/CxP ratio 5.71, caja -$149,9M + bancos $153,5M = $3,6M neto |
+| CRM | 526 oportunidades ($112,1M), 146 estancadas ($34,3M, avg 1409 días) |
+| Márgenes | 94-97% bruto |
+
+### Checklist
+
+- [ ] `lib/company/discovery.ts` — Servicio que corre las ~60 queries en batches y recolecta `_descripcion` de cada skill
+- [ ] `lib/company/discovery-synthesizer.ts` — Prompt Gemini que sintetiza el dossier (~16K tokens output)
+- [ ] `lib/company/discovery-runner.ts` — Runner que orquesta: corre discovery → sintetiza → guarda en `company_contexts`
+- [ ] Campos nuevos en `company_contexts`: `discovery_raw` (JSONB, todas las `_descripcion`), `discovery_profile` (text, dossier sintetizado), `discovery_run_at` (timestamp)
+- [ ] Migration `210_company_discovery.sql` — Agregar campos a `company_contexts`
+- [ ] Botón en `/admin/company` → "🔍 Descubrir empresa" que lanza el proceso (loading state ~60-90s)
+- [ ] `context-injector.ts` — Enriquecer el company context con secciones clave del discovery (top clientes, productos, equipo, métricas)
+- [ ] Opción de re-run mensual o on-demand (para mantener el perfil actualizado)
+- [ ] `tests/unit/discovery.test.ts` — Mock de skills + verificar síntesis
+
+### Impacto en otros módulos
+
+| Módulo | Cómo se beneficia |
+|--------|-------------------|
+| **Company Context** | Pasa de ~200 tokens genéricos a ~800 tokens con data real (facturación, equipo, clientes top, productos, problemas) |
+| **Briefings (F6)** | El briefing matutino puede comparar contra el perfil baseline y detectar anomalías |
+| **Orquestador** | Mejor routing porque el contexto tiene nombres reales de vendedores, clientes, productos |
+| **Agente Odoo** | Respuestas más ricas porque el prompt ya tiene contexto de la empresa |
+| **Anti-hallucination** | Menos invención porque los nombres reales ya están en el contexto |
+
+### Arquitectura
+
+```
+/admin/company → botón "Descubrir"
+        ↓
+API route POST /api/admin/discover
+        ↓
+discovery-runner.ts
+  ├── discovery.ts  → corre ~60 skills en batches de 6
+  │                    recolecta {label, _descripcion}[]
+  ├── discovery-synthesizer.ts → Gemini sintetiza dossier
+  └── Guarda en company_contexts:
+      ├── discovery_raw (JSONB)
+      ├── discovery_profile (text)
+      └── discovery_run_at (timestamp)
+        ↓
+context-injector.ts lee discovery_profile
+  → lo inyecta en CADA conversación como contexto
+```
+
+---
+
+## 🔜 FASE 7.6: PERFILES DE USUARIO — ONBOARDING CONVERSACIONAL (~1 día)
+
+> **Objetivo:** Cada usuario describe libremente qué le interesa del negocio. Tuqui extrae un perfil estructurado (rol, pain points, watchlist) que personaliza briefings, scoring de discoveries, y avisos proactivos  
+> **Por qué:** El company context (F7.5) dice qué TIENE la empresa. El user profile dice qué le IMPORTA a cada persona. Sin esto, todos reciben lo mismo  
+> **Depende de:** F7.5 (perfil de empresa como base), F7 (RAG + agents)  
+> **Visión completa:** `INTELLIGENCE_LAYER_PLAN.md` (Intelligence Layer — de chatbot reactivo a agente proactivo)
+
+### Concepto
+
+No es un formulario. No es un wizard. Es una conversación abierta.
+
+```
+Primera vez que el usuario entra:
+
+Tuqui: ¡Hola! Soy Tuqui, tu asistente para [empresa].
+       Contame: ¿qué hacés, qué te interesa seguir de cerca,
+       qué te preocupa del negocio? Decime como quieras.
+
+Usuario: "Soy Martín, el dueño. Me mata la cobranza, tenemos
+         mucha guita en la calle. Quiero entender el stock que
+         no se mueve, sobre todo siliconas. Córdoba me preocupa."
+
+→ LLM extrae:
+  {
+    role: "dueno",
+    painPoints: ["cobranza", "stock_sin_movimiento"],
+    watchlist: {
+      clients: [],
+      products: ["siliconas"],
+      zones: ["Córdoba"],
+      categories: []
+    },
+    communicationStyle: "directo, informal"
+  }
+```
+
+### Data model
+
+```sql
+-- Migration 211_user_profiles.sql
+
+CREATE TABLE user_profiles (
+  user_id UUID PRIMARY KEY REFERENCES users(id),
+  tenant_id UUID REFERENCES tenants(id),
+  role TEXT,                    -- 'dueno' | 'comercial' | 'compras' | 'cobranzas'
+  pain_points TEXT[],
+  watchlist_clients TEXT[],
+  watchlist_products TEXT[],
+  watchlist_zones TEXT[],
+  watchlist_categories TEXT[],
+  communication_style TEXT,
+  onboarded BOOLEAN DEFAULT false,
+  raw_onboarding_text TEXT,     -- lo que escribió el usuario, tal cual
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Menciones de entidades (para auto-enriquecer watchlist)
+CREATE TABLE entity_mentions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  entity_type TEXT,             -- 'client' | 'product' | 'zone' | 'category'
+  entity_name TEXT,
+  mention_count INT DEFAULT 1,
+  last_mentioned TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, entity_type, entity_name)
+);
+
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE entity_mentions ENABLE ROW LEVEL SECURITY;
+```
+
+### Checklist
+
+- [ ] Migration `211_user_profiles.sql` — Tablas `user_profiles` + `entity_mentions` con RLS
+- [ ] `lib/intelligence/profiles/types.ts` — Interfaces `UserProfile`, `EntityMention`
+- [ ] `lib/intelligence/profiles/extract-profile.ts` — `extractProfileFromText(freeText, currentProfile?)` vía Gemini
+- [ ] `lib/intelligence/profiles/user-profile.ts` — CRUD: `getUserProfile`, `upsertProfile`, `addToWatchlist`
+- [ ] `lib/intelligence/profiles/memory-enricher.ts` — `onUserMessage()` extrae entidades, incrementa menciones, auto-watchlist a 3+ menciones
+- [ ] Integrar onboarding en primera sesión del chat: si `!profile.onboarded` → Tuqui pregunta conversacionalmente
+- [ ] Enriquecer `context-injector.ts` con perfil de usuario (rol, pain points, watchlist)
+- [ ] `tests/unit/extract-profile.test.ts` — Extrae rol, pain points, watchlist de texto libre
+- [ ] `tests/unit/memory-enricher.test.ts` — Incrementa menciones, auto-watchlist a 3+
+
+### Enriquecimiento continuo
+
+El perfil NO es estático. Se enriquece con cada interacción:
+
+1. **Explícito:** "Che, quiero seguir de cerca a Macrodental" → se corre `extractProfileFromText` con perfil actual → se actualiza
+2. **Implícito:** Si pregunta 3+ veces por un cliente/producto → `memory-enricher` lo agrega al watchlist automáticamente
+3. **El usuario nunca nota que Tuqui "aprendió". Solo nota que cada día es más relevante.**
+
+### Impacto en otros módulos
+
+| Módulo | Cómo se beneficia |
+|--------|-------------------|
+| **Briefings (F6)** | Briefing personalizado: al dueño le muestra cobranza y stock, al comercial le muestra ventas y CRM |
+| **Company Context** | El prompt sabe que "a este usuario le preocupa la cobranza" → respuestas más relevantes |
+| **Orquestador** | Puede priorizar agentes según rol (comercial → odoo_ventas, compras → odoo_stock) |
+| **Discovery futuro** | Scoring de discoveries basado en watchlist + pain points (ver `INTELLIGENCE_LAYER_PLAN.md`) |
+| **Push proactivo** | Alertas filtradas por lo que le importa a cada usuario, no spam genérico |
+
+### Tests
+
+```typescript
+// tests/unit/extract-profile.test.ts
+const cases = [
+  {
+    input: 'Soy el dueño, me preocupa la cobranza y el stock parado',
+    expected: { role: 'dueno', painPoints: ['cobranza', 'stock_sin_movimiento'] }
+  },
+  {
+    input: 'Manejo ventas, quiero seguir siliconas y Córdoba',
+    expected: { role: 'comercial', watchlist: { products: ['siliconas'], zones: ['Córdoba'] } }
+  },
+  {
+    input: 'Soy de compras, me interesa saber qué nos falta',
+    expected: { role: 'compras', painPoints: ['abastecimiento'] }
+  },
+]
+
+// tests/unit/memory-enricher.test.ts
+- onUserMessage incrementa mention_count para entidad detectada
+- Auto-agrega al watchlist después de 3+ menciones
+- No duplica entidades ya en watchlist
+- Extrae entidades de contexto Odoo (nombres de clientes, productos)
+```
+
+### Riesgos
+
+| Riesgo | Impacto | Mitigación |
+|--------|---------|------------|
+| Usuario no completa onboarding | Perfil vacío, sin personalización | Default genérico funciona OK, onboarding es opcional |
+| LLM extrae mal el perfil | Watchlist incorrecta | Validar con tests + el usuario puede corregir |
+| Demasiadas entidades en memory-enricher | Watchlist se llena de ruido | Threshold 3+ menciones + decay temporal |
+
+---
+
 ## 🔜 FASE 8: PILOTO CEDENT (~0.5 días)
 
 > **Objetivo:** Validar uso real sin intervención  
@@ -708,6 +927,17 @@ Semana 1 (F7 — Master Agents + RAG — 3 sesiones):
 ├── S2: Super admin UI (lista + editor + upload component + API route)
 ├── S3: Subir PDFs + @mention agents + agent attribution en tools + tests
 
+Semana 1 (F7.5 — Company Discovery — 1 sesión):
+├── Migration 210 + lib/company/discovery*.ts + API route + botón admin
+├── Enriquecer context-injector.ts con discovery_profile
+└── Tests + corrida contra Cedent real
+
+Semana 1 (F7.6 — Perfiles de Usuario — 1 sesión):
+├── Migration 211 + lib/intelligence/profiles/*.ts
+├── extractProfileFromText + memory-enricher + onboarding en chat
+├── Enriquecer context-injector.ts con user profile
+└── Tests extract-profile + memory-enricher
+
 Semana 1-2 (F5 + F6 — Engagement):
 ├── Día 4: F5 completo (PWA + Push) + tests
 ├── Día 5: F6.1-6.3 (briefing config + generator + cron)
@@ -755,6 +985,24 @@ app/api/super-admin/agents/[slug]/documents/route.ts       # S2
 lib/chat/parse-mention.ts                                  # S3
 tests/unit/parse-mention.test.ts                           # S3
 # Nota: lib/platform/auth.ts YA EXISTE — no crear
+
+# F7.5 — Company Discovery (Deep Research Odoo)
+supabase/migrations/210_company_discovery.sql
+lib/company/discovery.ts
+lib/company/discovery-synthesizer.ts
+lib/company/discovery-runner.ts
+tests/unit/discovery.test.ts
+app/api/admin/discover/route.ts
+# POC existente: scripts/company-discovery.ts
+
+# F7.6 — Perfiles de Usuario (Onboarding Conversacional)
+supabase/migrations/211_user_profiles.sql
+lib/intelligence/profiles/types.ts
+lib/intelligence/profiles/extract-profile.ts
+lib/intelligence/profiles/user-profile.ts
+lib/intelligence/profiles/memory-enricher.ts
+tests/unit/extract-profile.test.ts
+tests/unit/memory-enricher.test.ts
 
 # F5 — PWA + Push (SEGUNDA)
 public/manifest.json

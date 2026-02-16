@@ -94,3 +94,51 @@ export async function PATCH(
 
     return NextResponse.json(data)
 }
+
+export async function DELETE(
+    _req: NextRequest,
+    { params }: { params: Promise<{ slug: string }> }
+) {
+    const session = await auth()
+    if (!await isPlatformAdmin(session?.user?.email)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    const { slug } = await params
+    const supabase = supabaseAdmin()
+
+    const { data: agent } = await supabase
+        .from('master_agents')
+        .select('id')
+        .eq('slug', slug)
+        .single()
+
+    if (!agent) {
+        return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
+    }
+
+    // Delete linked docs first (M2M + master_documents + chunks cascade)
+    const { data: docLinks } = await supabase
+        .from('master_agent_documents')
+        .select('document_id')
+        .eq('master_agent_id', agent.id)
+
+    if (docLinks?.length) {
+        const docIds = docLinks.map(d => d.document_id)
+        await supabase.from('master_agent_documents').delete().eq('master_agent_id', agent.id)
+        await supabase.from('master_document_chunks').delete().in('document_id', docIds)
+        await supabase.from('master_documents').delete().in('id', docIds)
+    }
+
+    // Delete the agent
+    const { error } = await supabase
+        .from('master_agents')
+        .delete()
+        .eq('id', agent.id)
+
+    if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+}

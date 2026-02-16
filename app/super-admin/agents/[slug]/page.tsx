@@ -280,6 +280,22 @@ export default function SuperAdminAgentEditorPage() {
         }))
     }
 
+    const deleteAgent = async () => {
+        if (!confirm(`¿Eliminar el agente "${agent?.name}"? Se borran todos sus documentos. Esta acción es irreversible.`)) return
+
+        try {
+            const res = await fetch(`/api/super-admin/agents/${slug}`, { method: 'DELETE' })
+            if (res.ok) {
+                router.push('/super-admin/agents')
+            } else {
+                const data = await res.json()
+                setError(data.error || 'Error al eliminar')
+            }
+        } catch (err: any) {
+            setError(err.message)
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex justify-center py-20">
@@ -314,14 +330,23 @@ export default function SuperAdminAgentEditorPage() {
                     <span className="text-sm text-gray-400 font-mono">{isCreateMode ? 'Crear un nuevo master agent' : (form.slug || agent.slug)}</span>
                 </div>
                 {!isCreateMode && (
-                    <button
-                        onClick={syncToTenants}
-                        disabled={syncing}
-                        className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                        {syncing ? 'Sincronizando...' : 'Sync a tenants'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={syncToTenants}
+                            disabled={syncing}
+                            className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                            {syncing ? 'Sincronizando...' : 'Sync a tenants'}
+                        </button>
+                        <button
+                            onClick={deleteAgent}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                            title="Eliminar agente"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
                 )}
             </div>
 
