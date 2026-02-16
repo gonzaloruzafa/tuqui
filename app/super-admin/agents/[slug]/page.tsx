@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Bot, Save, FileText, Trash2, Upload, Loader2, BookOpen, Wrench, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Bot, Save, FileText, Trash2, Upload, Loader2, BookOpen, Wrench, Eye, EyeOff, RefreshCw, AlertTriangle } from 'lucide-react'
 import { AgentIcon } from '@/components/ui/AgentIcon'
 import { TOOL_LABELS } from '@/lib/constants/tools'
 
@@ -43,6 +43,8 @@ export default function SuperAdminAgentEditorPage() {
     const [uploading, setUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState('')
     const [syncing, setSyncing] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [deleting, setDeleting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -284,8 +286,8 @@ export default function SuperAdminAgentEditorPage() {
     }
 
     const deleteAgent = async () => {
-        if (!confirm(`¿Eliminar el agente "${agent?.name}"? Se borran todos sus documentos. Esta acción es irreversible.`)) return
-
+        setDeleting(true)
+        setError(null)
         try {
             const res = await fetch(`/api/super-admin/agents/${slug}`, { method: 'DELETE' })
             if (res.ok) {
@@ -293,9 +295,11 @@ export default function SuperAdminAgentEditorPage() {
             } else {
                 const data = await res.json()
                 setError(data.error || 'Error al eliminar')
+                setDeleting(false)
             }
         } catch (err: any) {
             setError(err.message)
+            setDeleting(false)
         }
     }
 
@@ -333,23 +337,14 @@ export default function SuperAdminAgentEditorPage() {
                     <span className="text-sm text-gray-400 font-mono">{isCreateMode ? 'Crear un nuevo master agent' : (form.slug || agent.slug)}</span>
                 </div>
                 {!isCreateMode && (
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={syncToTenants}
-                            disabled={syncing}
-                            className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                            {syncing ? 'Sincronizando...' : 'Sync a tenants'}
-                        </button>
-                        <button
-                            onClick={deleteAgent}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                            title="Eliminar agente"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
+                    <button
+                        onClick={syncToTenants}
+                        disabled={syncing}
+                        className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                        {syncing ? 'Sincronizando...' : 'Sync a tenants'}
+                    </button>
                 )}
             </div>
 
@@ -584,6 +579,61 @@ export default function SuperAdminAgentEditorPage() {
                                         </button>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </div>
+                </section>
+                )}
+
+                {/* Danger Zone */}
+                {!isCreateMode && (
+                <section className="bg-white rounded-3xl border border-red-200 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-red-50 bg-red-50/50">
+                        <div className="flex items-center gap-2">
+                            <Trash2 className="w-5 h-5 text-red-600" />
+                            <h2 className="text-lg font-semibold text-gray-900">Zona de Peligro</h2>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Eliminar este agente master, sus documentos y todas las instancias en tenants. Esta acción no se puede deshacer.
+                        </p>
+                    </div>
+                    <div className="p-6">
+                        {!showDeleteConfirm ? (
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="w-full bg-red-50 text-red-600 font-medium py-3 px-4 rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Eliminar Agente
+                            </button>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-3 p-4 bg-red-50 rounded-xl">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-medium text-red-900">¿Estás seguro?</p>
+                                        <p className="text-sm text-red-700 mt-1">
+                                            Se eliminará permanentemente el agente <strong>{agent.name}</strong>, todos sus documentos RAG
+                                            y las instancias en cada tenant. Esta acción no se puede deshacer.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                        disabled={deleting}
+                                        className="flex-1 bg-gray-100 text-gray-700 font-medium py-3 px-4 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={deleteAgent}
+                                        disabled={deleting}
+                                        className="flex-1 bg-red-600 text-white font-medium py-3 px-4 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {deleting ? 'Eliminando...' : (<><Trash2 className="w-4 h-4" />Confirmar</>)}
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

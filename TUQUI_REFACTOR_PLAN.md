@@ -79,14 +79,14 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 |------|--------|-------------|----------------|
 | F7 | 2-3 días | Master Agents + RAG Centralizado | ⭐⭐⭐⭐ Diferenciación |
 | F7.5 | 0.5 días | Company Discovery (Deep Research Odoo) | ⭐⭐⭐⭐ Contexto brutal |
-| F7.6 | 1 día | Perfiles de Usuario (Onboarding Conversacional) | ⭐⭐⭐⭐ Personalización |
+| F7.6 | 2-3 días | Perfiles + Discovery Engine (Dopamine Loop) | ⭐⭐⭐⭐⭐ Adicción |
 | F5 | 1.5 días | PWA + Push Notifications | ⭐⭐⭐ Engagement diario |
 | F6 | 1 día | Briefings Matutinos | ⭐⭐⭐ Hábito de uso |
 | F8 | 0.5 días | Piloto Cedent | ⭐⭐⭐ Validación real |
 | F9 | — | Cobrar ($50-100/mes) | ⭐⭐⭐⭐⭐ PMF signal |
 | FX | 5 min | Optimizar modelo Gemini → bajar costos ~70% | ⭐⭐ Margen |
 
-**Total: ~6-7 días de código + validación continua**
+**Total: ~8-10 días de código + validación continua**
 
 ### Orden de ejecución
 
@@ -654,41 +654,94 @@ context-injector.ts lee discovery_profile
 
 ---
 
-## 🔜 FASE 7.6: PERFILES DE USUARIO — ONBOARDING CONVERSACIONAL (~1 día)
+## 🔜 FASE 7.6: PERFILES DE USUARIO + DISCOVERY ENGINE (~2-3 días)
 
-> **Objetivo:** Cada usuario describe libremente qué le interesa del negocio. Tuqui extrae un perfil estructurado (rol, pain points, watchlist) que personaliza briefings, scoring de discoveries, y avisos proactivos  
-> **Por qué:** El company context (F7.5) dice qué TIENE la empresa. El user profile dice qué le IMPORTA a cada persona. Sin esto, todos reciben lo mismo  
-> **Depende de:** F7.5 (perfil de empresa como base), F7 (RAG + agents)  
-> **Visión completa:** `INTELLIGENCE_LAYER_PLAN.md` (Intelligence Layer — de chatbot reactivo a agente proactivo)
+> **Objetivo:** (1) Cada usuario describe libremente qué le interesa → Tuqui extrae perfil estructurado. (2) Al abrir el chat, Tuqui muestra 2 teasers de sources distintos — creando un dopamine loop de inteligencia  
+> **Por qué:** El company context (F7.5) dice qué TIENE la empresa. El user profile dice qué le IMPORTA a cada persona. Y el discovery engine genera la ADICCIÓN: "¿qué dato nuevo me dice Tuqui hoy?"  
+> **Depende de:** F7.5 (perfil de empresa + industryKeywords), F7 (RAG + agents)  
+> **Visión completa:** `INTELLIGENCE_LAYER_PLAN.md` (dopamine loop, 6 discovery sources, scoring multi-dimensional)
 
-### Concepto
-
-No es un formulario. No es un wizard. Es una conversación abierta.
+### El dopamine loop
 
 ```
-Primera vez que el usuario entra:
+Instagram:  "¿Qué foto nueva habrá?"     → abre 30 veces/día
+TikTok:     "¿Qué video me toca ahora?"  → scroll infinito
+Tuqui:      "¿Qué dato nuevo tiene?"     → abre cada mañana
 
+La diferencia: en Tuqui cada dato genera ACCIÓN y DINERO.
+```
+
+El usuario abre Tuqui y recibe **2 teasers de sources distintos**:
+
+```
+LUNES
+├── 💰 Macrodental no te compra hace 47 días.               [OdooSource]
+│      → "¿Qué dejó de llevar?"
+└── ⚖️ ARCA subió retenciones IVA al 10.5%.                 [LegalSource]
+       → "¿Me afecta?"
+
+MARTES
+├── 🛒 Siliconas: vendés a $45K, MeLi mínimo $62K.          [CrossSource: Odoo×MeLi]
+│      → "¿Estoy regalando margen?"
+└── 📦 90 unidades de composite vencen en mayo ($3.8M).      [OdooSource]
+       → "¿A quién se lo ofrezco?"
+
+MIÉRCOLES
+├── 📰 3M lanzó Filtek Universal. 15 clientes compran esto.  [CrossSource: Industria×Odoo]
+│      → "¿Lo tenemos? ¿Deberíamos?"
+└── 💡 526 opp en CRM. 146 llevan +1400 días sin moverse.   [TipSource]
+       → "¿Cuáles son las más viejas?"
+```
+
+**Regla de oro: NUNCA 2 del mismo source.** Pool de ~35-40 discoveries de 6 fuentes = contenido para semanas sin repetir.
+
+### Los 6 Discovery Sources
+
+```
+Discovery Engine
+│
+├── OdooSource     (54 skills ya hechas)  → anomalías del ERP
+│   ~13 discoveries distribución + ~9 servicio
+│
+├── MarketSource   (MeLi hybrid ya hecha) → precios y competencia
+│   precio-vs-mercado, precio-caro, trending-meli, competencia-precio
+│
+├── LegalSource    (RAG + Tavily)         → impuestos, normativa, laboral
+│   cambio-impositivo, vencimiento-fiscal, paritarias, nueva-regulacion
+│
+├── IndustrySource (Tavily + keywords)    → noticias del rubro
+│   producto-nuevo, tendencia-mercado, competidor-movida, evento-rubro
+│
+├── TipSource      (datos cacheados)      → tips accionables propios
+│   feature-dormida, eficiencia-proceso, resumen-semanal, benchmark
+│
+└── CrossSource    (combina 2+ fuentes)   → los insights más potentes
+    odoo×meli, odoo×legal, industria×odoo, perfil×odoo
+```
+
+### Concepto: Onboarding conversacional
+
+No es formulario. No es wizard. Es conversación libre.
+
+```
 Tuqui: ¡Hola! Soy Tuqui, tu asistente para [empresa].
-       Contame: ¿qué hacés, qué te interesa seguir de cerca,
-       qué te preocupa del negocio? Decime como quieras.
+       Contame: ¿qué hacés, qué te interesa, qué te preocupa?
 
-Usuario: "Soy Martín, el dueño. Me mata la cobranza, tenemos
-         mucha guita en la calle. Quiero entender el stock que
-         no se mueve, sobre todo siliconas. Córdoba me preocupa."
+Usuario: "Soy Martín, el dueño. Me mata la cobranza, tenemos mucha
+         guita en la calle. Quiero seguir siliconas y Córdoba.
+         También me interesan los precios de mercado."
 
-→ LLM extrae:
+→ extractProfileFromText() extrae:
   {
     role: "dueno",
     painPoints: ["cobranza", "stock_sin_movimiento"],
-    watchlist: {
-      clients: [],
-      products: ["siliconas"],
-      zones: ["Córdoba"],
-      categories: []
-    },
+    watchlist: { clients: [], products: ["siliconas"], zones: ["Córdoba"] },
+    interests: ["precios de mercado"],  ← habilita MarketSource boost
     communicationStyle: "directo, informal"
   }
 ```
+
+`interests` es la clave multi-source: si dice "me interesan impuestos" → LegalSource +1.5 en scoring. Si dice "quiero saber de competencia" → MarketSource + IndustrySource boost. El perfil NO solo filtra Odoo — **habilita las otras fuentes**.
 
 ### Data model
 
@@ -698,19 +751,21 @@ Usuario: "Soy Martín, el dueño. Me mata la cobranza, tenemos
 CREATE TABLE user_profiles (
   user_id UUID PRIMARY KEY REFERENCES users(id),
   tenant_id UUID REFERENCES tenants(id),
-  role TEXT,                    -- 'dueno' | 'comercial' | 'compras' | 'cobranzas'
+  role TEXT,                    -- 'dueno' | 'comercial' | 'compras' | 'cobranzas' | 'contable'
   pain_points TEXT[],
+  interests TEXT[],             -- temas libres: ['precios de mercado', 'impuestos', 'competencia']
   watchlist_clients TEXT[],
   watchlist_products TEXT[],
   watchlist_zones TEXT[],
   watchlist_categories TEXT[],
   communication_style TEXT,
+  discovery_preferences TEXT[], -- sources que toca (auto-aprendido)
+  discovery_ignored TEXT[],     -- sources que ignora (auto-aprendido)
   onboarded BOOLEAN DEFAULT false,
-  raw_onboarding_text TEXT,     -- lo que escribió el usuario, tal cual
+  raw_onboarding_text TEXT,
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Menciones de entidades (para auto-enriquecer watchlist)
 CREATE TABLE entity_mentions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id),
@@ -721,39 +776,106 @@ CREATE TABLE entity_mentions (
   UNIQUE(user_id, entity_type, entity_name)
 );
 
+CREATE TABLE discovery_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  tenant_id UUID REFERENCES tenants(id),
+  discovery_id TEXT NOT NULL,
+  source TEXT NOT NULL,         -- 'odoo' | 'market' | 'legal' | 'industry' | 'tip' | 'cross'
+  shown_at TIMESTAMPTZ DEFAULT now(),
+  tapped BOOLEAN DEFAULT false,
+  tapped_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_discovery_history_user ON discovery_history(user_id, shown_at DESC);
+CREATE INDEX idx_entity_mentions_user ON entity_mentions(user_id, entity_type);
+
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE entity_mentions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discovery_history ENABLE ROW LEVEL SECURITY;
 ```
 
-### Checklist
+### Checklist — Semana 1: Perfiles + 5 OdooSource discoveries
 
-- [ ] Migration `211_user_profiles.sql` — Tablas `user_profiles` + `entity_mentions` con RLS
-- [ ] `lib/intelligence/profiles/types.ts` — Interfaces `UserProfile`, `EntityMention`
-- [ ] `lib/intelligence/profiles/extract-profile.ts` — `extractProfileFromText(freeText, currentProfile?)` vía Gemini
+- [ ] Migration `211_user_profiles.sql` — Tablas `user_profiles` + `entity_mentions` + `discovery_history` con RLS
+- [ ] `lib/intelligence/profiles/types.ts` — Interfaces `UserProfile`, `EntityMention`, `DiscoverySource`
+- [ ] `lib/intelligence/profiles/extract-profile.ts` — `extractProfileFromText(freeText, currentProfile?)` vía Gemini. Extrae `role`, `painPoints`, `watchlist` e `interests`
 - [ ] `lib/intelligence/profiles/user-profile.ts` — CRUD: `getUserProfile`, `upsertProfile`, `addToWatchlist`
-- [ ] `lib/intelligence/profiles/memory-enricher.ts` — `onUserMessage()` extrae entidades, incrementa menciones, auto-watchlist a 3+ menciones
-- [ ] Integrar onboarding en primera sesión del chat: si `!profile.onboarded` → Tuqui pregunta conversacionalmente
-- [ ] Enriquecer `context-injector.ts` con perfil de usuario (rol, pain points, watchlist)
-- [ ] `tests/unit/extract-profile.test.ts` — Extrae rol, pain points, watchlist de texto libre
-- [ ] `tests/unit/memory-enricher.test.ts` — Incrementa menciones, auto-watchlist a 3+
+- [ ] `lib/intelligence/profiles/memory-enricher.ts` — `onUserMessage()` extrae entidades (de texto + tool results), incrementa menciones, auto-watchlist a 3+. `onDiscoveryInteraction()` trackea taps por source
+- [ ] Integrar onboarding: si `!profile.onboarded` → Tuqui pregunta conversacionalmente en primera sesión
+- [ ] Enriquecer `context-injector.ts` con perfil de usuario (~100 tokens: rol, pain points, watchlist, interests)
+- [ ] `lib/intelligence/discoveries/types.ts` — Interfaces `Discovery`, `Teaser`, `DiscoveryContext`, type `DiscoverySource`
+- [ ] `lib/intelligence/discoveries/engine.ts` — `getSessionOpeners()`, scoring multi-dimensional (relevance + surprise + variety), selección de 2 teasers de sources distintos
+- [ ] `lib/intelligence/discoveries/registry.ts` — Pool de discoveries disponibles
+- [ ] 5 OdooSource discoveries iniciales: `moroso-que-compra`, `vencimiento`, `estrella-sin-stock`, `cliente-fantasma`, `capital-dormido`
+- [ ] `lib/intelligence/delivery/session-opener.ts` — `onChatOpen()` retorna 2 teasers + suggested questions
+- [ ] `tests/unit/extract-profile.test.ts` — Extrae rol, pain points, watchlist, interests de texto libre
+- [ ] `tests/unit/memory-enricher.test.ts` — Incrementa menciones, auto-watchlist a 3+, trackea discovery interactions
+- [ ] `tests/unit/discovery-engine.test.ts` — Scoring correcto, nunca 2 del mismo source, cooldown respetado
+
+### Checklist — Semana 2: MarketSource + CrossSource
+
+- [ ] 3 MarketSource discoveries: `precio-vs-mercado`, `precio-caro`, `producto-trending-meli`
+- [ ] 2 CrossSource Odoo×MeLi: `margen-oculto`, `oportunidad-ecommerce`
+- [ ] Validar con Cedent: ¿datos de MeLi relevantes para su rubro?
+- [ ] `tests/unit/market-discoveries.test.ts`
+
+### Checklist — Semana 3+: LegalSource + IndustrySource + TipSource (post-RAG)
+
+- [ ] Requiere RAG con docs legales cargados (F7 completo)
+- [ ] 3 LegalSource: `cambio-impositivo`, `vencimiento-fiscal`, `paritarias`
+- [ ] 3 IndustrySource: `producto-nuevo`, `tendencia-mercado`, `evento-rubro`
+- [ ] 4 TipSource: `feature-dormida`, `eficiencia-proceso`, `resumen-semanal`, `benchmark-rubro`
+- [ ] 2+ CrossSource multi-fuente: `producto-nuevo-match` (industria×odoo), `riesgo-legal-cobranza` (odoo×legal)
+- [ ] `industryKeywords` auto-generadas en Company Discovery (F7.5)
+
+### Scoring multi-dimensional
+
+```typescript
+function scoreDiscovery(d: Discovery, profile: UserProfile, todayShown: Teaser[]): number {
+  let score = 1.0
+
+  // RELEVANCIA (max +4)
+  if (profile.painPoints.includes('cobranza') && d.category === 'dinero') score += 2
+  if (hasWatchlistMatch(d, profile)) score += 1.5
+  if (profile.interests?.includes('precios') && d.source === 'market') score += 1.5
+  if (profile.interests?.includes('impuestos') && d.source === 'legal') score += 1.5
+
+  // SORPRESA (max +2)
+  if (d.source === 'cross') score += 2  // cross-source = más valioso
+  if (!hasEverSeen(profile, d.source)) score += 1
+
+  // VARIEDAD (hard penalty)
+  if (todayShown.some(s => s.source === d.source)) score -= 10  // NUNCA repetir source
+
+  // MEMORIA (±1.5)
+  if (profile.discoveryPreferences?.includes(d.source)) score += 1
+  if (profile.discoveryIgnored?.includes(d.source)) score -= 1.5
+
+  return score
+}
+```
 
 ### Enriquecimiento continuo
 
 El perfil NO es estático. Se enriquece con cada interacción:
 
-1. **Explícito:** "Che, quiero seguir de cerca a Macrodental" → se corre `extractProfileFromText` con perfil actual → se actualiza
-2. **Implícito:** Si pregunta 3+ veces por un cliente/producto → `memory-enricher` lo agrega al watchlist automáticamente
-3. **El usuario nunca nota que Tuqui "aprendió". Solo nota que cada día es más relevante.**
+1. **Explícito:** "Che, quiero seguir de cerca a Macrodental" → `extractProfileFromText` con perfil actual → se actualiza
+2. **Implícito:** Si pregunta 3+ veces por un cliente/producto → `memory-enricher` lo agrega al watchlist
+3. **Discovery tracking:** Si toca 3+ discoveries de MarketSource → `discovery_preferences` lo registra → MarketSource boost
+4. **Si ignora 5+ de LegalSource** → `discovery_ignored` lo registra → LegalSource penalizado
+5. **El usuario nunca nota que Tuqui "aprendió". Solo nota que cada día es más relevante.**
 
 ### Impacto en otros módulos
 
 | Módulo | Cómo se beneficia |
 |--------|-------------------|
-| **Briefings (F6)** | Briefing personalizado: al dueño le muestra cobranza y stock, al comercial le muestra ventas y CRM |
-| **Company Context** | El prompt sabe que "a este usuario le preocupa la cobranza" → respuestas más relevantes |
-| **Orquestador** | Puede priorizar agentes según rol (comercial → odoo_ventas, compras → odoo_stock) |
-| **Discovery futuro** | Scoring de discoveries basado en watchlist + pain points (ver `INTELLIGENCE_LAYER_PLAN.md`) |
-| **Push proactivo** | Alertas filtradas por lo que le importa a cada usuario, no spam genérico |
+| **Briefings (F6)** | Briefing personalizado por rol. Al dueño cobranza+stock, al comercial ventas+CRM |
+| **Company Context** | Prompt sabe "a este usuario le preocupa cobranza y le interesan precios de mercado" |
+| **Orquestador** | Prioriza agentes según rol (comercial→odoo_ventas, contable→contador) |
+| **Discovery Engine** | Scoring basado en watchlist + painPoints + interests + memoria de taps |
+| **Push proactivo** | Solo pushWorthy discoveries filtrados por perfil — cero spam |
+| **Respuestas normales** | Inteligencia pasiva: alertas cacheadas inyectadas en cada respuesta |
 
 ### Tests
 
@@ -769,8 +891,8 @@ const cases = [
     expected: { role: 'comercial', watchlist: { products: ['siliconas'], zones: ['Córdoba'] } }
   },
   {
-    input: 'Soy de compras, me interesa saber qué nos falta',
-    expected: { role: 'compras', painPoints: ['abastecimiento'] }
+    input: 'Soy de compras, me interesan precios de mercado y competencia',
+    expected: { role: 'compras', interests: ['precios de mercado', 'competencia'] }
   },
 ]
 
@@ -778,16 +900,29 @@ const cases = [
 - onUserMessage incrementa mention_count para entidad detectada
 - Auto-agrega al watchlist después de 3+ menciones
 - No duplica entidades ya en watchlist
-- Extrae entidades de contexto Odoo (nombres de clientes, productos)
+- Extrae entidades de tool results (nombres reales del ERP)
+- onDiscoveryInteraction registra tap/ignore por source
+
+// tests/unit/discovery-engine.test.ts
+- scoreDiscovery boostea por painPoints match
+- scoreDiscovery boostea cross-source (+2)
+- scoreDiscovery penaliza repetir source en sesión (-10)
+- getSessionOpeners retorna 2 teasers de sources DISTINTOS
+- getSessionOpeners respeta cooldown
+- getSessionOpeners retorna [] si pool vacío
 ```
 
 ### Riesgos
 
 | Riesgo | Impacto | Mitigación |
 |--------|---------|------------|
-| Usuario no completa onboarding | Perfil vacío, sin personalización | Default genérico funciona OK, onboarding es opcional |
-| LLM extrae mal el perfil | Watchlist incorrecta | Validar con tests + el usuario puede corregir |
-| Demasiadas entidades en memory-enricher | Watchlist se llena de ruido | Threshold 3+ menciones + decay temporal |
+| Usuario no completa onboarding | Sin perfil, discoveries genéricos | Default funciona OK. Pain points vacío = no boostea nada, pero pool funciona |
+| LLM extrae mal el perfil | Watchlist incorrecta | Tests con table cases. El usuario puede corregir |
+| Watchlist se llena de ruido | Demasiadas entidades | Threshold 3+ menciones + decay temporal |
+| MarketSource: MeLi no tiene ese producto | Teaser vacío | `getTeaser` retorna `null` → engine intenta siguiente |
+| LegalSource: noticia no relevante | LLM filtra mal | LLM con contexto de empresa. `relevant: false` → skip |
+| Teasers aburridos (siempre Odoo) | Usuario deja de abrir | Regla hard: NUNCA 2 del mismo source. Variedad forzada |
+| Pool chico al inicio (solo OdooSource) | Poca variedad semana 1 | Se desbloquean sources semanalmente. MarketSource semana 2, Legal+Industry semana 3 |
 
 ---
 
@@ -932,11 +1067,24 @@ Semana 1 (F7.5 — Company Discovery — 1 sesión):
 ├── Enriquecer context-injector.ts con discovery_profile
 └── Tests + corrida contra Cedent real
 
-Semana 1 (F7.6 — Perfiles de Usuario — 1 sesión):
-├── Migration 211 + lib/intelligence/profiles/*.ts
-├── extractProfileFromText + memory-enricher + onboarding en chat
-├── Enriquecer context-injector.ts con user profile
-└── Tests extract-profile + memory-enricher
+Semana 1 (F7.6a — Perfiles + OdooSource — 2 sesiones):
+├── S1: Migration 211 + lib/intelligence/profiles/*.ts + extract-profile + memory-enricher
+├── S1: Enriquecer context-injector.ts con user profile + tests
+├── S2: Discovery engine + registry + types + OdooSource (5 discoveries iniciales)
+├── S2: session-opener.ts + inject-intelligence.ts + scoring básico
+└── S2: Tests discovery-engine + odoo-source + session-opener
+
+Semana 2 (F7.6b — MarketSource + CrossSource — 1 sesión):
+├── MarketSource (MeLi hybrid: Serper + Grounding)
+├── CrossSource (combina Odoo × MeLi: "Tu producto X se vende a $Y en MeLi")
+├── Scoring completo (relevance + surprise + variety + memory penalty)
+└── Tests market-source + cross-source + scoring
+
+Semana 3+ (F7.6c — Post-RAG sources — incremental):
+├── LegalSource (RAG docs legales + Tavily novedades)
+├── IndustrySource (Tavily industry news + keywords de company profile)
+├── TipSource (cached: tips fiscales, features Odoo, best practices)
+└── Tests por cada source + integration tests
 
 Semana 1-2 (F5 + F6 — Engagement):
 ├── Día 4: F5 completo (PWA + Push) + tests
@@ -995,14 +1143,39 @@ tests/unit/discovery.test.ts
 app/api/admin/discover/route.ts
 # POC existente: scripts/company-discovery.ts
 
-# F7.6 — Perfiles de Usuario (Onboarding Conversacional)
+# F7.6a — Perfiles de Usuario + Discovery Engine
 supabase/migrations/211_user_profiles.sql
+supabase/migrations/212_discovery_cache.sql
 lib/intelligence/profiles/types.ts
 lib/intelligence/profiles/extract-profile.ts
 lib/intelligence/profiles/user-profile.ts
 lib/intelligence/profiles/memory-enricher.ts
+lib/intelligence/discoveries/types.ts
+lib/intelligence/discoveries/engine.ts
+lib/intelligence/discoveries/registry.ts
+lib/intelligence/discoveries/scoring.ts
+lib/intelligence/discoveries/sources/odoo-source.ts
+lib/intelligence/delivery/session-opener.ts
+lib/intelligence/delivery/inject-intelligence.ts
 tests/unit/extract-profile.test.ts
 tests/unit/memory-enricher.test.ts
+tests/unit/discovery-engine.test.ts
+tests/unit/odoo-source.test.ts
+
+# F7.6b — MarketSource + CrossSource
+lib/intelligence/discoveries/sources/market-source.ts
+lib/intelligence/discoveries/sources/cross-source.ts
+tests/unit/market-source.test.ts
+tests/unit/cross-source.test.ts
+tests/unit/scoring.test.ts
+
+# F7.6c — Post-RAG Sources (incremental)
+lib/intelligence/discoveries/sources/legal-source.ts
+lib/intelligence/discoveries/sources/industry-source.ts
+lib/intelligence/discoveries/sources/tip-source.ts
+tests/unit/legal-source.test.ts
+tests/unit/industry-source.test.ts
+tests/unit/tip-source.test.ts
 
 # F5 — PWA + Push (SEGUNDA)
 public/manifest.json
