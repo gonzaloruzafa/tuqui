@@ -130,7 +130,13 @@ export async function DELETE(
         await supabase.from('master_documents').delete().in('id', docIds)
     }
 
-    // Delete the agent
+    // Delete tenant agents that reference this master
+    await supabase
+        .from('agents')
+        .delete()
+        .eq('master_agent_id', agent.id)
+
+    // Delete the master agent
     const { error } = await supabase
         .from('master_agents')
         .delete()
