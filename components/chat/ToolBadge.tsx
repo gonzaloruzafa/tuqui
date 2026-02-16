@@ -11,6 +11,7 @@ import { ThinkingSource, SOURCE_NAMES } from '@/lib/thinking/types'
 
 interface ToolBadgeProps {
     sources: ThinkingSource[]
+    agentName?: string
 }
 
 const LOGOS: Record<ThinkingSource, React.ReactNode> = {
@@ -36,7 +37,7 @@ const LOGOS: Record<ThinkingSource, React.ReactNode> = {
     )
 }
 
-export function ToolBadge({ sources }: ToolBadgeProps) {
+export function ToolBadge({ sources, agentName }: ToolBadgeProps) {
     if (!sources || sources.length === 0) return null
     
     const uniqueSources = [...new Set(sources)]
@@ -45,6 +46,10 @@ export function ToolBadge({ sources }: ToolBadgeProps) {
         <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
             <span className="text-green-500">✓</span>
             <span>vía</span>
+            {agentName && (
+                <span className="font-medium text-adhoc-violet">{agentName}</span>
+            )}
+            {agentName && <span className="mx-0.5">·</span>}
             {uniqueSources.map((source, idx) => (
                 <span key={source} className="flex items-center gap-1 opacity-80">
                     {LOGOS[source]}

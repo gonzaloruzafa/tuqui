@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { marked } from 'marked'
 import { useDictation } from '@/lib/hooks/useDictation'
+import { parseMention } from '@/lib/chat/parse-mention'
 import { VoiceChat } from '@/components/chat/VoiceChat'
 import { ChatHeader } from '@/components/chat/ChatHeader'
 import { ChatFooter } from '@/components/chat/ChatFooter'
@@ -77,6 +78,7 @@ interface Message {
     content: string
     rawContent?: string
     sources?: ThinkingSource[]  // Sources used (for ToolBadge display)
+    agentName?: string  // Agent that responded (for attribution)
 }
 
 interface Session {
@@ -113,11 +115,13 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [currentStep, setCurrentStep] = useState<ThinkingStep | null>(null) // Current executing step
     const [usedSources, setUsedSources] = useState<ThinkingSource[]>([]) // Sources for final badge
+    const [respondedAgent, setRespondedAgent] = useState<string | undefined>(undefined)
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [sessions, setSessions] = useState<Session[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
     const dictation = useDictation('es-AR')
     const [isVoiceOpen, setIsVoiceOpen] = useState(false)
+    const [allAgents, setAllAgents] = useState<{ slug: string; name: string }[]>([])
 
     const confirmRecording = () => {
         const finalTranscript = dictation.confirm()
@@ -172,6 +176,16 @@ export default function ChatPage() {
             })
     }, [agentSlug])
 
+    // Load all agents for @mention autocomplete
+    useEffect(() => {
+        fetch('/api/agents')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setAllAgents(data.map((a: any) => ({ slug: a.slug, name: a.name })))
+            })
+            .catch(() => {})
+    }, [])
+
     // Load Sessions
     useEffect(() => {
         if (agent?.id) {
@@ -218,6 +232,11 @@ export default function ChatPage() {
         const userContent = input.trim()
         setInput('')
 
+        // Parse @mention
+        const availableSlugs = allAgents.map(a => a.slug)
+        const { agentSlug: mentionedSlug, cleanMessage } = parseMention(userContent, availableSlugs)
+        const messageToSend = mentionedSlug ? cleanMessage : userContent
+
         // Optimistic UI
         const tempUserMsg: Message = { id: Date.now().toString(), role: 'user', content: userContent }
         setMessages(prev => [...prev, tempUserMsg])
@@ -226,6 +245,7 @@ export default function ChatPage() {
         // Clear state for NEW message (each message gets its own sources)
         setCurrentStep(null)
         setUsedSources([])
+        setRespondedAgent(undefined)
         
         // Add temp bot message immediately to show loading state
         setMessages(prev => [...prev, { id: 'temp-bot', role: 'assistant', content: '' }])
@@ -266,7 +286,8 @@ export default function ChatPage() {
                         role: m.role,
                         content: m.rawContent || m.content
                     })),
-                    sessionId: sid
+                    sessionId: sid,
+                    mentionedAgent: mentionedSlug || undefined
                 })
             })
 
@@ -311,6 +332,10 @@ export default function ChatPage() {
                                     }
                                     return prev
                                 })
+                            }
+                            // Track agent name for attribution
+                            if (step.agentName) {
+                                setRespondedAgent(step.agentName)
                             }
                         } catch (e) {
                             console.warn('[Chat] Failed to parse tool event:', line)
@@ -399,7 +424,8 @@ export default function ChatPage() {
                     role: 'assistant', 
                     content: finalHtml, 
                     rawContent: finalText,
-                    sources: capturedSources.length > 0 ? capturedSources : undefined
+                    sources: capturedSources.length > 0 ? capturedSources : undefined,
+                    agentName: respondedAgent
                 }]
             })
 
@@ -573,7 +599,7 @@ export default function ChatPage() {
                                         
                                         {/* Show ToolBadge BELOW content for completed messages */}
                                         {m.sources && m.sources.length > 0 && !isStreamingBot && (
-                                            <ToolBadge sources={m.sources} />
+                                            <ToolBadge sources={m.sources} agentName={m.agentName} />
                                         )}
                                     </div>
                                 ) : (
@@ -604,6 +630,7 @@ export default function ChatPage() {
                     cancelRecording={dictation.cancel}
                     confirmRecording={confirmRecording}
                     setIsVoiceOpen={setIsVoiceOpen}
+                    agents={allAgents}
                 />
             </div>
 

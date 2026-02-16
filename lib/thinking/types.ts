@@ -31,6 +31,8 @@ export interface ThinkingStep {
     error?: string
     /** Timestamp de inicio */
     startedAt: number
+    /** Nombre del agente que ejecuta (para attribution) */
+    agentName?: string
 }
 
 /**

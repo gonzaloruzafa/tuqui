@@ -1,6 +1,6 @@
 'use client'
 
-import React, { memo, useRef, useEffect } from 'react'
+import React, { memo, useRef, useEffect, useState } from 'react'
 import { Mic, ArrowUp, AudioLines, X, Check } from 'lucide-react'
 
 // Real-time Scrolling Temporal Waveform for Voice Input
@@ -88,6 +88,7 @@ interface ChatFooterProps {
     cancelRecording: () => void
     confirmRecording: () => void
     setIsVoiceOpen: (open: boolean) => void
+    agents?: { slug: string; name: string }[]
 }
 
 export function ChatFooter({
@@ -101,7 +102,43 @@ export function ChatFooter({
     cancelRecording,
     confirmRecording,
     setIsVoiceOpen,
+    agents = [],
 }: ChatFooterProps) {
+    const [showMentions, setShowMentions] = useState(false)
+    const [mentionFilter, setMentionFilter] = useState('')
+    const [selectedIdx, setSelectedIdx] = useState(0)
+
+    // Detect @mention typing
+    const handleInputChange = (value: string) => {
+        setInput(value)
+        const match = value.match(/^@([a-z0-9_-]*)$/)
+        if (match && agents.length > 0) {
+            setMentionFilter(match[1])
+            setShowMentions(true)
+            setSelectedIdx(0)
+        } else {
+            setShowMentions(false)
+        }
+    }
+
+    const filteredAgents = agents.filter(a =>
+        a.slug.includes(mentionFilter) || a.name.toLowerCase().includes(mentionFilter)
+    )
+
+    const selectMention = (slug: string) => {
+        setInput(`@${slug} `)
+        setShowMentions(false)
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (showMentions && filteredAgents.length > 0) {
+            if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, filteredAgents.length - 1)); return }
+            if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)); return }
+            if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); selectMention(filteredAgents[selectedIdx].slug); return }
+            if (e.key === 'Escape') { setShowMentions(false); return }
+        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+    }
     return (
         <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
             <div className="h-8 bg-gradient-to-t from-white to-transparent" />
@@ -132,11 +169,29 @@ export function ChatFooter({
                         </div>
                     ) : (
                         <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-[24px] focus-within:border-adhoc-violet focus-within:ring-1 focus-within:ring-adhoc-violet/20 focus-within:bg-white transition-all p-1.5 px-3 group shadow-sm">
+                            {/* @mention autocomplete */}
+                            {showMentions && filteredAgents.length > 0 && (
+                                <div className="absolute bottom-full left-3 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-30 min-w-[200px]">
+                                    {filteredAgents.map((a, idx) => (
+                                        <button
+                                            key={a.slug}
+                                            onClick={() => selectMention(a.slug)}
+                                            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition-colors ${
+                                                idx === selectedIdx ? 'bg-adhoc-lavender/30 text-adhoc-violet' : 'hover:bg-gray-50 text-gray-700'
+                                            }`}
+                                        >
+                                            <span className="font-mono text-xs text-gray-400">@</span>
+                                            <span className="font-medium">{a.name}</span>
+                                            <span className="text-xs text-gray-400 ml-auto">{a.slug}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <textarea
                                 value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                                placeholder="Preguntale a Tuqui"
+                                onChange={e => handleInputChange(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Preguntale a Tuqui — escribí @ para elegir agente"
                                 className="flex-1 bg-transparent border-none rounded-2xl pl-2 pr-2 py-2.5 resize-none focus:outline-none min-h-[44px] max-h-[200px] text-[16px] leading-relaxed w-0"
                                 rows={1}
                             />

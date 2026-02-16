@@ -19,7 +19,7 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
     }
 
-    const { agentSlug, messages, sessionId, voiceMode } = body
+    const { agentSlug, messages, sessionId, voiceMode, mentionedAgent } = body
     const tenantId = session.tenant.id
 
     console.log('[Chat] Request:', { agentSlug, sessionId, messagesCount: messages?.length })
@@ -48,7 +48,8 @@ export async function POST(req: Request) {
                     userId: session.user.id,
                     agent,
                     messages,
-                    channel: 'voice'
+                    channel: 'voice',
+                    mentionedAgent
                 })
                 return new Response(result.text)
             } catch (voiceError: any) {
@@ -75,6 +76,7 @@ export async function POST(req: Request) {
                         messages,
                         channel: 'web',
                         streaming: true,
+                        mentionedAgent,
                         onThinkingStep: (step) => {
                             const event = `t:${JSON.stringify(step)}\n`
                             controller.enqueue(encoder.encode(event))

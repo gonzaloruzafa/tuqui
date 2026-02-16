@@ -1,7 +1,7 @@
 import { getToolsForAgent } from '@/lib/tools/executor'
 import { checkUsageLimit, trackUsage } from '@/lib/billing/tracker'
-import { AgentWithMergedPrompt } from '@/lib/agents/service'
-import { orchestrate } from '@/lib/agents/orchestrator'
+import { AgentWithMergedPrompt, getAgentBySlug } from '@/lib/agents/service'
+import { orchestrate, RoutingDecision } from '@/lib/agents/orchestrator'
 import { buildSystemPrompt } from '@/lib/chat/build-system-prompt'
 import { ResponseGuard } from '@/lib/validation/response-guard'
 import type { ToolCallRecord as V2ToolCallRecord } from '@/lib/tools/llm-engine'
@@ -23,6 +23,8 @@ export interface ChatEngineParams {
     channel: 'web' | 'whatsapp' | 'voice'
     /** Web uses streaming with thinking events; WhatsApp/voice get batch text */
     streaming?: boolean
+    /** @mention: skip orchestrator and use this agent directly */
+    mentionedAgent?: string
     onThinkingStep?: (step: any) => void
     onThinkingSummary?: (summary: string) => void
 }
@@ -38,7 +40,7 @@ export interface ChatEngineResponse {
  * Uses Gemini V2 (thinking + retry + force-text) for all channels.
  */
 export async function processChatRequest(params: ChatEngineParams): Promise<ChatEngineResponse> {
-    const { tenantId, userEmail, userId, agent, messages, channel } = params
+    const { tenantId, userEmail, userId, agent, messages, channel, mentionedAgent } = params
     const lastMessage = messages[messages.length - 1]
     const inputContent = lastMessage?.content || ''
 
@@ -48,10 +50,30 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
     const estimatedInputTokens = Math.ceil(inputContent.length / 3)
     await checkUsageLimit(tenantId, userEmail, estimatedInputTokens)
 
-    // 2. Orchestrator — route to best agent
-    const conversationHistory = messages.slice(0, -1).map(m => m.content)
-    const { agent: selectedAgent, decision } = await orchestrate(tenantId, inputContent, conversationHistory)
-    console.log(`[ChatEngine] Orchestrator: ${selectedAgent.slug} (${decision.confidence}) - ${decision.reason}`)
+    // 2. Agent selection — @mention skips orchestrator, otherwise route with LLM
+    let selectedAgent: AgentWithMergedPrompt
+    let decision: RoutingDecision
+
+    if (mentionedAgent) {
+        const mentioned = await getAgentBySlug(tenantId, mentionedAgent)
+        if (mentioned) {
+            selectedAgent = mentioned
+            decision = { agentSlug: mentionedAgent, confidence: 'high', reason: `@mention directo` }
+            console.log(`[ChatEngine] @mention: ${mentionedAgent} (skip orchestrator)`)
+        } else {
+            // Fallback to orchestrator if mentioned agent doesn't exist
+            const conversationHistory = messages.slice(0, -1).map(m => m.content)
+            const result = await orchestrate(tenantId, inputContent, conversationHistory)
+            decision = result.decision
+            selectedAgent = await getAgentBySlug(tenantId, result.agent.slug) || agent
+        }
+    } else {
+        const conversationHistory = messages.slice(0, -1).map(m => m.content)
+        const result = await orchestrate(tenantId, inputContent, conversationHistory)
+        decision = result.decision
+        selectedAgent = await getAgentBySlug(tenantId, result.agent.slug) || agent
+    }
+    console.log(`[ChatEngine] Agent: ${selectedAgent.slug} (${decision.confidence}) - ${decision.reason}`)
 
     // 3. Build system prompt (shared builder — company context + agent prompt + rules)
     const systemPrompt = await buildSystemPrompt({
@@ -74,6 +96,11 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
     console.log(`[ChatEngine] Tools loaded: ${Object.keys(tools).join(', ') || 'none'}`)
 
     // 5. Execute with Gemini V2 (thinking + retry + force-text fallback)
+    const agentDisplayName = selectedAgent.name || selectedAgent.slug
+    const wrappedOnThinkingStep = params.onThinkingStep
+        ? (step: any) => params.onThinkingStep!({ ...step, agentName: agentDisplayName })
+        : undefined
+
     const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
     const result = await generateTextWithThinking({
         model: 'gemini-3-flash-preview',
@@ -83,7 +110,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         maxSteps: 12,
         thinkingLevel: channel === 'voice' ? 'low' : 'medium',
         includeThoughts: params.streaming === true,
-        onThinkingStep: params.onThinkingStep,
+        onThinkingStep: wrappedOnThinkingStep,
         onThinkingSummary: params.onThinkingSummary
     })
 
