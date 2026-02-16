@@ -1,1062 +1,764 @@
-# TUQUI — Intelligence Layer
+# TUQUI INTELLIGENCE LAYER — Curious Analyst Agent
 
-> De chatbot reactivo a dopamine loop de inteligencia de negocio.
-
-**Última actualización:** 2026-02-16
+> **Última actualización:** 2026-02-16  
+> **Principio:** La inteligencia está en el LLM, no en el código  
+> **Referencia:** TUQUI_REFACTOR_PLAN.md § F7.6
 
 ---
 
 ## Visión
 
-Tuqui no responde preguntas. **Tuqui genera adicción a inteligencia.**
+Tuqui no espera preguntas. **Tuqui investiga.**
 
-```
-Instagram:  "¿Qué foto nueva habrá?"     → abre 30 veces/día
-TikTok:     "¿Qué video me toca ahora?"  → scroll infinito
-Tuqui:      "¿Qué dato nuevo tiene?"     → abre cada mañana
+Cada vez que el usuario abre el chat, hay algo nuevo: un dato de su ERP, un precio 
+de mercado, una novedad legal, una noticia del rubro. Nunca se repite. Siempre 
+personalizado. Siempre con una pregunta disparadora que invita a profundizar.
 
-La diferencia: en Tuqui cada dato genera ACCIÓN y DINERO.
-```
-
-El modelo mental: **cada vez que abrís Tuqui, hay algo nuevo que no sabías**. Nunca se repite. Siempre relevante. De fuentes cruzadas que vos solo no cruzarías.
+**El dopamine loop:** el usuario no sabe qué va a encontrar → abre para ver → 
+encuentra algo interesante → pregunta más → Tuqui aprende sus intereses → 
+mañana le muestra algo mejor.
 
 ---
 
-## Arquitectura General
+## Principio: NO hardcodear discoveries
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                      TUQUI INTELLIGENCE LAYER                        │
-│                                                                      │
-│  ┌────────────┐  ┌──────────────┐  ┌────────────┐  ┌────────────┐  │
-│  │ PERFILES   │  │ DISCOVERY    │  │ ENTREGA    │  │ MEMORIA    │  │
-│  │            │  │ ENGINE       │  │            │  │            │  │
-│  │ Empresa    │  │              │  │ Chat open  │  │ Aprende    │  │
-│  │ (auto)     │→ │ 6 Sources    │→ │ PWA Push   │→ │ del uso    │  │
-│  │ Usuario    │  │ Multi-score  │  │ Suggested  │  │ Enriquece  │  │
-│  │ (conversa) │  │ Variety      │  │ WhatsApp   │  │ perfil     │  │
-│  │ Memoria    │  │ Cooldown     │  │            │  │ scoring    │  │
-│  │ (auto)     │  │              │  │            │  │            │  │
-│  └────────────┘  └──────────────┘  └────────────┘  └────────────┘  │
-│                                                                      │
-│  ┌──────────────────────────────────────────────────────────────┐    │
-│  │ 6 DISCOVERY SOURCES                                          │    │
-│  │                                                              │    │
-│  │ OdooSource     → ERP: ventas, stock, deudas, CRM            │    │
-│  │ MarketSource   → MeLi: precios de mercado, competencia      │    │
-│  │ LegalSource    → RAG + web: impuestos, normativa, laboral   │    │
-│  │ IndustrySource → Web search: noticias del rubro, tendencias │    │
-│  │ TipSource      → Datos del tenant: tips, benchmarks, ops    │    │
-│  │ CrossSource    → Combina 2+: los insights más potentes      │    │
-│  └──────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  ┌──────────────────────────────────────────────────────────────┐    │
-│  │ TOOLS EXISTENTES (no cambian, son el sustrato)               │    │
-│  │ 54 Odoo skills, MeLi hybrid, Tavily/Serper/Grounding,       │    │
-│  │ RAG (master + tenant docs), Memory, Web Scraper              │    │
-│  └──────────────────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────────────┘
+❌ 38 archivos (cliente-fantasma.ts, capital-dormido.ts, vencimiento.ts...)
+   Cada insight es código que hay que mantener.
+   Agregar un insight = PR + review + deploy.
+
+✅ 1 agente curioso que usa las tools que YA EXISTEN
+   El LLM decide qué buscar, qué es interesante, cómo presentarlo.
+   Nuevo tipo de insight = mejor contexto, no más código.
 ```
 
 ---
 
-## 1. PERFILES — Las 3 capas de contexto
+## Arquitectura: Curious Analyst Agent
 
-### Capa 0: Empresa (auto, F7.5 — POC validado)
+No es un pipeline con 4 collectors fijos. Es un **agente** — un agentic loop 
+que recibe contexto rico y tiene acceso a las mismas herramientas del chat 
+(Odoo skills, MeLi, Tavily, RAG). El LLM decide qué investigar.
 
-Se genera con Company Discovery (~60 queries Odoo, 73s). Cero input del usuario.
-
-```typescript
-interface TenantProfile {
-  businessModel: 'distribucion' | 'servicio'
-  scale: { productCount: number; activeClients: number; monthlyRevenue: number; avgTicket: number }
-  topCategories: string[]
-  topProducts: { name: string; avgPrice: number; monthlySales: number }[]
-  topClients: { name: string; revenue: number }[]
-  hasEcommerce: boolean
-  hasExpiryTracking: boolean
-  hasSalesTeams: boolean
-  salesTeams: string[]
-  activeProvinces: string[]
-  industry: string          // 'dental' | 'indumentaria' | 'alimentos' | etc.
-  industryKeywords: string[] // para web search del rubro
-}
 ```
-
-**QUÉ HABILITA:**
-- `hasExpiryTracking` → activa discoveries de vencimiento
-- `hasSalesTeams` → activa discoveries de zona/vendedor
-- `topProducts` → alimenta comparaciones con MeLi (MarketSource)
-- `industry` + `industryKeywords` → alimenta búsquedas de noticias del rubro (IndustrySource)
-- `topClients` → alimenta scoring de cliente-fantasma, cross-sell
-
-**~200 tokens en system prompt.** Se refresca semanalmente.
-
-### Capa 1: Usuario (conversación libre, F7.6)
-
-No es formulario. El usuario escribe lo que quiera. LLM extrae estructura.
-
-```typescript
-interface UserProfile {
-  role: 'dueno' | 'comercial' | 'compras' | 'cobranzas' | 'operaciones' | 'contable'
-  painPoints: string[]       // ['cobranza', 'stock_sin_movimiento', 'margen']
-  watchlist: {
-    clients: string[]        // ['Macrodental', 'Ministerio Salud SF']
-    products: string[]       // ['siliconas', 'composites']
-    zones: string[]          // ['Córdoba', 'Mendoza']
-    categories: string[]     // ['descartables', 'equipamiento']
-  }
-  interests: string[]        // temas libres: ['precios de mercado', 'impuestos', 'competencia']
-  communicationStyle: string // 'directo, informal' | 'detallado, formal'
-  onboarded: boolean
-  rawOnboardingText: string  // lo que escribió el usuario, tal cual
-}
+┌─────────────────────────────────────────────────────────────────┐
+│                    INTELLIGENCE LAYER                           │
+│                                                                 │
+│  1. CONTEXT ASSEMBLER                                           │
+│     ┌───────────────────────────────────────────────────────┐   │
+│     │ Company profile  → industria, escala, productos clave │   │
+│     │ User profile     → rol, pain points, watchlist        │   │
+│     │ Recent chats     → títulos de sesiones + mensajes     │   │
+│     │ Memories         → notas guardadas del usuario        │   │
+│     │ Insight history  → qué ya se mostró (para no repetir)│   │
+│     └───────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  2. INVESTIGATOR (agentic loop)                                 │
+│     ┌───────────────────────────────────────────────────────┐   │
+│     │ System: "Sos un analista curioso. Investigá qué       │   │
+│     │ cosas interesantes hay para este usuario."            │   │
+│     │                                                       │   │
+│     │ Tools disponibles (las MISMAS del chat):              │   │
+│     │   • 50 Odoo skills (ventas, deuda, stock, CRM...)     │   │
+│     │   • MeLi hybrid (precios de mercado)                  │   │
+│     │   • Tavily (noticias, novedades legales)              │   │
+│     │   • RAG (documentos de conocimiento)                  │   │
+│     │                                                       │   │
+│     │ maxSteps: 8 — el LLM decide cuántas tools llamar     │   │
+│     │ Output: texto libre con hallazgos                     │   │
+│     └───────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  3. SYNTHESIZER                                                 │
+│     ┌───────────────────────────────────────────────────────┐   │
+│     │ Input: hallazgos + contexto + historial               │   │
+│     │ Output: 2-3 teasers estructurados                     │   │
+│     │                                                       │   │
+│     │ Teaser = {                                            │   │
+│     │   emoji: "👻",                                        │   │
+│     │   dato: "Macrodental no compra hace 47 días",         │   │
+│     │   pregunta: "¿Qué dejó de llevar?"                    │   │
+│     │ }                                                     │   │
+│     │                                                       │   │
+│     │ El dato es el HOOK — genera curiosidad.               │   │
+│     │ La pregunta es el ENGAGEMENT — da ganas de tocar.     │   │
+│     └───────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  4. DELIVERY                                                    │
+│     ┌───────────────────────────────────────────────────────┐   │
+│     │ Session opener → primer mensaje al abrir el chat      │   │
+│     │ 2 teasers con emoji + dato                            │   │
+│     │ Suggested questions clickeables debajo                │   │
+│     │                                                       │   │
+│     │ Cron matutino → pre-computa y cachea                  │   │
+│     │ On-demand → refresca si ya se mostró                  │   │
+│     └───────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  5. PERFILES (alimentan el contexto)                            │
+│     ┌───────────────────────────────────────────────────────┐   │
+│     │ User profile  → onboarding conversacional, no form    │   │
+│     │ Auto-watchlist → menciones repetidas = interés        │   │
+│     │ Company profile → ya existe en company_contexts       │   │
+│     └───────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-**QUÉ HABILITA:**
-- `role` → filtra discoveries por relevancia (dueño ve todo, comercial ve ventas, compras ve stock)
-- `painPoints` → boost en scoring de discoveries relacionados
-- `watchlist` → personaliza teasers con entidades que le importan
-- `interests` → habilita sources no-Odoo (si le interesan "precios de mercado" → MarketSource boost, si le interesa "impuestos" → LegalSource boost)
-
-**~100 tokens en system prompt.** Se enriquece con cada chat.
-
-### Capa 2: Memoria (automática, invisible)
-
-Cada interacción alimenta el perfil silenciosamente.
-
-```typescript
-// lib/intelligence/profiles/memory-enricher.ts
-
-async function onUserMessage(userId: string, message: string, toolResults?: any[]) {
-  // 1. Extraer entidades mencionadas
-  const entities = extractEntities(message)
-  // "cuánto le vendimos a Macrodental" → { type: 'client', name: 'Macrodental' }
-  
-  // 2. También extraer de resultados de tools (nombres reales del ERP)
-  if (toolResults) {
-    entities.push(...extractEntitiesFromToolResults(toolResults))
-  }
-  
-  for (const entity of entities) {
-    await incrementMention(userId, entity)
-    // Si menciona algo 3+ veces → auto-agregar al watchlist
-    if (await getMentionCount(userId, entity) >= 3) {
-      await addToWatchlist(userId, entity)
-    }
-  }
-}
-
-async function onDiscoveryInteraction(userId: string, discoveryId: string, source: DiscoverySource, tapped: boolean) {
-  await saveDiscoveryInteraction(userId, discoveryId, source, tapped)
-  // Si ignora un source 5+ veces → penalizar en scoring
-  // Si toca un source seguido → boostear en scoring
-}
-```
-
-**No va en el prompt. Alimenta el scoring engine internamente.**
-
-**El usuario no sabe que Tuqui "aprendió". Solo nota que cada día es más relevante.**
 
 ---
 
-## 2. DISCOVERY ENGINE — El motor del dopamine loop
+## Por qué un agente y no collectors fijos
 
-### 2.1 El concepto central
+| Collectors fijos (antes) | Curious Agent (ahora) |
+|---|---|
+| Siempre corre las mismas 15 queries Odoo | El LLM elige qué buscar según el contexto |
+| Si el usuario no tiene stock, corre getLowStock igual | Si ve que el user es de servicios, busca horas/proyectos |
+| Agregar fuente nueva = nuevo collector (~50 líneas) | Agregar fuente = darle acceso a un tool que ya existe |
+| Cross-source requiere lógica explícita | El LLM cruza datos naturalmente |
+| 4 collectors × N queries = costo fijo | El LLM hace 3-8 calls según lo que necesita |
+| ~12 archivos, ~570 líneas | ~13 archivos, ~520 líneas, más flexible |
 
-Cada vez que el usuario abre Tuqui, recibe **2 teasers** de **sources distintos**:
+**El LLM ya sabe hacer esto.** Cuando el usuario pregunta "¿cómo estamos?", 
+el agente Odoo llama 3-4 skills y arma un resumen. El Curious Analyst hace lo 
+mismo pero sin que el usuario pregunte.
+
+---
+
+## 1. PERFILES
+
+### 1.1 User Profile (onboarding conversacional)
+
+No es un formulario. Es una conversación libre al primer uso.
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                                                      │
-│  💰 Macrodental no te compra hace 47 días            │  ← OdooSource
-│     — antes lo hacía cada 20.                        │
-│     → "¿Qué dejó de llevar?"                       │
-│                                                      │
-│  ⚖️ ARCA subió retenciones de IVA para              │  ← LegalSource
-│     monotributistas al 10.5% desde marzo.            │
-│     → "¿Me afecta?"                                │
-│                                                      │
-└──────────────────────────────────────────────────────┘
+Tuqui: ¡Hola! Soy Tuqui, tu asistente para Cedent.
+       Contame un poco: ¿qué hacés acá, qué te interesa seguir,
+       qué te preocupa del negocio?
+
+Usuario: "Soy Martín, el dueño. Me mata la cobranza, tenemos mucha
+         guita en la calle. Quiero entender el stock que no se mueve,
+         sobre todo siliconas. Córdoba me tiene intrigado."
 ```
 
-**Regla de oro: NUNCA 2 del mismo source.** Esto fuerza variedad y crea la sensación de "Tuqui sabe de todo".
+LLM extrae:
 
-El dato genera urgencia. La pregunta genera el click. El click genera conversación. La conversación genera valor. El valor genera retorno.
+```json
+{
+  "role": "dueno",
+  "painPoints": ["cobranza", "stock_sin_movimiento"],
+  "watchlist": ["siliconas", "Córdoba"],
+  "communicationStyle": "directo, informal"
+}
+```
 
-### 2.2 Interfaz unificada
+Se guarda en `user_profiles`. Se usa en el contexto del investigator para 
+que priorice lo que le importa al usuario.
+
+### 1.2 Auto-watchlist (menciones repetidas)
+
+```
+Día 1: "¿Cuánto nos debe Macrodental?"       → mention_count = 1
+Día 5: "¿Macrodental pagó?"                   → mention_count = 2
+Día 8: "Che, Macrodental compró algo?"         → mention_count = 3 → AUTO-WATCHLIST ⭐
+Día 9: Tuqui abre con insight sobre Macrodental sin que lo pida.
+```
+
+Entidad mencionada ≥3 veces → se agrega al watchlist del user profile.
+El investigator ve el watchlist → prioriza buscar data sobre esas entidades.
+
+### 1.3 Company profile (ya existe)
+
+`company_contexts` ya tiene: industry, key_products, key_customers, business_rules.
+`getCompanyContext()` en `context-injector.ts` ya lo arma.
+El investigator lo recibe como parte del contexto.
+
+### 1.4 Chats recientes (ya existe)
+
+`chat_sessions.title` tiene títulos auto-generados de cada conversación.
+`getRecentUserMessages()` en `chat-history.ts` existe pero no se usa.
+El context assembler usa ambas para saber "de qué viene hablando el usuario".
+
+---
+
+## 2. CONTEXT ASSEMBLER
+
+Junta TODO el contexto en un string para el investigator. (~60 líneas)
 
 ```typescript
-// lib/intelligence/discoveries/types.ts
+// lib/intelligence/context-assembler.ts
 
-type DiscoverySource = 'odoo' | 'market' | 'legal' | 'industry' | 'tip' | 'cross'
+async function assembleInvestigationContext(
+  tenantId: string,
+  userId: string,
+  userEmail: string
+): Promise<string> {
+  const [company, profile, recentMessages, memories, history] = 
+    await Promise.all([
+      getCompanyContext(tenantId),           // ya existe
+      getUserProfile(userId),                // nuevo
+      getRecentUserMessages(tenantId, userEmail, 10), // ya existe, no se usa
+      getMemories(userId),                   // query directa
+      getInsightHistory(userId, 7),          // últimos 7 días
+    ]);
 
-interface Discovery {
-  id: string
-  source: DiscoverySource
-  category: 'dinero' | 'stock' | 'clientes' | 'mercado' | 'legal' | 'rubro' | 'ops'
-  models: ('distribucion' | 'servicio')[]
-  roles: string[]               // qué roles ven este discovery
-  cooldownDays: number           // no repetir antes de N días
-  pushWorthy: boolean            // ¿merece push notification?
-  
-  // Rápido (~1 query o cache). Corre al abrir.
-  getTeaser: (ctx: DiscoveryContext) => Promise<Teaser | null>
-  
-  // Pesado. Corre SOLO si el usuario toca la pregunta.
-  deepDive: (ctx: DiscoveryContext, teaserData: any) => Promise<string>
+  // También: títulos de las últimas 10 sesiones
+  const recentSessions = await getRecentSessionTitles(tenantId, userEmail, 10);
+
+  return `
+EMPRESA:
+${company}
+
+PERFIL DEL USUARIO:
+Rol: ${profile?.role ?? 'desconocido'}
+Le preocupa: ${profile?.painPoints?.join(', ') ?? 'no definido'}
+Sigue de cerca: ${profile?.watchlist?.join(', ') ?? 'nada específico'}
+Estilo: ${profile?.communicationStyle ?? 'profesional'}
+
+ÚLTIMAS CONVERSACIONES:
+${recentSessions.map(s => `- ${s.title} (${formatRelative(s.updatedAt)})`).join('\n')}
+
+${recentMessages.length > 0 ? `ÚLTIMOS MENSAJES:
+${recentMessages.map(m => `[${m.role}]: ${m.content?.slice(0, 200)}`).join('\n')}` : ''}
+
+${memories.length > 0 ? `NOTAS GUARDADAS:
+${memories.map(m => `- ${m.entity_name}: ${m.content}`).join('\n')}` : ''}
+
+INSIGHTS YA MOSTRADOS (NO REPETIR):
+${history.map(h => `- ${h.dato} (${formatRelative(h.shownAt)})`).join('\n')}
+  `.trim();
 }
+```
 
-interface DiscoveryContext {
-  tenantId: string
-  tenantProfile: TenantProfile
-  userProfile: UserProfile
-  odooCredentials?: OdooCredentials  // para Odoo queries
+---
+
+## 3. INVESTIGATOR
+
+El corazón. Es un master agent `analista` cuyo prompt vive en DB (igual 
+que `odoo`, `contador`, `abogado`). El cron lo invoca con `generateText()` 
+y `maxSteps: 8`. (~50 líneas de código — el prompt está en la DB)
+
+```typescript
+// lib/intelligence/investigator.ts
+
+async function investigate(
+  tenantId: string,
+  userId: string,
+  context: string
+): Promise<string> {
+  // 1. Cargar agente desde DB (prompt + tools editables en super-admin)
+  const agent = await getAgentBySlug(tenantId, 'analista');
+  const tools = await getToolsForAgent(tenant, agent, userId, tenantId);
+  const systemPrompt = buildMergedPrompt(agent); // master + custom_instructions
+
+  // 2. Agentic loop — el LLM decide qué tools llamar
+  const { text } = await generateText({
+    model: google('gemini-2.0-flash'),
+    maxSteps: 8,
+    tools,
+    system: `${systemPrompt}\n\nCONTEXTO DEL USUARIO Y EMPRESA:\n${context}`,
+    prompt: 'Investigá qué datos interesantes hay para este usuario hoy.',
+  });
+
+  return text;
 }
+```
+
+**Clave:** El prompt del analista se edita desde `/super-admin/agents/analista`, 
+igual que cualquier otro master agent. Custom instructions por tenant permiten 
+personalizar: "para Cedent priorizá stock de vencibles y MeLi".
+
+### Master agent `analista` (INSERT, no código)
+
+```sql
+INSERT INTO master_agents (slug, name, icon, description, system_prompt, tools, is_published, is_deletable)
+VALUES (
+  'analista',
+  'Analista Curioso',
+  '🔍',
+  'Agente de background que investiga datos interesantes para el usuario.
+   También disponible en chat para análisis profundos bajo demanda.
+   Se ejecuta via cron y genera teasers diarios.',
+  'Sos un analista de negocios curioso y perspicaz.
+   Tu trabajo es investigar datos interesantes para el usuario.
+
+   INSTRUCCIONES:
+   1. Usá las herramientas para buscar datos que le IMPORTEN al usuario
+   2. Priorizá lo que aparece en "Le preocupa" y "Sigue de cerca"
+   3. Buscá VARIEDAD: no todo del ERP — también mercado, legal, noticias
+   4. Buscá SORPRESAS: anomalías, cambios bruscos, oportunidades ocultas
+   5. Buscá URGENCIAS: vencimientos, deuda que crece, stock que se acaba
+   6. NO repitas lo que ya se mostró (ver "INSIGHTS YA MOSTRADOS")
+   7. Hacé entre 3 y 8 consultas. No más.
+
+   Al final, escribí un resumen de tus hallazgos más interesantes.',
+  ARRAY['odoo', 'web_search', 'knowledge_base'],
+  true,   -- is_published
+  false   -- is_deletable (no se puede borrar)
+);
+```
+
+El campo `is_deletable` se agrega en la migration 212:
+
+```sql
+ALTER TABLE master_agents ADD COLUMN is_deletable BOOLEAN DEFAULT true;
+```
+
+Los master agents del sistema (`analista`, y potencialmente otros de background)
+se crean con `is_deletable = false`. La UI de super-admin y delete bloquean 
+el borrado si `is_deletable = false`.
+
+Editar el prompt = editar en UI, no deploy.
+Nuevo tenant = `sync_agents_from_masters()` le crea su instancia.
+Custom instructions = "para Cedent priorizá stock de vencibles".
+
+### ¿Qué tools se cargan?
+
+Las mismas que cualquier agente. Se reutiliza la infra existente.
+El toggle de tools se configura en la UI del super-admin.
+
+---
+
+## 4. SYNTHESIZER
+
+Toma los hallazgos del investigator → genera teasers estructurados. (~50 líneas)
+
+```typescript
+// lib/intelligence/synthesizer.ts
 
 interface Teaser {
-  emoji: string
-  dato: string          // Una línea. El hook.
-  pregunta: string      // La pregunta sugerida. El call to action.
-  teaserData: any       // Contexto para el deepDive.
-  discoveryId: string   // Para tracking.
-  source: DiscoverySource
+  emoji: string;
+  dato: string;    // 1 línea, el hook — genera curiosidad
+  pregunta: string; // pregunta sugerida — da ganas de tocar
 }
-```
 
-### 2.3 Los 6 Discovery Sources
-
----
-
-#### SOURCE 1: OdooSource — Datos del ERP (ya tenemos 54 skills)
-
-**Lo que detecta:** anomalías, tendencias, problemas ocultos en datos operativos.
-
-```
-DINERO
-├── moroso-que-compra      "X te debe $Y pero te compró $Z esta semana"
-│                          → "¿Cuántos más están así?"
-├── concentracion-riesgo   "El 52% de tu facturación depende de 3 clientes"
-│                          → "¿Quiénes son y cuánto me duele si se va uno?"
-└── dia-mas-rentable       "Los martes facturás 40% más que los jueves"
-                           → "¿Qué se vende más cada día?"
-
-STOCK
-├── capital-dormido        "$4.2M parados en productos sin venta en 3 meses"
-│                          → "¿Cuáles son y cómo los liquido?"
-├── vencimiento            "Silicona Vericom: 90 unidades, vence en mayo" [pushWorthy]
-│                          → "¿Con qué lo puedo combinar para sacarlo?"
-├── comprando-al-pedo      "Seguís comprando X pero las ventas cayeron 40%"
-│                          → "¿Qué otros productos estoy comprando de más?"
-├── estrella-sin-stock     "Tu #2 en ventas tiene stock para 12 días" [pushWorthy]
-│                          → "¿Hay pedido abierto?"
-└── producto-trending      "Las puntas de mezcladoras crecieron 80% este mes"
-                           → "¿Tengo stock para aguantar?"
-
-CLIENTES
-├── cliente-fantasma       "Macrodental no compra hace 47 días, antes cada 20"
-│                          → "¿Qué dejó de llevar?"
-├── cliente-que-achica     "X pasó de $500K/mes a $200K/mes"
-│                          → "¿Qué categorías dejó?"
-├── cliente-nuevo-fuerte   "Y es cliente hace 30 días y ya compró $1.2M"
-│                          → "¿Qué más le puedo ofrecer?"
-├── cross-sell             "15 clientes compran composite pero no adhesivo"
-│                          → "¿Quiénes son?"
-└── zona-muerta            "Córdoba: 14 clientes, $0 en febrero"
-                           → "¿Qué pasa con el vendedor de esa zona?"
-```
-
-**Implementación:** Cada discovery llama a 1-2 Odoo skills existentes, compara contra thresholds, genera teaser si hay anomalía.
-
----
-
-#### SOURCE 2: MarketSource — Precios y competencia (MeLi hybrid ya funciona)
-
-**Lo que detecta:** oportunidades de margen, competencia, productos trending en el mercado.
-
-```
-├── precio-vs-mercado      "Vendés Silicona X a $45K. En MeLi mínimo $62K"
-│                          → "¿Estoy regalando margen?"
-│
-├── precio-caro            "Tu Composite Y a $85K. MeLi promedio $52K"
-│                          → "¿Estoy perdiendo ventas por precio?"
-│
-├── producto-trending-meli "Los scanners intraorales explotaron en MeLi (+200%)"
-│                          → "¿Los tenemos? ¿Deberíamos?"
-│
-└── competencia-precio     "Tu competidor bajó el eyector descartable 20% en MeLi"
-                           → "¿Ajusto mi precio?"
-```
-
-**Implementación:**
-```typescript
-const precioVsMercado: Discovery = {
-  id: 'precio-vs-mercado',
-  source: 'market',
-  category: 'mercado',
-  cooldownDays: 7,
-  pushWorthy: false,
-  models: ['distribucion'],
-  roles: ['dueno', 'comercial'],
-  
-  async getTeaser(ctx) {
-    // 1. Tomar un producto del watchlist o topProducts
-    const product = pickProductForComparison(ctx)
-    if (!product) return null
-    
-    // 2. Buscar en MeLi (usa searchMeliHybrid que ya existe)
-    const meliResult = await searchMeliHybrid(product.name)
-    if (!meliResult?.minPrice) return null
-    
-    // 3. Comparar
-    const diff = ((meliResult.minPrice - product.avgSalePrice) / product.avgSalePrice * 100)
-    if (Math.abs(diff) < 15) return null // diferencia no interesante
-    
-    return {
-      emoji: diff > 0 ? '🛒' : '⚠️',
-      dato: `${product.name}: vos lo vendés a $${fmt(product.avgSalePrice)}. En MeLi ${diff > 0 ? 'mínimo' : 'promedio'} $${fmt(meliResult.minPrice)}.`,
-      pregunta: diff > 0 ? '¿Estoy regalando margen?' : '¿Estoy caro vs el mercado?',
-      teaserData: { product, meliResult, diff },
-      discoveryId: 'precio-vs-mercado',
-      source: 'market',
-    }
-  },
-
-  async deepDive(ctx, data) {
-    // Análisis completo con Gemini Grounding: links, rango de precios, competidores
-    return await analyzeMeliPricesWithGrounding(data.product.name, { 
-      userPrice: data.product.avgSalePrice 
-    })
-  }
-}
-```
-
-**Costo:** 1 búsqueda MeLi hybrid ≈ $0.003 (Serper + Grounding). Aceptable para 1/día.
-
----
-
-#### SOURCE 3: LegalSource — Impuestos, normativa, laboral (RAG + web search)
-
-**Lo que detecta:** cambios regulatorios que afectan al negocio, vencimientos legales, oportunidades tributarias.
-
-```
-IMPOSITIVO
-├── cambio-impositivo      "ARCA subió retenciones de IVA al 10.5% desde marzo"
-│                          → "¿Me afecta?"
-├── vencimiento-fiscal     "DJ Ganancias: vence el 15 de abril para SRL"
-│                          → "¿Ya la presenté?"
-└── oportunidad-fiscal     "Nuevo régimen de amortización acelerada para PyMEs"
-                           → "¿Me conviene?"
-
-LABORAL
-├── paritarias             "Convenio de comercio: aumento 12% en marzo"
-│                          → "¿Cuánto me sube la masa salarial?"
-├── vencimiento-laboral    "DDJJ F931 vence el 11 del mes que viene"
-│                          → "¿Está al día?"
-└── nueva-regulacion       "Obligación de canal de denuncias para +50 empleados"
-                           → "¿Me aplica?"
-
-SOCIETARIO
-├── vencimiento-sociedad   "Presentación balance anual: vence en 4 meses"
-│                          → "¿Está iniciado?"
-└── cambio-normativo       "Nuevas reglas para factura electrónica tipo E"
-                           → "¿Nos afecta?"
-```
-
-**Implementación:**
-```typescript
-const cambioImpositivo: Discovery = {
-  id: 'cambio-impositivo',
-  source: 'legal',
-  category: 'legal',
-  cooldownDays: 14,
-  pushWorthy: false,
-  models: ['distribucion', 'servicio'],
-  roles: ['dueno', 'contable'],
-
-  async getTeaser(ctx) {
-    // 1. Web search por novedades impositivas Argentina recientes
-    const searchQuery = `novedades impositivas Argentina ${currentMonth()} ${currentYear()} ARCA AFIP`
-    const results = await tavilySearch(searchQuery, { maxResults: 5, daysBack: 30 })
-    if (!results.length) return null
-    
-    // 2. LLM filtra: ¿alguna novedad afecta a este tipo de empresa?
-    const relevant = await gemini.generateObject({
-      prompt: `Sos experto tributario argentino. 
-        Empresa: ${ctx.tenantProfile.industry}, ${ctx.tenantProfile.businessModel}, 
-        facturación ${ctx.tenantProfile.scale.monthlyRevenue}/mes.
-        Noticias: ${results.map(r => r.content).join('\n---\n')}
-        ¿Alguna noticia impacta directamente a esta empresa?`,
-      schema: z.object({
-        relevant: z.boolean(),
-        emoji: z.string().optional(),
-        dato: z.string().optional(),
-        pregunta: z.string().optional()
-      })
-    })
-    
-    if (!relevant.relevant) return null
-    return { ...relevant, source: 'legal', discoveryId: 'cambio-impositivo' }
-  },
-
-  async deepDive(ctx, data) {
-    // RAG search en docs legales + web search profundo + explicación LLM
-    const ragDocs = await searchKnowledgeBase('tributario', ctx.tenantId, 'contador')
-    const webDetail = await tavilySearch(data.searchQuery, { maxResults: 10 })
-    return await gemini.generate({
-      prompt: `Explicá cómo esta novedad impositiva afecta a ${ctx.tenantProfile.industry}. 
-        Docs internos: ${ragDocs}
-        Investigación web: ${webDetail}
-        Sé concreto: montos, fechas, qué tiene que hacer.`
-    })
-  }
-}
-```
-
-**Costo:** 1 Tavily search ≈ $0.0025 + 1 LLM call ≈ $0.001. OK para 1 cada 14 días.
-
----
-
-#### SOURCE 4: IndustrySource — Noticias del rubro (web search + industry keywords)
-
-**Lo que detecta:** lanzamientos de productos, tendencias de mercado, movimientos de competidores, eventos.
-
-```
-├── producto-nuevo         "3M lanzó el composite Filtek Universal Flow"
-│                          → "¿Lo tenemos? ¿Deberíamos?"
-│
-├── tendencia-mercado      "Mercado de aligners en LATAM creció 23% en 2025"
-│                          → "¿Debería explorar esa categoría?"
-│
-├── competidor-movida      "Dental Total abrió sucursal en Córdoba"
-│                          → "¿Afecta a mis clientes de esa zona?"
-│
-├── evento-rubro           "Expo Dental Argentina 2026: abre inscripciones"
-│                          → "¿Vamos?"
-│
-└── regulacion-rubro       "ANMAT: nueva normativa para dispositivos dentales"
-                           → "¿Mis productos cumplen?"
-```
-
-**Implementación:**
-```typescript
-const noticiaRubro: Discovery = {
-  id: 'noticia-rubro',
-  source: 'industry',
-  category: 'rubro',
-  cooldownDays: 7,
-  models: ['distribucion', 'servicio'],
-  roles: ['dueno', 'comercial'],
-  pushWorthy: false,
-
-  async getTeaser(ctx) {
-    // industryKeywords viene del TenantProfile (auto-generado en F7.5)
-    // Cedent → ['dental', 'odontología', 'insumos dentales', '3M oral care', 'Ivoclar']
-    const query = ctx.tenantProfile.industryKeywords.slice(0, 3).join(' OR ')
-    
-    const news = await tavilySearch(`${query} Argentina novedades`, {
-      maxResults: 5, daysBack: 14, searchType: 'news'
-    })
-    if (!news.length) return null
-    
-    // LLM: ¿alguna noticia es relevante y accionable para esta empresa?
-    const analysis = await gemini.generateObject({
-      prompt: `Sos consultor del rubro ${ctx.tenantProfile.industry}.
-        Empresa con categorías: ${ctx.tenantProfile.topCategories.join(', ')}.
-        ${ctx.tenantProfile.scale.activeClients} clientes activos.
-        
-        Noticias recientes:
-        ${news.map((n, i) => `${i+1}. ${n.title}: ${n.content}`).join('\n')}
-        
-        ¿Alguna impacta CONCRETAMENTE en su operación, productos o clientes?
-        No genéricas — solo las que generan acción.`,
-      schema: z.object({
-        relevant: z.boolean(),
-        emoji: z.string().optional(),
-        dato: z.string().optional(),
-        pregunta: z.string().optional()
-      })
-    })
-    
-    if (!analysis.relevant) return null
-    return { ...analysis, source: 'industry', discoveryId: 'noticia-rubro' }
-  }
-}
-```
-
-**Clave:** `industryKeywords` se genera automáticamente en Company Discovery (F7.5). No hay config manual.
-
----
-
-#### SOURCE 5: TipSource — Tips accionables de datos propios (sin query externa)
-
-**Lo que detecta:** oportunidades de mejora operativa, features sin usar, benchmarks.
-
-```
-├── feature-dormida        "Tenés 526 opp en CRM. 146 llevan +1400 días.
-│                           Limpiando, el pipeline se vuelve útil."
-│                          → "¿Cuáles son las más viejas?"
-│
-├── eficiencia-proceso     "30% de tus cotizaciones nunca se facturan"
-│                          → "¿Por qué se pierden?"
-│
-├── resumen-semanal        "Semana: $18.2M facturados (+8%).
-│                           Pero cobranza solo $11M. Gap creciente."
-│                          → "¿Quiénes son los que más deben?"
-│
-└── benchmark-rubro        "Tu ticket promedio ($985K) está 20% abajo de
-                            distribuidores de tu tamaño"
-                           → "¿Es estrategia o se puede mejorar?"
-```
-
-**Implementación:** No requiere queries externas. Usa datos del Company Discovery (cacheados) + entity_mentions + discovery_history para generar tips contextuales.
-
----
-
-#### SOURCE 6: CrossSource — Combina 2+ fuentes (los más potentes)
-
-**Lo que detecta:** insights que SOLO surgen de cruzar fuentes que un humano no cruzaría.
-
-```
-ODOO × MELI
-├── margen-oculto          "Vendés Silicona X a $45K. MeLi mínimo $62K.
-│                           Margen oculto: $17K × 200/mes = $3.4M"
-│                          → "¿Subo el precio?"
-└── oportunidad-ecommerce  "Tu #3 en ventas no está en MeLi.
-                            Competidores lo venden a $80K."
-                           → "¿Lo publico?"
-
-ODOO × LEGAL
-├── riesgo-legal-cobranza  "Tenés $414M en CxC vencido.
-│                           Después de 1 año prescribe la acción judicial."
-│                          → "¿Cuánto está cerca de prescribir?"
-└── deduccion-stock        "Tenés $96M en stock parado.
-                            Se puede deducir como pérdida si está vencido."
-                           → "¿Cuánto puedo deducir?"
-
-INDUSTRIA × ODOO
-├── producto-nuevo-match   "3M lanzó Filtek Universal Flow.
-│                           15 de tus clientes compran composites."
-│                          → "¿Lo agrego al catálogo y les aviso?"
-└── zona-vs-mercado        "Córdoba: $0 en febrero, pero el mercado dental
-                            de Córdoba creció 18% según cámara del sector."
-                           → "¿El problema es nuestro o del vendedor?"
-
-PERFIL × ODOO
-└── watchlist-alert        "Te preocupa Córdoba. Esta semana: $0 de nuevo."
-                           → "¿Hablo con Martín T.?"
-```
-
-**Por qué CrossSource es la estrella:**
-- Son insights que **ninguna herramienta sola** puede dar
-- El usuario siente que Tuqui "piensa" como un consultor
-- Tienen bonus de +2 en scoring
-- Son los que generan el "¡no sabía eso!" más fuerte
-
----
-
-### 2.4 Pool — Modelo Servicio
-
-Para empresas de servicio (software, consultoría, agencias):
-
-```
-ODOO
-├── horas-sin-facturar     "42 horas facturables sin incluir en facturas" [pushWorthy]
-│                          → "¿De qué proyectos son?"
-├── saturacion             "Lucía está al 115% hace 3 semanas" [pushWorthy]
-│                          → "¿Qué proyectos tiene?"
-├── subutilizacion         "Pedro está al 45% de utilización"
-│                          → "¿Qué proyectos del pipeline le asigno?"
-├── proyecto-pasado        "Implementación Y lleva 140% de horas"
-│                          → "¿Renegocio o cierro scope?"
-├── proyecto-parado        "Proyecto Z sin movimiento 18 días"
-│                          → "¿Está bloqueado por el cliente?"
-├── contrato-por-vencer    "Contrato de W vence en 45 días" [pushWorthy]
-│                          → "¿Arrancamos la renovación?"
-├── tickets-anomalos       "Cliente V tiene 3x más tickets que promedio"
-│                          → "¿Hay un problema de calidad?"
-├── servicio-impago        "3 clientes con servicio activo y 2+ cuotas impagas" [pushWorthy]
-│                          → "¿Les corto el servicio?"
-└── cliente-caro           "X te paga $200K/mes pero consume 80hs"
-                           → "¿Es rentable?"
-
-CROSS (servicio)
-├── skill-vs-pipeline      "3 proyectos tipo X en pipeline, 1 persona sabe X"
-│                          → "¿A quién capacito?"
-└── renta-real             "Facturás $500K a Y pero costás $480K en horas.
-                            Margen real: 4%."
-                           → "¿Renegocio el rate?"
-```
-
----
-
-### 2.5 Scoring — Relevancia + variedad + sorpresa
-
-```typescript
-// lib/intelligence/discoveries/engine.ts
-
-function scoreDiscovery(
-  d: Discovery, 
-  profile: UserProfile, 
-  todayShown: Teaser[]
-): number {
-  let score = 1.0
-
-  // --- RELEVANCIA (max +4) ---
-  // Pain points del onboarding
-  if (profile.painPoints.includes('cobranza') && d.category === 'dinero') score += 2
-  if (profile.painPoints.includes('stock') && d.category === 'stock') score += 2
-  // Watchlist match
-  if (hasWatchlistMatch(d, profile)) score += 1.5
-  // Intereses habilitan sources no-Odoo
-  if (profile.interests?.includes('precios') && d.source === 'market') score += 1.5
-  if (profile.interests?.includes('impuestos') && d.source === 'legal') score += 1.5
-  if (profile.interests?.includes('competencia') && d.source === 'industry') score += 1.5
-
-  // --- SORPRESA (max +2) ---
-  if (d.source === 'cross') score += 2       // cross-source = más valioso
-  if (!hasEverSeen(profile, d.source)) score += 1  // novedad
-
-  // --- VARIEDAD (hard penalty) ---
-  // NUNCA 2 del mismo source en la misma sesión
-  if (todayShown.some(s => s.source === d.source)) score -= 10
-
-  // --- MEMORIA (±1.5) ---
-  if (profile.discoveryPreferences?.includes(d.source)) score += 1
-  if (profile.discoveryIgnored?.includes(d.source)) score -= 1.5
-
-  return score
-}
-```
-
-### 2.6 Selección: getSessionOpeners()
-
-```typescript
-async function getSessionOpeners(
-  tenantId: string, userId: string
+async function synthesize(
+  findings: string,
+  context: string,
+  previousInsights: string[]
 ): Promise<Teaser[]> {
-  const tenant = await getTenantProfile(tenantId)
-  const profile = await getUserProfile(userId)
-  const history = await getDiscoveryHistory(userId)
-  
-  // 1. Filtrar pool por modelo de negocio, rol, capabilities del tenant
-  let pool = filterPool(allDiscoveries, tenant, profile)
-  
-  // 2. Excluir por cooldown
-  pool = applyCooldown(pool, history)
-  
-  const teasers: Teaser[] = []
-  
-  // 3. Primer teaser: el mejor scored sin restricción de source
-  const scored1 = pool.map(d => ({ d, score: scoreDiscovery(d, profile, []) }))
-  const teaser1 = await tryGetTeaser(scored1, tenant, profile)
-  if (teaser1) {
-    teasers.push(teaser1)
-    
-    // 4. Segundo teaser: FORZAR source distinto
-    const scored2 = pool
-      .filter(d => d.source !== teaser1.source)
-      .map(d => ({ d, score: scoreDiscovery(d, profile, [teaser1]) }))
-    const teaser2 = await tryGetTeaser(scored2, tenant, profile)
-    if (teaser2) teasers.push(teaser2)
-  }
-  
-  // 5. Guardar en history
-  for (const t of teasers) await saveShown(userId, t.discoveryId)
-  
-  return teasers
-}
+  const { object } = await generateObject({
+    model: google('gemini-2.0-flash'),
+    schema: z.object({
+      teasers: z.array(z.object({
+        emoji: z.string(),
+        dato: z.string().describe('1 línea concisa, el hook — genera curiosidad'),
+        pregunta: z.string().describe('pregunta sugerida que invite a profundizar'),
+      })).min(2).max(3),
+    }),
+    system: `Convertí hallazgos en teasers irresistibles.
 
-// Weighted random del top 5 (no siempre el #1 → impredecible)
-async function tryGetTeaser(
-  scored: { d: Discovery; score: number }[], 
-  tenant: TenantProfile, 
-  profile: UserProfile
-): Promise<Teaser | null> {
-  const top5 = scored.sort((a, b) => b.score - a.score).slice(0, 5)
-  const shuffled = weightedShuffle(top5)
-  
-  for (const { d } of shuffled) {
-    try {
-      const ctx = { tenantId: tenant.tenantId, tenantProfile: tenant, userProfile: profile }
-      const teaser = await d.getTeaser(ctx)
-      if (teaser) return teaser
-    } catch { continue }
-  }
-  return null
+Reglas:
+- Cada teaser = emoji + dato concreto + pregunta disparadora
+- El DATO tiene un número, nombre o hecho específico (no vaguedades)
+- La PREGUNTA invita a abrir el chat y preguntar más
+- NUNCA repitas algo ya mostrado: ${previousInsights.join(' | ')}
+- VARIÁ las fuentes: si hay datos del ERP y del mercado, usá ambos
+- Tono: español argentino, directo, informal
+- Priorizá: urgencias > sorpresas > oportunidades`,
+    prompt: `Hallazgos del investigador:\n${findings}\n\nContexto:\n${context}`,
+  });
+
+  return object.teasers;
 }
 ```
 
 ---
 
-## 3. ENTREGA
+## 5. ENGINE
 
-### 3.1 Al abrir el chat — 2 teasers
+Orquesta todo: context → investigate → synthesize → cache. (~40 líneas)
 
 ```typescript
-async function onChatOpen(tenantId: string, userId: string) {
-  const teasers = await getSessionOpeners(tenantId, userId)
-  
-  if (teasers.length > 0) {
-    const content = teasers.map(t => `${t.emoji} ${t.dato}`).join('\n\n')
-    return {
-      role: 'assistant',
-      content,
-      suggestedQuestions: teasers.map(t => t.pregunta),
-      metadata: { teasers: teasers.map(t => t.teaserData) }
-    }
-  }
-  
-  return { role: 'assistant', content: '¡Hola! ¿En qué te puedo ayudar?' }
+// lib/intelligence/engine.ts
+
+async function generateInsights(
+  tenantId: string,
+  userId: string,
+  userEmail: string
+): Promise<Teaser[]> {
+  // 1. Armar contexto
+  const context = await assembleInvestigationContext(tenantId, userId, userEmail);
+
+  // 2. Cargar tools (reutiliza infra del chat)
+  const tools = await loadInvestigatorTools(tenantId, userId);
+
+  // 3. Investigar (agentic loop, 3-8 tool calls)
+  const findings = await investigate(context, tools);
+
+  // 4. Sintetizar en teasers
+  const history = await getInsightHistory(userId, 7);
+  const teasers = await synthesize(findings, context,
+    history.map(h => h.dato));
+
+  // 5. Cachear
+  await cacheInsights(tenantId, userId, teasers);
+
+  return teasers;
 }
 ```
 
-### 3.2 PWA Push — Solo lo urgente
+---
+
+## 6. DELIVERY
+
+### 6.1 Session Opener
+
+Al abrir el chat, se muestran 2 teasers + preguntas sugeridas clickeables.
+
+```typescript
+// lib/intelligence/delivery.ts
+
+async function getSessionOpener(
+  tenantId: string,
+  userId: string,
+  userEmail: string
+): Promise<SessionOpener | null> {
+  // 1. Buscar en cache (pre-computado por cron)
+  const cached = await getCachedInsights(tenantId, userId);
+
+  let teasers: Teaser[];
+
+  if (cached && !cached.served && isRecent(cached.generatedAt, 12)) {
+    // Cache fresco, no servido → usar
+    teasers = cached.teasers;
+  } else {
+    // No hay cache o ya se sirvió → generar on-demand
+    teasers = await generateInsights(tenantId, userId, userEmail);
+  }
+
+  if (teasers.length === 0) return null;
+
+  // 2. Marcar como servido + guardar en historial
+  await markAsServed(tenantId, userId);
+  await saveToHistory(userId, teasers);
+
+  // 3. Armar respuesta
+  return {
+    content: teasers.map(t => `${t.emoji} ${t.dato}`).join('\n\n'),
+    suggestedQuestions: teasers.map(t => t.pregunta),
+  };
+}
+```
+
+### 6.2 Cron Matutino
+
+Pre-computa insights para que estén listos cuando el usuario abra.
+
+```typescript
+// app/api/cron/intelligence/route.ts
+
+export async function GET(request: Request) {
+  // Verificar CRON_SECRET
+  // Para cada tenant activo:
+  //   Para cada user que usó Tuqui en los últimos 7 días:
+  //     generateInsights(tenantId, userId, userEmail)
+  //     → queda en insight_cache, served = false
+}
+```
+
+### 6.3 Flujo completo
 
 ```
-pushWorthy = true SOLO para:
-├── estrella-sin-stock     Se te acaba lo que vendés
-├── vencimiento            Se te vence mercadería
-├── servicio-impago        Te deben y siguen usando
-├── contrato-por-vencer    Se te vence un contrato
-├── saturacion             Alguien se está quemando
-└── horas-sin-facturar     Plata que no cobraste
+7:00 AM  → Cron corre → generateInsights() → cache en DB (served=false)
+9:15 AM  → Usuario abre chat → getSessionOpener() → lee cache → muestra 2 teasers
+         → Usuario toca "¿Qué dejó de llevar?" → mensaje normal al chat
+         → Tuqui responde usando las mismas tools → conversación natural
+         → cache marcado served=true
+
+13:00    → Usuario abre de nuevo → cache ya served → on-demand refresh
+         → Nuevos teasers generados → sorpresa diferente
 ```
-
-Push a las 7:02 AM. Click abre Tuqui con la pregunta pre-cargada.
-
-### 3.3 Inteligencia pasiva en cada respuesta
-
-El último scan se cachea (~6hs). Se inyecta en system prompt:
-
-```
-ALERTAS ACTIVAS DEL NEGOCIO:
-- 💰 Macrodental: 47 días sin comprar
-- 📦 Composite vence en mayo ($3.8M)
-
-Si alguna alerta es relevante a lo que preguntó el usuario,
-mencionala brevemente al final.
-```
-
-Ahora "¿cuánto vendimos?" no solo da el número:
-
-> Ventas: $18.2M esta semana (+8%).
-> 📌 Dato: Córdoba sigue en $0. 14 clientes sin facturar.
 
 ---
 
-## 4. LA SEMANA TIPO — Cómo se siente el loop
+## 7. EL DOPAMINE LOOP EN ACCIÓN
 
 ```
 LUNES
-├── 💰 Macrodental no te compra hace 47 días.               [Odoo]
-└── ⚖️ ARCA subió retenciones de IVA al 10.5%.              [Legal]
+  👻 Macrodental no compra hace 47 días — era tu 3er cliente
+  ¿Qué dejó de llevar?
+
+  📦 Siliconas Vericom: stock para 12 días, sin OC abierta
+  ¿Querés que busque alternativas de proveedor?
 
 MARTES
-├── 🛒 Siliconas: vendés a $45K, MeLi mínimo $62K.          [Cross: Odoo×MeLi]
-└── 📦 90 unidades de composite vencen en mayo ($3.8M).      [Odoo]
+  🛒 Composite 3M: lo vendés a $45.000, en MeLi el más barato está $62.000
+  ¿Estoy regalando margen?
+
+  ⚖️ ARCA: nuevas retenciones de IVA para contribuyentes intensivos
+  ¿Me afecta?
 
 MIÉRCOLES
-├── 📰 3M lanzó Filtek Universal. 15 clientes compran esto.  [Cross: Industria×Odoo]
-└── 👥 Córdoba: 14 clientes, $0 en febrero.                  [Odoo]
+  📰 3M lanzó Filtek Universal Flow — ya tiene 23 publicaciones en MeLi
+  ¿Lo tenemos en catálogo?
+
+  👥 14 clientes en Córdoba, $0 facturado en febrero
+  ¿Qué pasó en la zona?
 
 JUEVES
-├── 💡 526 opp en CRM. 146 llevan +1400 días sin moverse.   [Tip]
-└── 🏛️ Convenio de comercio: aumento 12% en marzo.           [Legal]
+  💡 146 oportunidades en CRM llevan más de 1 año abiertas
+  ¿Las limpiamos?
+
+  📊 Cobranza: entraron $11M de los $18M facturados (61%)
+  ¿Quién es el que más debe?
 
 VIERNES
-├── 📊 Semana: $18.2M (+8%), pero cobranza solo $11M.        [Tip]
-└── 🦷 Mercado aligners LATAM creció 23%. No vendés aligners.[Industry]
+  🦷 "Alineadores estéticos" creció 23% en búsquedas en Argentina
+  ¿Tenemos algo en esa línea?
+
+  ✅ Esta semana facturaste $18.2M (+8% vs semana pasada)
+  ¿Cómo vamos contra el mes pasado?
 ```
 
-**Cada día algo nuevo. De fuente distinta. Siempre accionable. Nunca se repite.**
+**Cada día diferente. Cada día desde distintas fuentes. Cada día con una 
+pregunta que invita a profundizar. El usuario abre por curiosidad.**
 
 ---
 
-## 5. MODELOS DE NEGOCIO
-
-### 5.1 Distribución
-
-Activos que se pudren: **stock** (se vence, se rompe), **plata en la calle** (morosidad), **espacio** (depósito finito).
-
-Cruces multi-source que solo Tuqui puede detectar:
-- Stock muerto × clientes que compran esa categoría → campaña dirigida
-- Precio Odoo × precio MeLi → margen oculto o sobreprecio
-- Morosos × legislación de prescripción → urgencia legal
-- Productos trending MeLi × catálogo actual → oportunidad de ecommerce
-- Stock vencido × normativa impositiva → deducción fiscal
-
-### 5.2 Servicio
-
-Activos que se pudren: **tiempo** (horas sin facturar), **proyectos** (scope creep), **relaciones** (clientes que se van).
-
-Cruces multi-source:
-- Facturado vs costo real × precio de mercado → ¿cobro suficiente?
-- Contratos por vencer × noticias del cliente → mejor timing de renovación
-- Skills del equipo × pipeline → cuellos de botella antes de que pasen
-
----
-
-## 6. ESQUEMA DE DATOS
+## 8. ESQUEMA DE DATOS
 
 ```sql
--- Supabase, todas con RLS
+-- Migration 212_intelligence.sql
 
--- Perfil de empresa: se guarda en company_contexts existente
--- Campos: discovery_raw (JSONB), discovery_profile (text), discovery_run_at
--- Ver F7.5 en TUQUI_REFACTOR_PLAN.md
-
--- Perfil de usuario (onboarding + enriquecido)
+-- Perfiles de usuario (onboarding conversacional)
 CREATE TABLE user_profiles (
-  user_id UUID PRIMARY KEY REFERENCES users(id),
-  tenant_id UUID REFERENCES tenants(id),
-  role TEXT,                    -- 'dueno' | 'comercial' | 'compras' | 'cobranzas' | 'contable'
-  pain_points TEXT[],
-  interests TEXT[],             -- temas libres del usuario
-  watchlist_clients TEXT[],
-  watchlist_products TEXT[],
-  watchlist_zones TEXT[],
-  watchlist_categories TEXT[],
-  communication_style TEXT,
-  discovery_preferences TEXT[], -- sources que toca (auto-aprendido)
-  discovery_ignored TEXT[],     -- sources que ignora (auto-aprendido)
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  role TEXT,                          -- 'dueno', 'comercial', 'compras', etc.
+  pain_points TEXT[] DEFAULT '{}',    -- ['cobranza', 'stock_sin_movimiento']
+  watchlist TEXT[] DEFAULT '{}',      -- ['siliconas', 'Córdoba', 'Macrodental']
+  communication_style TEXT,           -- 'directo, informal'
   onboarded BOOLEAN DEFAULT false,
-  raw_onboarding_text TEXT,
+  raw_onboarding_text TEXT,           -- texto original del usuario
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Menciones de entidades (para auto-watchlist)
+-- Auto-watchlist: trackea menciones repetidas
 CREATE TABLE entity_mentions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  entity_type TEXT,             -- 'client' | 'product' | 'zone' | 'category'
-  entity_name TEXT,
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  entity_name TEXT NOT NULL,
   mention_count INT DEFAULT 1,
   last_mentioned TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, entity_type, entity_name)
+  UNIQUE(user_id, entity_name)
 );
 
--- Historial de discoveries mostrados
-CREATE TABLE discovery_history (
+-- Historial de insights mostrados (cooldown + feedback)
+CREATE TABLE insight_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  tenant_id UUID REFERENCES tenants(id),
-  discovery_id TEXT NOT NULL,
-  source TEXT NOT NULL,          -- 'odoo' | 'market' | 'legal' | 'industry' | 'tip' | 'cross'
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  dato TEXT NOT NULL,
+  emoji TEXT,
+  pregunta TEXT,
   shown_at TIMESTAMPTZ DEFAULT now(),
-  tapped BOOLEAN DEFAULT false,
-  tapped_at TIMESTAMPTZ
+  tapped BOOLEAN DEFAULT false        -- ¿el user hizo click en la pregunta?
 );
 
--- Cache de alertas para inteligencia pasiva
-CREATE TABLE alert_cache (
-  tenant_id UUID PRIMARY KEY REFERENCES tenants(id),
-  alerts JSONB,                 -- [{ emoji, dato, discoveryId, source }]
-  scanned_at TIMESTAMPTZ DEFAULT now()
+-- Cache de insights pre-computados (cron escribe, delivery lee)
+CREATE TABLE insight_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  teasers JSONB NOT NULL,             -- [{emoji, dato, pregunta}]
+  generated_at TIMESTAMPTZ DEFAULT now(),
+  served BOOLEAN DEFAULT false,
+  UNIQUE(tenant_id, user_id)          -- 1 cache por user
 );
 
--- Índices
-CREATE INDEX idx_discovery_history_user ON discovery_history(user_id, shown_at DESC);
-CREATE INDEX idx_entity_mentions_user ON entity_mentions(user_id, entity_type);
-
--- RLS
+-- RLS: cada user solo ve sus propios datos
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE entity_mentions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE discovery_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE alert_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE insight_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE insight_cache ENABLE ROW LEVEL SECURITY;
+
+-- Policies: service_role para cron, authenticated para lectura propia
+CREATE POLICY "Users see own profile" ON user_profiles
+  FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "Users update own profile" ON user_profiles
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "Users see own mentions" ON entity_mentions
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "Users see own insights" ON insight_history
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users see own cache" ON insight_cache
+  FOR SELECT USING (user_id = auth.uid());
+
+-- Service role bypass para cron + engine
+CREATE POLICY "Service manages all" ON insight_cache
+  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service manages history" ON insight_history
+  FOR ALL USING (true) WITH CHECK (true);
 ```
 
 ---
 
-## 7. ESTRUCTURA DE ARCHIVOS
+## 9. ESTRUCTURA DE ARCHIVOS
 
 ```
-lib/
-  intelligence/
-    profiles/
-      types.ts                 # TenantProfile, UserProfile, EntityMention
-      extract-profile.ts       # LLM extrae perfil de texto libre
-      user-profile.ts          # CRUD de user_profiles
-      memory-enricher.ts       # Auto-watchlist + discovery tracking
-    
-    discoveries/
-      types.ts                 # Discovery, Teaser, DiscoverySource, DiscoveryContext
-      engine.ts                # getSessionOpeners() + scoring + selección
-      registry.ts              # Pool de todos los discoveries disponibles
-      
-      sources/
-        odoo/                  # ~13 distribución + ~9 servicio
-          cliente-fantasma.ts
-          capital-dormido.ts
-          vencimiento.ts
-          estrella-sin-stock.ts
-          moroso-que-compra.ts
-          comprando-al-pedo.ts
-          producto-trending.ts
-          cliente-que-achica.ts
-          cliente-nuevo-fuerte.ts
-          cross-sell.ts
-          zona-muerta.ts
-          concentracion-riesgo.ts
-          dia-mas-rentable.ts
-          # servicio:
-          horas-sin-facturar.ts
-          saturacion.ts
-          subutilizacion.ts
-          proyecto-pasado.ts
-          proyecto-parado.ts
-          contrato-por-vencer.ts
-          tickets-anomalos.ts
-          servicio-impago.ts
-          cliente-caro.ts
-        
-        market/                # MeLi hybrid (4)
-          precio-vs-mercado.ts
-          precio-caro.ts
-          producto-trending-meli.ts
-          competencia-precio.ts
-        
-        legal/                 # RAG + web search (6)
-          cambio-impositivo.ts
-          vencimiento-fiscal.ts
-          oportunidad-fiscal.ts
-          paritarias.ts
-          vencimiento-laboral.ts
-          nueva-regulacion.ts
-        
-        industry/              # Web search rubro (5)
-          producto-nuevo.ts
-          tendencia-mercado.ts
-          competidor-movida.ts
-          evento-rubro.ts
-          regulacion-rubro.ts
-        
-        tip/                   # Tips de datos propios (4)
-          feature-dormida.ts
-          eficiencia-proceso.ts
-          resumen-semanal.ts
-          benchmark-rubro.ts
-        
-        cross/                 # Combina 2+ fuentes (6)
-          margen-oculto.ts          # odoo × meli
-          oportunidad-ecommerce.ts  # odoo × meli
-          riesgo-legal-cobranza.ts  # odoo × legal
-          deduccion-stock.ts        # odoo × legal
-          producto-nuevo-match.ts   # industria × odoo
-          watchlist-alert.ts        # perfil × odoo
-    
-    delivery/
-      session-opener.ts        # onChatOpen() → 2 teasers
-      alert-cache.ts           # Cache para inteligencia pasiva
-      inject-intelligence.ts   # Inyectar alertas en contexto
-    
-    push/
-      subscribe.ts
-      send.ts
-      daily-scanner.ts         # Cron: scan pushWorthy + enviar
+lib/intelligence/
+  types.ts                  # ~30 líneas — Teaser, UserProfile, SessionOpener
+  context-assembler.ts      # ~60 líneas — junta todo el contexto
+  investigator.ts           # ~80 líneas — agentic loop con tools existentes
+  synthesizer.ts            # ~50 líneas — hallazgos → teasers estructurados
+  engine.ts                 # ~40 líneas — orquesta context→investigate→synthesize
+  delivery.ts               # ~50 líneas — session opener + cache logic
+  history.ts                # ~40 líneas — insight_history CRUD + cooldown
+
+lib/intelligence/profiles/
+  user-profile.ts           # ~50 líneas — CRUD user_profiles
+  extract-profile.ts        # ~40 líneas — LLM extrae de texto libre
+  memory-enricher.ts        # ~50 líneas — auto-watchlist por menciones
+
+app/api/cron/intelligence/
+  route.ts                  # ~30 líneas — cron matutino
+
+supabase/migrations/
+  212_intelligence.sql      # tablas: user_profiles, entity_mentions,
+                            # insight_history, insight_cache + RLS
+
+tests/unit/intelligence/
+  extract-profile.test.ts
+  context-assembler.test.ts
+  investigator.test.ts      # con tools mockeadas
+  synthesizer.test.ts
+  engine.test.ts
+  delivery.test.ts
+  memory-enricher.test.ts
+
+Total: ~13 archivos de código, ~520 líneas
+       + 1 migration, 7 tests
 ```
 
 ---
 
-## 8. FASES DE IMPLEMENTACIÓN
+## 10. INTEGRACIÓN CON CÓDIGO EXISTENTE
 
-### Fase 1: Perfiles + 5 OdooSource discoveries (2-3 semanas)
-- [ ] Migration 211 (`user_profiles` + `entity_mentions` + `discovery_history`)
-- [ ] `lib/intelligence/profiles/*` — types, extractProfileFromText, CRUD, memory-enricher
-- [ ] Onboarding conversacional en primera sesión del chat
-- [ ] Inyectar perfil de usuario en system prompt
-- [ ] `lib/intelligence/discoveries/types.ts` + `engine.ts` + `registry.ts`
-- [ ] 5 OdooSource discoveries (los de mayor impacto):
-  `moroso-que-compra`, `vencimiento`, `estrella-sin-stock`, `cliente-fantasma`, `capital-dormido`
-- [ ] Session opener: al abrir chat → 1 teaser + pregunta sugerida
-- [ ] Tests + probar con Cedent
+### Qué se reutiliza (no se toca)
 
-### Fase 2: MarketSource + CrossSource (1-2 semanas)
-- [ ] 3 MarketSource: `precio-vs-mercado`, `precio-caro`, `producto-trending-meli`
-- [ ] 2 CrossSource Odoo×MeLi: `margen-oculto`, `oportunidad-ecommerce`
-- [ ] Subir a 2 teasers por sesión (de sources distintos obligatorio)
-- [ ] Validar con Cedent: ¿datos de MeLi relevantes?
+| Componente | Archivo | Uso |
+|---|---|---|
+| Company context | `lib/company/context-injector.ts` | `getCompanyContext()` → contexto empresa |
+| Tool loading | `lib/tools/executor.ts` | `getToolsForAgent()` → mismas tools del chat |
+| Skill registry | `lib/skills/registry.ts` | `globalRegistry` → 50 Odoo skills |
+| MeLi hybrid | `lib/skills/web-search/mercadolibre/` | Via `web_search` tool |
+| Tavily | `lib/tools/web-search.ts` | Via `web_search` tool |
+| RAG search | `lib/rag/search.ts` | Via `knowledge_base` tool |
+| Memory | `lib/skills/memory/` | Via query directa a `memories` table |
+| Chat history | `lib/supabase/chat-history.ts` | `getRecentUserMessages()` + session titles |
+| Agent service | `lib/agents/service.ts` | `getAgentBySlug('analista')` → prompt + tools de DB |
+| Merged prompt | `lib/agents/service.ts` | `buildMergedPrompt()` → master + custom_instructions |
+| Agent sync | `sync_agents_from_masters()` | Propaga analista a todos los tenants |
 
-### Fase 3: LegalSource + IndustrySource (2 semanas)
-- [ ] Requiere RAG con docs legales cargados (F7)
-- [ ] 3 LegalSource: `cambio-impositivo`, `vencimiento-fiscal`, `paritarias`
-- [ ] 3 IndustrySource: `producto-nuevo`, `tendencia-mercado`, `evento-rubro`
-- [ ] 2 CrossSource multi-fuente: `producto-nuevo-match`, `riesgo-legal-cobranza`
-- [ ] industryKeywords auto-generadas en Company Discovery
+### Qué se modifica (mínimo)
 
-### Fase 4: TipSource + inteligencia pasiva (1 semana)
-- [ ] 4 TipSource: `feature-dormida`, `eficiencia-proceso`, `resumen-semanal`, `benchmark-rubro`
-- [ ] `alert_cache` + `inject-intelligence` (inyectar alertas en todas las respuestas)
-- [ ] Ajustar scoring con datos reales de `discovery_history`
-
-### Fase 5: PWA Push + proactivo (F5 en refactor plan)
-- [ ] daily-scanner cron para pushWorthy discoveries
-- [ ] Push → click → chat con pregunta pre-cargada
-
-### Fase 6: Modelo servicio (2-3 semanas)
-- [ ] 9 OdooSource servicio + 2 CrossSource servicio
-- [ ] Validar con primer cliente de servicio
-
-### Ongoing: Flywheel
-- [ ] Trackear tap rate por source y discovery
-- [ ] A/B testear hooks y preguntas
-- [ ] Nuevos discoveries según feedback de uso
-- [ ] Benchmarks por rubro (dental, indumentaria, alimentos...)
+| Archivo | Cambio | Líneas |
+|---|---|---|
+| `lib/chat/engine.ts` | Llamar `enrichFromMessage()` post-mensaje | ~5 líneas |
+| `app/chat/[slug]/page.tsx` | Llamar `getSessionOpener()` al abrir sesión nueva | ~10 líneas |
+| `vercel.json` | Agregar cron schedule para `/api/cron/intelligence` | ~3 líneas |
 
 ---
 
-## 9. POR QUÉ MULTI-SOURCE MATA
+## 11. FASES DE IMPLEMENTACIÓN
+
+### F7.6a: Profiles + Engine + Session Opener (2 sesiones)
+
+**Sesión 1: DB + Profiles + Context + Master Agent**
+- [ ] Migration `212_intelligence.sql` (4 tablas + RLS)
+- [ ] INSERT master agent `analista` (prompt + tools en DB, no en código)
+- [ ] `types.ts` — interfaces
+- [ ] `profiles/extract-profile.ts` — LLM extrae de texto
+- [ ] `profiles/user-profile.ts` — CRUD
+- [ ] `profiles/memory-enricher.ts` — auto-watchlist
+- [ ] `context-assembler.ts` — junta todo el contexto
+- [ ] Tests: extract-profile, user-profile, memory-enricher, context-assembler
+
+**Sesión 2: Investigator + Synthesizer + Delivery**
+- [ ] `investigator.ts` — agentic loop con tools
+- [ ] `synthesizer.ts` — hallazgos → teasers
+- [ ] `engine.ts` — orquesta todo
+- [ ] `history.ts` — insight_history CRUD
+- [ ] `delivery.ts` — session opener + cache
+- [ ] Tests: investigator (con mocks), synthesizer, engine, delivery
+- [ ] Integrar: session opener en `app/chat/[slug]/page.tsx`
+- [ ] Integrar: memory-enricher en `lib/chat/engine.ts`
+- [ ] Probar con Cedent: verificar insights con data real
+
+### F7.6b: Cron + Polish (1 sesión)
+
+- [ ] `app/api/cron/intelligence/route.ts` — cron matutino
+- [ ] Configurar en `vercel.json`
+- [ ] Feedback tracking: guardar `tapped` cuando user hace click
+- [ ] Onboarding flow: detectar user sin profile → mostrar pregunta inicial
+- [ ] Tests: cron, feedback tracking
+- [ ] Eval: correr contra Cedent 5 días, medir variedad + relevancia
+
+---
+
+## 12. TESTS
+
+| Test | Qué valida |
+|------|-----------|
+| `extractProfile("soy el dueño, me mata la cobranza")` | `role=dueno`, `painPoints` includes `cobranza` |
+| `extractProfile("quiero seguir siliconas y Córdoba")` | `watchlist` includes `siliconas`, `Córdoba` |
+| `assembleContext()` con mocks | Incluye company + profile + sessions + memories + history |
+| `investigate()` con tools mockeadas | Hace ≥3 tool calls, retorna texto con hallazgos |
+| `synthesize()` con hallazgos variados | 2-3 teasers, cada uno tiene emoji + dato + pregunta |
+| `synthesize()` con historial | No repite insights ya mostrados |
+| Mention 3x "Macrodental" | Auto-agrega a watchlist |
+| `getSessionOpener()` con cache fresco | Retorna teasers del cache, marca served |
+| `getSessionOpener()` sin cache | Genera on-demand, cachea |
+| `generateInsights()` E2E con Cedent | Teasers con datos reales y relevantes |
+
+---
+
+## 13. COSTOS
 
 ```
-Solo Odoo (el plan anterior):
-├── Semana 1: "vendiste X, debés Y, stock Z" → interesante
-├── Semana 2: "vendiste X', debés Y', stock Z'" → ok
-├── Semana 3: "vendiste X'', debés Y'', stock Z''" → meh
-├── Semana 4: el usuario deja de abrir
-└── El pool se agota. Siempre son números que cambian un poco.
+Por generación de insights (1 usuario):
+  Context assembler:  ~0 (queries a DB)
+  Investigator:       ~3-8 tool calls × ~200 tokens = ~1600 tokens input
+                      + LLM reasoning: ~500 tokens
+                      = ~$0.002 per run (gemini-2.0-flash)
+  Synthesizer:        ~800 tokens input, ~200 output = ~$0.001
 
-Multi-source (este plan):
-├── Lunes: cliente-fantasma (Odoo) + retenciones IVA (Legal)
-├── Martes: margen oculto (Cross: Odoo×MeLi) + stock vence (Odoo)
-├── Miércoles: 3M lanzó producto (Cross: Industria×Odoo) + zona muerta (Odoo)
-├── Jueves: CRM sucio (Tip) + paritarias (Legal)
-├── Viernes: resumen semanal (Tip) + tendencia mercado (Industry)
-├── ...
-├── Semana 4: todavía hay contenido fresco
-├── Semana 8: nuevas noticias, nuevos precios, nuevas regulaciones
-└── El pool NUNCA se agota porque web+legal+mercado cambian constantemente
+  Total por usuario por día: ~$0.003
+  10 usuarios: ~$0.03/día = ~$0.90/mes
+
+Conclusión: negligible. Menos que una conversación normal.
 ```
 
 ---
 
-## 10. MÉTRICAS DE ÉXITO
+## 14. MÉTRICAS DE ÉXITO
 
-### Dopamine Loop Health
-
-| Métrica | Target | Cómo medir |
-|---------|--------|------------|
-| DAU/MAU ratio | >40% | Logins diarios vs mensuales |
-| Días consecutivos | ≥5/semana | Sesiones con interacción |
-| Tap rate | >35% | `discovery_history.tapped` |
-| Source variety | 4+ sources/semana | History por usuario |
-| Churn 30d | <15% | Usuarios que dejan de abrir |
-
-### Valor generado
-
-| Métrica | Target | Cómo medir |
-|---------|--------|------------|
-| "No sabía eso" moments | ≥3/semana | Taps en cross-source |
-| Acciones post-discovery | ≥1/semana | Tool use después de deep dive |
-| Revenue recuperado | Trackeable | Stock liquidado, deuda cobrada |
+| Métrica | Target |
+|---------|--------|
+| DAU / MAU ratio | >40% |
+| Tap rate en preguntas sugeridas | >30% |
+| Variedad de sources por semana | ≥2 tipos distintos |
+| Session length post-teaser | ≥3 mensajes |
+| "No sabía esto" rate (feedback) | >50% |
 
 ---
 
-## El pitch en una línea
+## 15. EL PITCH
 
-**"Tuqui no te muestra datos. Te dice lo que no sabías que tenías que preguntar. De fuentes que vos solo no cruzarías."**
+**"Tuqui no te muestra datos. Te dice lo que no sabías que tenías que preguntar."**
+
+Es un agente curioso que investiga tu negocio todos los días. A veces encuentra 
+algo en tu ERP. A veces en el mercado. A veces en las noticias legales. Siempre 
+personalizado a lo que te importa. Siempre con una pregunta que te invita a 
+profundizar.
+
+~13 archivos, ~520 líneas. El LLM hace el trabajo pesado.
+Las tools ya existen. El código nuevo es solo orquestación.
 
 ---
 
-*Creado: 2026-02-15*  
-*Actualizado: 2026-02-16 — multi-source architecture, dopamine loop, 6 discovery sources*  
-*Relación: Implementación inmediata en `TUQUI_REFACTOR_PLAN.md` (F7 → F7.5 → F7.6 → F5 → F6 → F8 → F9)*
+*Spec técnica completa. Úsese como guía de implementación.*
+*Referencia: TUQUI_REFACTOR_PLAN.md § F7.6*
