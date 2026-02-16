@@ -13,6 +13,7 @@ import {
     AudioLines, Settings
 } from 'lucide-react'
 import { marked } from 'marked'
+import { useDictation } from '@/lib/hooks/useDictation'
 import { VoiceChat } from '@/components/chat/VoiceChat'
 import { ChatHeader } from '@/components/chat/ChatHeader'
 import { ChatFooter } from '@/components/chat/ChatFooter'
@@ -115,94 +116,17 @@ export default function ChatPage() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [sessions, setSessions] = useState<Session[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
-    const [isRecording, setIsRecording] = useState(false)
-    const [recognition, setRecognition] = useState<any>(null)
-    const [lastTranscript, setLastTranscript] = useState('')
+    const dictation = useDictation('es-AR')
     const [isVoiceOpen, setIsVoiceOpen] = useState(false)
-    const transcriptRef = useRef('')
-
-    // Setup Speech Recognition
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-            if (SpeechRecognition) {
-                const rec = new SpeechRecognition()
-                rec.lang = 'es-AR'
-                rec.continuous = true
-                rec.interimResults = true
-
-                rec.onresult = (event: any) => {
-                    // Get the transcript from the last result only
-                    const last = event.results[event.results.length - 1]
-                    const transcript = last[0].transcript
-                    console.log('[Speech] Transcript:', transcript)
-                    setLastTranscript(transcript)
-                    transcriptRef.current = transcript
-                }
-
-                rec.onerror = (event: any) => {
-                    console.error('Speech recognition error:', event.error)
-                    setIsRecording(false)
-                }
-
-                rec.onend = () => {
-                    console.log('[Speech] onend - isRecording:', isRecording, 'transcript:', transcriptRef.current)
-                    // On mobile, recognition may auto-stop. Don't restart or clear the transcript.
-                    // User must manually confirm to keep transcript.
-                }
-
-                setRecognition(rec)
-            }
-        }
-    }, [])
-
-    const startRecording = async () => {
-        if (!recognition) return
-        console.log('[Speech] Starting recording...')
-        setLastTranscript('')
-        transcriptRef.current = ''
-        
-        // Request mic permission first (required for mobile and some desktop browsers)
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-            // Stop the stream immediately - we just need the permission
-            stream.getTracks().forEach(track => track.stop())
-            
-            recognition.start()
-            setIsRecording(true)
-            console.log('[Speech] Recording started')
-        } catch (err) {
-            console.error('Mic permission denied:', err)
-            // Optionally show error to user
-        }
-    }
-
-    const cancelRecording = () => {
-        if (!recognition) return
-        console.log('[Speech] Canceling recording')
-        recognition.stop()
-        setLastTranscript('')
-        transcriptRef.current = ''
-        setIsRecording(false)
-    }
 
     const confirmRecording = () => {
-        if (!recognition) return
-        console.log('[Speech] Confirming recording, transcript:', transcriptRef.current)
-        recognition.stop()
-
-        const finalTranscript = transcriptRef.current.trim()
-        console.log('[Speech] Final transcript:', finalTranscript)
+        const finalTranscript = dictation.confirm()
         if (finalTranscript) {
             setInput(prev => {
                 const base = prev.trim()
                 return base ? `${base} ${finalTranscript}` : finalTranscript
             })
         }
-
-        setIsRecording(false)
-        setLastTranscript('')
-        transcriptRef.current = ''
     }
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -674,10 +598,10 @@ export default function ChatPage() {
                     setInput={setInput}
                     handleSend={handleSend}
                     isLoading={isLoading}
-                    isRecording={isRecording}
-                    recognition={!!recognition}
-                    startRecording={startRecording}
-                    cancelRecording={cancelRecording}
+                    isRecording={dictation.isRecording}
+                    recognition={dictation.isSupported}
+                    startRecording={dictation.start}
+                    cancelRecording={dictation.cancel}
                     confirmRecording={confirmRecording}
                     setIsVoiceOpen={setIsVoiceOpen}
                 />
