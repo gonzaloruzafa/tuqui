@@ -1,9 +1,12 @@
 /**
  * Company Discovery — Auto-discover company profile from Odoo
  * 
- * Runs ~20 key Odoo queries (using _descripcion) and synthesizes
+ * Runs ~50 Odoo queries (using _descripcion) in batches and synthesizes
  * a rich company profile with LLM. Based on scripts/company-discovery.ts
  * which validated 57/61 queries on Cedent in 73s.
+ * 
+ * Goal: understand the ENTIRE business — sales, margins, customers,
+ * products, suppliers, stock, treasury, CRM, subscriptions.
  */
 
 import { loadSkillsForAgent } from '@/lib/skills/loader'
@@ -21,50 +24,106 @@ type SkillRun = { skillName: string; input: Record<string, unknown>; label: stri
 function buildPeriods() {
   const now = new Date()
   const today = now.toISOString().split('T')[0]
-  const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString().split('T')[0]
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0]
+  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().split('T')[0]
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString().split('T')[0]
+  const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString().split('T')[0]
+
   return {
-    lastTwelveMonths: { start: twelveMonthsAgo, end: today },
+    today,
+    thisMonth: { start: monthStart, end: today },
+    lastMonth: { start: prevMonthStart, end: prevMonthEnd },
+    lastThreeMonths: { start: threeMonthsAgo, end: today },
     lastSixMonths: { start: sixMonthsAgo, end: today },
+    lastTwelveMonths: { start: twelveMonthsAgo, end: today },
   }
 }
 
-/** Core discovery queries — rich enough to fill all form fields */
+/** ALL discovery queries — maximum data extraction like the CLI script */
 function buildDiscoveryRuns(): SkillRun[] {
-  const { lastTwelveMonths, lastSixMonths } = buildPeriods()
+  const p = buildPeriods()
 
   return [
     // === ESTRUCTURA ===
     { skillName: 'get_companies', input: { limit: 10 }, label: 'Empresas del grupo' },
     { skillName: 'get_sales_teams', input: { includeStats: true }, label: 'Equipos de venta' },
 
-    // === VENTAS ===
-    { skillName: 'get_sales_total', input: { period: lastTwelveMonths }, label: 'Ventas totales 12m' },
-    { skillName: 'get_sales_by_customer', input: { period: lastTwelveMonths, limit: 30 }, label: 'Ventas por cliente 12m' },
-    { skillName: 'get_sales_by_product', input: { period: lastTwelveMonths, limit: 30 }, label: 'Ventas por producto 12m' },
-    { skillName: 'get_sales_by_seller', input: { period: lastTwelveMonths, limit: 20 }, label: 'Ventas por vendedor 12m' },
-    { skillName: 'get_sales_by_category', input: { period: lastTwelveMonths, limit: 30 }, label: 'Ventas por categoría 12m' },
-    { skillName: 'get_top_products', input: { period: lastTwelveMonths, limit: 30 }, label: 'Top productos 12m' },
-    { skillName: 'get_top_customers', input: { period: lastTwelveMonths, limit: 30 }, label: 'Top clientes 12m' },
-    { skillName: 'get_sales_margin_summary', input: { period: lastTwelveMonths }, label: 'Resumen margen 12m' },
+    // === VENTAS (panorama completo) ===
+    { skillName: 'get_sales_total', input: { period: p.lastTwelveMonths }, label: 'Ventas totales 12m' },
+    { skillName: 'get_sales_total', input: { period: p.thisMonth }, label: 'Ventas este mes' },
+    { skillName: 'get_sales_total', input: { period: p.lastMonth }, label: 'Ventas mes pasado' },
+    { skillName: 'get_sales_by_customer', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por cliente 12m' },
+    { skillName: 'get_sales_by_product', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por producto 12m' },
+    { skillName: 'get_sales_by_seller', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por vendedor 12m' },
+    { skillName: 'get_top_products', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Top productos 12m (revenue)' },
+    { skillName: 'get_top_products', input: { period: p.lastTwelveMonths, limit: 30, orderBy: 'quantity' }, label: 'Top productos 12m (unidades)' },
+    { skillName: 'get_top_customers', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Top clientes 12m' },
+    { skillName: 'get_sales_by_category', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por categoría 12m' },
+    { skillName: 'get_pending_sale_orders', input: { limit: 50 }, label: 'Pedidos pendientes' },
 
-    // === COMPRAS / PROVEEDORES ===
-    { skillName: 'get_purchases_by_supplier', input: { period: lastTwelveMonths, limit: 30 }, label: 'Top proveedores 12m' },
+    // === COMPARATIVAS ===
+    { skillName: 'compare_sales_periods', input: {
+      currentPeriod: { ...p.thisMonth, label: 'Este mes' },
+      previousPeriod: { ...p.lastMonth, label: 'Mes pasado' },
+      includeProducts: true, includeCustomers: true, limit: 10,
+    }, label: 'Comparativa este mes vs pasado' },
+
+    // === MÁRGENES ===
+    { skillName: 'get_sales_margin_summary', input: { period: p.lastTwelveMonths }, label: 'Resumen margen 12m' },
+    { skillName: 'get_product_margin', input: { period: p.lastTwelveMonths, limit: 30, sortBy: 'margin_total' }, label: 'Margen por producto (total) 12m' },
+    { skillName: 'get_product_margin', input: { period: p.lastTwelveMonths, limit: 30, sortBy: 'margin_percent' }, label: 'Margen por producto (%) 12m' },
+
+    // === FACTURACIÓN / DEUDA ===
+    { skillName: 'get_debt_by_customer', input: { limit: 50, includeOverdueDays: true }, label: 'Deuda por cliente' },
+    { skillName: 'get_invoices_by_customer', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Facturas por cliente 12m' },
+    { skillName: 'get_overdue_invoices', input: { limit: 50, groupByCustomer: true }, label: 'Facturas vencidas' },
+    { skillName: 'get_invoice_lines', input: { period: p.lastThreeMonths, limit: 100, groupBy: 'product' }, label: 'Líneas factura por producto 3m' },
+    { skillName: 'get_invoice_lines', input: { period: p.lastThreeMonths, limit: 100, groupBy: 'customer' }, label: 'Líneas factura por cliente 3m' },
 
     // === STOCK ===
-    { skillName: 'get_product_stock', input: { limit: 30 }, label: 'Stock productos' },
+    { skillName: 'get_product_stock', input: { limit: 50 }, label: 'Stock productos' },
     { skillName: 'get_stock_valuation', input: {}, label: 'Valuación de inventario' },
+    { skillName: 'get_top_stock_products', input: { limit: 30 }, label: 'Top stock por valor' },
+    { skillName: 'get_low_stock_products', input: { threshold: 10, limit: 50 }, label: 'Productos bajo stock' },
+    { skillName: 'get_stock_rotation', input: { period: p.lastSixMonths, limit: 30 }, label: 'Rotación stock 6m' },
 
-    // === CLIENTES ===
-    { skillName: 'get_new_customers', input: { period: lastSixMonths, limit: 30, includeDetails: true }, label: 'Clientes nuevos 6m' },
+    // === COMPRAS / PROVEEDORES ===
+    { skillName: 'get_purchases_by_supplier', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Top proveedores 12m' },
+    { skillName: 'get_purchase_orders', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Órdenes de compra 12m' },
+    { skillName: 'get_vendor_bills', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Facturas proveedor 12m' },
 
-    // === TESORERÍA ===
+    // === TESORERÍA / CONTABILIDAD ===
     { skillName: 'get_cash_balance', input: { includeBanks: true }, label: 'Saldos caja y bancos' },
-    { skillName: 'get_debt_by_customer', input: { limit: 30, includeOverdueDays: true }, label: 'Deuda por cliente' },
+    { skillName: 'get_accounts_receivable', input: { groupByCustomer: true, limit: 50 }, label: 'Cuentas por cobrar' },
+    { skillName: 'get_accounts_receivable', input: { overdueOnly: true, groupByCustomer: true, limit: 50 }, label: 'CxC vencidas' },
+    { skillName: 'get_accounts_payable', input: { groupBySupplier: true, limit: 50 }, label: 'Cuentas por pagar' },
+    { skillName: 'get_ar_aging', input: { groupByCustomer: true, limit: 30 }, label: 'Aging deuda clientes' },
+
+    // === PAGOS ===
+    { skillName: 'get_payments_received', input: { period: p.lastTwelveMonths, groupByJournal: true }, label: 'Cobros por diario 12m' },
+    { skillName: 'get_payments_received', input: { period: p.lastThreeMonths, groupByCustomer: true, limit: 30 }, label: 'Cobros por cliente 3m' },
+    { skillName: 'get_payments_made', input: { period: p.lastTwelveMonths, groupByJournal: true }, label: 'Pagos por diario 12m' },
+    { skillName: 'get_payments_made', input: { period: p.lastThreeMonths, groupBySupplier: true, limit: 30 }, label: 'Pagos a proveedores 3m' },
+
+    // === CLIENTES (inteligencia) ===
+    { skillName: 'get_new_customers', input: { period: p.lastSixMonths, limit: 50, includeDetails: true }, label: 'Clientes nuevos 6m' },
+    { skillName: 'get_inactive_customers', input: { limit: 50, includeDetails: true }, label: 'Clientes inactivos' },
+
+    // === CRM ===
+    { skillName: 'get_crm_pipeline', input: { groupByStage: true, limit: 100 }, label: 'Pipeline CRM' },
+    { skillName: 'get_crm_pipeline', input: { status: 'won', period: p.lastSixMonths, groupByStage: true, limit: 50 }, label: 'Oportunidades ganadas 6m' },
+    { skillName: 'get_stale_opportunities', input: { staleDays: 30, limit: 30 }, label: 'Oportunidades estancadas' },
+    { skillName: 'get_lost_opportunities', input: { period: p.lastTwelveMonths, limit: 30 }, label: 'Oportunidades perdidas 12m' },
+
+    // === SUSCRIPCIONES ===
+    { skillName: 'get_subscription_health', input: { expiringWithinDays: 90, limit: 30 }, label: 'Salud suscripciones' },
+    { skillName: 'get_subscription_churn', input: { compareWithPrevious: true }, label: 'Churn suscripciones' },
   ]
 }
 
-const BATCH_SIZE = 5
+const BATCH_SIZE = 6
 const BATCH_DELAY_MS = 200
 
 /**
@@ -133,36 +192,41 @@ async function synthesizeProfile(
     .map(d => `### ${d.label}\n${d.text}`)
     .join('\n\n')
 
-  const prompt = `Sos un analista de negocios. Analizá datos REALES de Odoo y generá un perfil de empresa estructurado.
+  const prompt = `Sos un analista de negocios senior. Analizá datos REALES de Odoo y generá un perfil de empresa EXHAUSTIVO.
 
-REGLAS:
-- Usá EXCLUSIVAMENTE los datos proporcionados. NUNCA inventes.
-- Mencioná nombres reales de clientes, productos, proveedores con cifras.
-- La descripción debe ser RICA y detallada (5-8 oraciones mínimo).
-- En topCustomers y topProducts incluí TODOS los relevantes (hasta 10 cada uno).
-- Las "notes" de cada item deben incluir datos concretos (montos, %, volumen).
+REGLAS ESTRICTAS:
+- Usá EXCLUSIVAMENTE datos proporcionados. NUNCA inventes nombres, cifras ni entidades.
+- Mencioná TODOS los nombres que aparezcan: clientes, vendedores, productos, proveedores — con cifras exactas.
+- La descripción debe ser un DOSSIER COMPLETO del negocio, no un resumen ejecutivo.
+- Hacé CÁLCULOS: concentración de clientes (top 5 = X% del total), margen bruto, ticket promedio, etc.
 
 Respondé SOLO con JSON válido, sin markdown:
 {
-  "industry": "rubro/industria detectada (basada en productos y clientes reales)",
-  "description": "Descripción EXTENSA de la empresa: qué vende, a quién, escala de facturación anual, cantidad de clientes, estructura (multi-empresa o no), equipos de venta, moneda de operación, margen general. Mínimo 5 oraciones con datos concretos.",
-  "topCustomers": [{"name": "Nombre Real", "notes": "Facturación $X, X% del total, observación relevante"}],
-  "topProducts": [{"name": "Nombre Real", "notes": "Revenue $X, margen X%, unidades vendidas si disponible"}]
+  "industry": "rubro/industria detectada — basado en los productos reales y tipo de clientes",
+  "description": "DOSSIER EXTENSO (mínimo 10-15 oraciones). Debe cubrir:\\n1. Qué vende la empresa (productos/servicios concretos con nombres)\\n2. A quién le vende (tipo de clientes: empresas, gobierno, profesionales, etc.)\\n3. Escala: facturación anual total, cantidad de clientes activos, cantidad de productos\\n4. Estructura: ¿multi-empresa? ¿cuántas compañías? ¿equipos de venta?\\n5. Vendedores clave y su peso en la facturación\\n6. Margen bruto general y tendencia\\n7. Moneda(s) de operación\\n8. Proveedores principales\\n9. Situación de stock/inventario\\n10. Posición financiera: caja, CxC, CxP, morosidad\\n11. Pipeline comercial / CRM si hay datos\\n12. Cualquier patrón relevante (estacionalidad, concentración, riesgo)",
+  "topCustomers": [{"name": "Nombre REAL del cliente", "notes": "Facturación $X (X% del total), deuda $X, X días de mora si aplica, categoría/rubro si se puede inferir"}],
+  "topProducts": [{"name": "Nombre REAL del producto", "notes": "Revenue $X, margen X%, unidades vendidas X, categoría, stock actual si disponible"}]
 }
 
-Máximo 10 clientes y 10 productos. Ordenalos por importancia/facturación.
-Todo en español argentino, conciso pero con datos duros.
+IMPORTANTE sobre topCustomers y topProducts:
+- Incluí TODOS los que tengan data relevante, hasta 15 cada uno
+- Ordenalos por facturación/revenue de mayor a menor
+- Las "notes" deben ser RICAS en datos: montos, porcentajes, deuda, mora, margen, stock
+- Si un cliente tiene deuda vencida, mencionalo en sus notes
+- Si un producto tiene margen bajo o stock crítico, mencionalo
+
+Todo en español argentino, datos duros, sin florituras.
 
 ---
 
-DATA DE ODOO (${descriptions.length} reportes):
+DATA COMPLETA DE ODOO (${descriptions.length} reportes):
 
 ${dataDump}`
 
   const response = await client.models.generateContent({
     model: 'gemini-2.0-flash',
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    config: { maxOutputTokens: 4096 },
+    config: { maxOutputTokens: 8192 },
   })
 
   const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
