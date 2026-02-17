@@ -1,6 +1,6 @@
 # TUQUI INTELLIGENCE LAYER — Curious Analyst Agent
 
-> **Última actualización:** 2026-02-16  
+> **Última actualización:** 2026-02-17  
 > **Principio:** La inteligencia está en el LLM, no en el código  
 > **Referencia:** TUQUI_REFACTOR_PLAN.md § F7.6  
 > **Depende de:** F5 (PWA + Push) ya implementado — el delivery incluye push notification
@@ -169,13 +169,44 @@ Día 9: Tuqui abre con insight sobre Macrodental sin que lo pida.
 Entidad mencionada ≥3 veces → se agrega al watchlist del user profile.
 El investigator ve el watchlist → prioriza buscar data sobre esas entidades.
 
-### 1.3 Company profile (ya existe)
+### 1.3 User Discovery desde Odoo (nuevo — pre-intelligence)
+
+Complementa el onboarding conversacional con data REAL de Odoo.
+Usando el skill `get_user_activity`, Tuqui infiere automáticamente:
+
+- **Rol real** del usuario (por actividades, mensajes, órdenes que genera)
+- **Áreas de interés** (modelos con los que más interactúa: ventas, stock, CRM...)
+- **Tono de comunicación** (análisis de mensajes del chatter)
+- **Contexto profesional** (departamento, cargo, equipo según `hr.employee`)
+
+```
+Odoo activity del usuario
+  ├─ mail.message  → temas frecuentes, tono, con quién habla
+  ├─ mail.activity → tareas asignadas, deadlines, tipo de trabajo
+  ├─ sale.order    → si genera pedidos (es comercial)
+  ├─ purchase.order → si genera compras (es de compras)
+  └─ hr.employee   → cargo, departamento, manager
+```
+
+El LLM sintetiza un mini-perfil (~100 tokens) que se guarda en `user_profiles.bio`
+y se usa como contexto en todas las conversaciones.
+
+**Implementación:**
+- Skill `get_user_activity` → trae actividad reciente filtrando por user_id de Odoo
+- `lib/user/discovery.ts` → orquesta queries + LLM synthesis (análogo a company discovery)
+- Botón "Detectar perfil desde Odoo" en la UI de perfil de usuario
+- Se ejecuta también como parte del onboarding (post-conexión Odoo)
+
+**Timing:** Se implementa en F7.5 (pre-intelligence) para que el intelligence layer
+arranche con perfiles ricos desde el día 1.
+
+### 1.4 Company profile (ya existe)
 
 `company_contexts` ya tiene: industry, key_products, key_customers, business_rules.
 `getCompanyContext()` en `context-injector.ts` ya lo arma.
 El investigator lo recibe como parte del contexto.
 
-### 1.4 Chats recientes (ya existe)
+### 1.5 Chats recientes (ya existe)
 
 `chat_sessions.title` tiene títulos auto-generados de cada conversación.
 `getRecentUserMessages()` en `chat-history.ts` existe pero no se usa.

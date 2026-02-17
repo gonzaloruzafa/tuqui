@@ -94,6 +94,7 @@ export { getRecentEmails } from './get-recent-emails';
 
 // Users Skills
 export { getUsers } from './get-users';
+export { getUserActivity } from './get-user-activity';
 
 // Skill array for registration
 import { getSalesTotal } from './get-sales-total';
@@ -165,6 +166,7 @@ import { getRecentEmails } from './get-recent-emails';
 
 // Users Skills
 import { getUsers } from './get-users';
+import { getUserActivity } from './get-user-activity';
 
 export const odooSkills = [
   // Sales (10)
@@ -237,6 +239,7 @@ export const odooSkills = [
   getChatterMessages,
   getMailActivities,
   getRecentEmails,
-  // Users (1)
+  // Users (2)
   getUsers,
+  getUserActivity,
 ];

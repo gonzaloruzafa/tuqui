@@ -225,18 +225,21 @@ async function synthesizeProfile(
     .map(d => `### ${d.label}\n${d.text}`)
     .join('\n\n')
 
-  const prompt = `Sos un analista de negocios senior. Analizá datos REALES de Odoo y generá un perfil de empresa EXHAUSTIVO.
+  const prompt = `Sos un analista de negocios senior. Analizá datos REALES de Odoo y generá un PERFIL DE CONTEXTO de la empresa.
+
+OBJETIVO: Generar una descripción que sirva como MARCO DE REFERENCIA para cualquier consulta futura. Quien lea esto debe entender DESDE DÓNDE VIENE esta empresa: qué hace, a qué escala, cómo opera, qué estructura tiene.
 
 REGLAS ESTRICTAS:
 - Usá EXCLUSIVAMENTE datos proporcionados. NUNCA inventes nombres, cifras ni entidades.
-- Mencioná TODOS los nombres que aparezcan: clientes, vendedores, productos, proveedores — con cifras exactas.
-- La descripción debe ser un DOSSIER COMPLETO del negocio, no un resumen ejecutivo.
-- Hacé CÁLCULOS: concentración de clientes (top 5 = X% del total), margen bruto, ticket promedio, etc.
+- Priorizá el CONTEXTO GENERAL sobre detalles específicos: industria, escala, estructura, perfil de clientes/productos, modelo de negocio.
+- Mencioná nombres concretos (clientes, productos, vendedores) SOLO cuando tengan evidencia fuerte con cifras reales. No listes nombres sin datos que los respalden.
+- La descripción debe responder: ¿qué hace esta empresa? ¿a quién le vende? ¿de qué tamaño es? ¿cómo está organizada? ¿cuál es su situación financiera general?
+- Evitá ir a lo micro sin evidencia. Mejor "tiene ~50 clientes activos, concentrados en el sector farmacéutico" que listar 15 nombres sin contexto.
 
 Respondé SOLO con JSON válido, sin markdown:
 {
   "industry": "rubro/industria detectada — basado en los productos reales y tipo de clientes",
-  "description": "DOSSIER EXTENSO (mínimo 10-15 oraciones). Debe cubrir:\\n1. Qué vende la empresa (productos/servicios concretos con nombres)\\n2. A quién le vende (tipo de clientes: empresas, gobierno, profesionales, etc.)\\n3. Escala: facturación anual total, cantidad de clientes activos, cantidad de productos\\n4. Estructura: ¿multi-empresa? ¿cuántas compañías? ¿equipos de venta?\\n5. Vendedores clave y su peso en la facturación\\n6. Margen bruto general y tendencia\\n7. Moneda(s) de operación\\n8. Proveedores principales\\n9. Situación de stock/inventario\\n10. Posición financiera: caja, CxC, CxP, morosidad\\n11. Pipeline comercial / CRM si hay datos\\n12. Equipo humano: departamentos, cantidad de empleados, estructura organizacional\\n13. Usuarios del sistema: quiénes usan Odoo, roles\\n14. Comunicación: tono de emails y chatter, actividades pendientes\\n15. Cualquier patrón relevante (estacionalidad, concentración, riesgo)",
+  "description": "PERFIL DE CONTEXTO (10-15 oraciones). Debe responder estas preguntas:\\n1. ¿Qué vende la empresa? (tipo de productos/servicios, no lista exhaustiva)\\n2. ¿A quién le vende? (perfil de clientes: empresas, gobierno, profesionales, sectores)\\n3. ¿De qué tamaño es? (facturación anual aproximada, cantidad de clientes activos, productos)\\n4. ¿Cómo está organizada? (multi-empresa, equipos de venta, departamentos, cantidad de empleados)\\n5. ¿Cómo está financieramente? (situación general de caja, deuda, morosidad — sin listar cada cliente moroso)\\n6. ¿Qué modelo de negocio tiene? (distribución, fabricación, servicios, suscripciones, mixto)\\n7. Margen bruto general y moneda(s) de operación\\n8. Proveedores: perfil general (cuántos, de qué tipo), no lista\\n9. Stock: ¿manejan inventario? ¿es crítico? situación general\\n10. CRM/Pipeline: ¿tienen proceso comercial activo? magnitud general\\n11. Equipo humano: departamentos principales, estructura organizacional\\n12. Comunicación: tono general (formal/informal), canales que usan\\nIMPORTANTE: Priorizá el MARCO GENERAL. Los detalles específicos (nombres, cifras exactas) van en topCustomers y topProducts, no en la descripción.",
   "topCustomers": [{"name": "Nombre REAL del cliente", "notes": "Facturación $X (X% del total), deuda $X, X días de mora si aplica, categoría/rubro si se puede inferir"}],
   "topProducts": [{"name": "Nombre REAL del producto", "notes": "Revenue $X, margen X%, unidades vendidas X, categoría, stock actual si disponible"}]
 }
