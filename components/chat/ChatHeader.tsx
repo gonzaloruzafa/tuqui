@@ -9,7 +9,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
-    const { data: session } = useSession()
+    const { data: session, status } = useSession()
 
     return (
         <div className="absolute top-0 left-0 right-0 z-20 h-28 bg-gradient-to-b from-white from-30% to-transparent pointer-events-none">
@@ -24,15 +24,24 @@ export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
                     <img src="/adhoc-logo.png" alt="Adhoc" className="h-7 w-auto md:hidden" />
                 </div>
                 <div className="flex items-center gap-2">
-                    {session?.user && <UserMenu user={session.user} />}
-                    {session?.isAdmin && (
-                        <a
-                            href="/admin"
-                            className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors"
-                            title="Configuración"
-                        >
-                            <Settings className="w-5 h-5" />
-                        </a>
+                    {status === 'loading' ? (
+                        <>
+                            <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
+                            <div className="w-8 h-8 rounded-lg bg-gray-100 animate-pulse" />
+                        </>
+                    ) : (
+                        <>
+                            {session?.user && <UserMenu user={session.user} />}
+                            {session?.isAdmin && (
+                                <a
+                                    href="/admin"
+                                    className="p-2 hover:bg-adhoc-lavender/20 rounded-lg text-gray-500 hover:text-adhoc-violet transition-colors"
+                                    title="Configuración"
+                                >
+                                    <Settings className="w-5 h-5" />
+                                </a>
+                            )}
+                        </>
                     )}
                 </div>
             </header>
