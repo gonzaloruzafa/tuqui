@@ -15,7 +15,16 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
     if (!session?.user) redirect('/')
 
     const isAdmin = !!session.isAdmin
-    const isSelf = session.user?.id === id
+
+    // Check if viewing own page (compare by auth_user_id since session.user.id is the auth UUID)
+    const db = (await import('@/lib/supabase/client')).getClient()
+    const { data: targetUser } = await db
+      .from('users')
+      .select('auth_user_id')
+      .eq('id', id)
+      .eq('tenant_id', session.tenant?.id ?? '')
+      .single()
+    const isSelf = !!targetUser && targetUser.auth_user_id === session.user?.id
 
     // Non-admins can only view their own page
     if (!isAdmin && !isSelf) redirect('/')

@@ -18,19 +18,19 @@ export async function GET(req: NextRequest) {
   }
 
   // Check permission: admin can discover any user, non-admin only self
-  const isSelf = session.user.id === targetUserId
-  if (!session.isAdmin && !isSelf) {
-    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
-  }
-
-  // Get target user email
+  // session.user.id is the auth UUID, targetUserId is the users table UUID
   const db = getClient()
   const { data: targetUser } = await db
     .from('users')
-    .select('name, email')
+    .select('name, email, auth_user_id')
     .eq('id', targetUserId)
     .eq('tenant_id', session.tenant.id)
     .single()
+
+  const isSelf = targetUser?.auth_user_id === session.user.id
+  if (!session.isAdmin && !isSelf) {
+    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
+  }
 
   if (!targetUser?.name) {
     return NextResponse.json({ success: false, error: 'Usuario sin nombre configurado' }, { status: 404 })
