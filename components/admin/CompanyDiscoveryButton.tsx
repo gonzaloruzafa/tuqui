@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { runCompanyDiscovery } from '@/app/admin/company/actions'
 
+/** Custom event name for auto-filling form fields */
+export const AUTOFILL_EVENT = 'tuqui:autofill'
+
 export function CompanyDiscoveryButton() {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -11,12 +14,21 @@ export function CompanyDiscoveryButton() {
   const handleDiscovery = () => {
     setError(null)
     startTransition(async () => {
-      const result = await runCompanyDiscovery()
-      if (result.success && result.data) {
-        fillFormField('industry', result.data.industry)
-        fillFormField('description', result.data.description)
-      } else {
-        setError(result.error || 'Error desconocido')
+      try {
+        const result = await runCompanyDiscovery()
+        if (result.success && result.data) {
+          // Dispatch custom events for each field — DictationTextarea and inputs listen for these
+          for (const [name, value] of Object.entries(result.data)) {
+            if (typeof value === 'string' && value) {
+              window.dispatchEvent(new CustomEvent(AUTOFILL_EVENT, { detail: { name, value } }))
+            }
+          }
+        } else {
+          setError(result.error || 'Error desconocido')
+        }
+      } catch (e) {
+        console.error('[Discovery] Client error:', e)
+        setError('Error inesperado al conectar con Odoo')
       }
     })
   }
@@ -44,19 +56,4 @@ export function CompanyDiscoveryButton() {
       )}
     </div>
   )
-}
-
-/** Fill a native form field by name (for server-rendered inputs) */
-function fillFormField(name: string, value: string) {
-  const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | null
-  if (el && value) {
-    // Trigger React-compatible value setter
-    const nativeInput = Object.getOwnPropertyDescriptor(
-      el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,
-      'value'
-    )
-    nativeInput?.set?.call(el, value)
-    el.dispatchEvent(new Event('input', { bubbles: true }))
-    el.dispatchEvent(new Event('change', { bubbles: true }))
-  }
 }

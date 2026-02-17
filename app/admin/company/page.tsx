@@ -13,6 +13,7 @@ import { DocumentSelector } from '@/components/ui/DocumentSelector'
 import { getCompanyContext } from '@/lib/company/context-injector'
 import { DictationTextarea } from '@/components/ui/DictationTextarea'
 import { CompanyDiscoveryButton } from '@/components/admin/CompanyDiscoveryButton'
+import { AutofillInput } from '@/components/admin/AutofillInput'
 import Link from 'next/link'
 
 async function getTenantData(tenantId: string) {
@@ -85,7 +86,7 @@ export default async function AdminCompanyPage() {
             <div className="p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputField label="Nombre Comercial" name="name" icon={Building} defaultValue={tenant.name || ''} />
-                <InputField label="Industria / Rubro" name="industry" icon={Building} defaultValue={basics.industry || ''} placeholder="Ej: Distribuidora odontológica" />
+                <AutofillInput label="Industria / Rubro" name="industry" defaultValue={basics.industry || ''} placeholder="Ej: Distribuidora odontológica" />
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Descripción</label>
                   <DictationTextarea

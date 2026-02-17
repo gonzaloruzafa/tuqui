@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Mic, Square } from 'lucide-react'
 import { useDictation } from '@/lib/hooks/useDictation'
+import { AUTOFILL_EVENT } from '@/components/admin/CompanyDiscoveryButton'
 
 interface DictationTextareaProps {
   name: string
@@ -15,6 +16,7 @@ interface DictationTextareaProps {
 /**
  * Textarea with dictation 🎤 button.
  * Reusable for any form field that needs speech-to-text.
+ * Also listens for AUTOFILL_EVENT to update value programmatically.
  */
 export function DictationTextarea({
   name,
@@ -25,6 +27,16 @@ export function DictationTextarea({
 }: DictationTextareaProps) {
   const [value, setValue] = useState(defaultValue)
   const dictation = useDictation()
+
+  // Listen for autofill events (e.g. from CompanyDiscoveryButton)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { name: fieldName, value: fieldValue } = (e as CustomEvent).detail
+      if (fieldName === name) setValue(fieldValue)
+    }
+    window.addEventListener(AUTOFILL_EVENT, handler)
+    return () => window.removeEventListener(AUTOFILL_EVENT, handler)
+  }, [name])
 
   const handleDictation = () => {
     if (dictation.isRecording) {
