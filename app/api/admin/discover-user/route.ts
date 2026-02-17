@@ -32,14 +32,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
   }
 
-  if (!targetUser?.name) {
-    return NextResponse.json({ success: false, error: 'Usuario sin nombre configurado' }, { status: 404 })
+  // Build search name: prefer users.name, then profile display_name, then email prefix
+  let searchName = targetUser?.name
+  if (!searchName) {
+    const { data: profile } = await db
+      .from('user_profiles')
+      .select('display_name')
+      .eq('user_id', targetUserId)
+      .eq('tenant_id', session.tenant.id)
+      .single()
+    searchName = profile?.display_name
+  }
+  if (!searchName && targetUser?.email) {
+    searchName = targetUser.email.split('@')[0].replace(/[._-]/g, ' ')
+  }
+  if (!searchName) {
+    return NextResponse.json({ success: false, error: 'No se pudo determinar el nombre del usuario' })
   }
 
   const result = await discoverUserProfile(
     session.tenant.id,
     session.user.email,
-    targetUser.name
+    searchName
   )
 
   if (!result) {

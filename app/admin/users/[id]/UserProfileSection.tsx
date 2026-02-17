@@ -22,6 +22,7 @@ export function UserProfileSection({ userId, profile }: Props) {
   const [isPending, startTransition] = useTransition()
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [discovering, setDiscovering] = useState(false)
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null)
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -40,9 +41,9 @@ export function UserProfileSection({ userId, profile }: Props) {
 
   const handleDiscovery = async () => {
     setDiscovering(true)
+    setDiscoveryError(null)
     try {
       const res = await fetch(`/api/admin/discover-user?userId=${userId}`)
-      if (!res.ok) throw new Error('Error')
       const data = await res.json()
       if (data.success && data.data) {
         // Autofill form fields
@@ -68,9 +69,12 @@ export function UserProfileSection({ userId, profile }: Props) {
             }
           }
         }
+      } else {
+        setDiscoveryError(data.error || 'No se pudo detectar el perfil')
       }
     } catch (e) {
       console.error('[UserDiscovery] Error:', e)
+      setDiscoveryError('Error al conectar con Odoo')
     } finally {
       setDiscovering(false)
     }
@@ -97,6 +101,9 @@ export function UserProfileSection({ userId, profile }: Props) {
         <p className="text-sm text-gray-500 mt-1">
           Tuqui usa estos datos para personalizar tus respuestas
         </p>
+        {discoveryError && (
+          <p className="text-xs text-red-500 mt-1">{discoveryError}</p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} data-profile-form className="p-6 space-y-5">
