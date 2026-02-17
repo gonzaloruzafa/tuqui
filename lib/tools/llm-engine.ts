@@ -333,9 +333,12 @@ export async function generateTextWithThinking({
                 let error: string | undefined
                 const startTime = Date.now()
                 const source = getToolSource(name)
+                // Block native search grounding (google_search:* or web_search) when agent lacks web_search tool
+                const isNativeSearch = name.startsWith('google_search') || (name === 'web_search' && !tool)
+                const isBlockedSearch = isNativeSearch && !(tools && 'web_search' in tools)
                 
-                // Emit thinking step: running
-                if (onThinkingStep) {
+                // Emit thinking step: running (skip for blocked native search)
+                if (onThinkingStep && !isBlockedSearch) {
                     onThinkingStep({
                         tool: name,
                         source,
@@ -345,15 +348,30 @@ export async function generateTextWithThinking({
                 }
                 
                 if (!tool || !tool.execute) {
-                    if (name === 'odoo_intelligent_query') {
+                    // Native search grounding — Gemini may invoke google_search:* or web_search natively
+                    if (name.startsWith('google_search') || name === 'web_search') {
+                        const hasWebSearch = tools && 'web_search' in tools
+                        if (hasWebSearch) {
+                            // Agent has web_search → allow grounding
+                            toolResult = { result: 'Search grounding executed by model' }
+                        } else {
+                            // Agent does NOT have web_search → block grounding
+                            toolResult = { 
+                                error: 'NO tenés acceso a búsqueda web. Respondé SOLO con la información de las herramientas disponibles (knowledge_base, etc). NO busques en internet.'
+                            }
+                            error = 'Search not authorized for this agent'
+                            console.warn(`[NativeGeminiV2] Blocked native search (${name}) — agent lacks web_search tool`)
+                        }
+                    } else if (name === 'odoo_intelligent_query') {
                         toolResult = { 
                             error: `La tool "odoo_intelligent_query" fue reemplazada. Usá: ` +
                                    `get_sales_total, get_invoices_by_customer, get_debt_by_customer, etc.`
                         }
+                        error = `Tool ${name} not found`
                     } else {
                         toolResult = { error: `Tool ${name} no está disponible.` }
+                        error = `Tool ${name} not found`
                     }
-                    error = `Tool ${name} not found`
                 } else {
                     try {
                         toolResult = await tool.execute(args)
@@ -366,8 +384,8 @@ export async function generateTextWithThinking({
                 
                 const durationMs = Date.now() - startTime
                 
-                // Emit thinking step: done or error
-                if (onThinkingStep) {
+                // Emit thinking step: done or error (skip for blocked native search)
+                if (onThinkingStep && !isBlockedSearch) {
                     onThinkingStep({
                         tool: name,
                         source,

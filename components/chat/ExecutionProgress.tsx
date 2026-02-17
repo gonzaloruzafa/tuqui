@@ -83,6 +83,7 @@ export function ExecutionProgress({ step }: ExecutionProgressProps) {
     const toolName = TOOL_NAMES[displayStep.tool] || displayStep.tool.replace(/_/g, ' ')
     const sourceName = SOURCE_NAMES[displayStep.source]
     const logo = LOGOS[displayStep.source]
+    const agentLabel = displayStep.agentName
     
     const statusEmoji = displayStep.status === 'running' ? '⚡' : 
                        displayStep.status === 'done' ? '✓' : '⚠️'
@@ -97,6 +98,9 @@ export function ExecutionProgress({ step }: ExecutionProgressProps) {
                 {statusEmoji}
             </span>
             <span className="flex items-center gap-1.5">
+                {agentLabel && (
+                    <span className="text-adhoc-violet font-medium text-xs">{agentLabel} ·</span>
+                )}
                 {logo}
                 <span className="text-gray-600">{toolName}</span>
             </span>

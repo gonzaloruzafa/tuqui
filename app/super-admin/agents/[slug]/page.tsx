@@ -601,7 +601,7 @@ export default function SuperAdminAgentEditorPage() {
                 {/* Danger Zone */}
                 {!isCreateMode && (
                 <section className="bg-white rounded-3xl border border-red-200 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-red-50 bg-red-50/50">
+                    <div className="px-4 py-4 border-b border-red-50 bg-red-50/50">
                         <div className="flex items-center gap-2">
                             <Trash2 className="w-5 h-5 text-red-600" />
                             <h2 className="text-lg font-semibold text-gray-900">Zona de Peligro</h2>
@@ -610,7 +610,7 @@ export default function SuperAdminAgentEditorPage() {
                             Eliminar este agente master, sus documentos y todas las instancias en tenants. Esta acción no se puede deshacer.
                         </p>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                         {!showDeleteConfirm ? (
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}

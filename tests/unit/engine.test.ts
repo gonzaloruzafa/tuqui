@@ -23,6 +23,10 @@ vi.mock('@/lib/agents/orchestrator', () => ({
     orchestrate: vi.fn()
 }))
 
+vi.mock('@/lib/agents/service', () => ({
+    getAgentBySlug: vi.fn()
+}))
+
 vi.mock('@/lib/chat/build-system-prompt', () => ({
     buildSystemPrompt: vi.fn()
 }))
@@ -43,6 +47,7 @@ vi.mock('@/lib/validation/response-guard', () => ({
 
 const { processChatRequest } = await import('@/lib/chat/engine')
 const { orchestrate } = await import('@/lib/agents/orchestrator')
+const { getAgentBySlug } = await import('@/lib/agents/service')
 const { buildSystemPrompt } = await import('@/lib/chat/build-system-prompt')
 const { getToolsForAgent } = await import('@/lib/tools/executor')
 const { generateTextWithThinking } = await import('@/lib/tools/llm-engine')
@@ -50,6 +55,7 @@ const { checkUsageLimit, trackUsage } = await import('@/lib/billing/tracker')
 const { ResponseGuard } = await import('@/lib/validation/response-guard')
 
 const mockedOrchestrate = vi.mocked(orchestrate)
+const mockedGetAgentBySlug = vi.mocked(getAgentBySlug)
 const mockedBuildPrompt = vi.mocked(buildSystemPrompt)
 const mockedGetTools = vi.mocked(getToolsForAgent)
 const mockedGenerate = vi.mocked(generateTextWithThinking)
@@ -83,6 +89,7 @@ describe('processChatRequest (Unified Engine)', () => {
             agent: { id: 'agent-1', slug: 'tuqui', name: 'Tuqui', description: null, tools: ['odoo'] },
             decision: { agentSlug: 'tuqui', confidence: 'high', reason: 'general' }
         })
+        mockedGetAgentBySlug.mockResolvedValue(baseAgent as any)
         mockedBuildPrompt.mockResolvedValue('SYSTEM PROMPT BUILT')
         mockedGetTools.mockResolvedValue({ get_sales_total: { description: 'ventas', execute: vi.fn() } } as any)
         mockedGenerate.mockResolvedValue({
@@ -338,9 +345,15 @@ describe('processChatRequest (Unified Engine)', () => {
             onThinkingStep: onStep, onThinkingSummary: onSummary
         })
 
+        // onThinkingStep is wrapped to inject agentName, so check it's a function
         expect(mockedGenerate).toHaveBeenCalledWith(expect.objectContaining({
-            onThinkingStep: onStep,
+            onThinkingStep: expect.any(Function),
             onThinkingSummary: onSummary
         }))
+
+        // Verify the wrapper calls original with agentName injected
+        const passedCallback = mockedGenerate.mock.calls[0][0].onThinkingStep!
+        passedCallback({ tool: 'test', source: 'general', status: 'running', startedAt: Date.now() })
+        expect(onStep).toHaveBeenCalledWith(expect.objectContaining({ tool: 'test', agentName: 'Tuqui' }))
     })
 })

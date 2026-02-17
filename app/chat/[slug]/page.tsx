@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { marked } from 'marked'
 import { useDictation } from '@/lib/hooks/useDictation'
+import { parseMention } from '@/lib/chat/parse-mention'
 import { VoiceChat } from '@/components/chat/VoiceChat'
 import { ChatHeader } from '@/components/chat/ChatHeader'
 import { ChatFooter } from '@/components/chat/ChatFooter'
@@ -77,6 +78,7 @@ interface Message {
     content: string
     rawContent?: string
     sources?: ThinkingSource[]  // Sources used (for ToolBadge display)
+    agentName?: string  // Agent that responded (for attribution)
 }
 
 interface Session {
@@ -113,11 +115,13 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [currentStep, setCurrentStep] = useState<ThinkingStep | null>(null) // Current executing step
     const [usedSources, setUsedSources] = useState<ThinkingSource[]>([]) // Sources for final badge
+    const [respondedAgent, setRespondedAgent] = useState<string | undefined>(undefined)
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [sessions, setSessions] = useState<Session[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionIdParam)
     const dictation = useDictation('es-AR')
     const [isVoiceOpen, setIsVoiceOpen] = useState(false)
+    const [allAgents, setAllAgents] = useState<{ slug: string; name: string }[]>([])
 
     const confirmRecording = () => {
         const finalTranscript = dictation.confirm()
@@ -132,6 +136,8 @@ export default function ChatPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const lastUpdateRef = useRef<number>(0)
     const pendingUpdateRef = useRef<NodeJS.Timeout | null>(null)
+    const usedSourcesRef = useRef<ThinkingSource[]>([])
+    const respondedAgentRef = useRef<string | undefined>(undefined)
 
     // Auto open sidebar on desktop, keep closed on mobile
     useEffect(() => {
@@ -172,6 +178,17 @@ export default function ChatPage() {
             })
     }, [agentSlug])
 
+    // Load all agents for @mention autocomplete (wait for agent to confirm auth is ready)
+    useEffect(() => {
+        if (!agent) return
+        fetch('/api/agents')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setAllAgents(data.map((a: any) => ({ slug: a.slug, name: a.name })))
+            })
+            .catch(() => {})
+    }, [agent])
+
     // Load Sessions
     useEffect(() => {
         if (agent?.id) {
@@ -198,7 +215,8 @@ export default function ChatPage() {
                         }
                         // Load sources from tool_calls.sources (where we save them)
                         const sources = m.tool_calls?.sources || m.metadata?.sources || m.sources
-                        loaded.push({ ...m, content, rawContent: m.content, sources })
+                        const agentName = m.tool_calls?.agentName || undefined
+                        loaded.push({ ...m, content, rawContent: m.content, sources, agentName })
                     }
                     setMessages(loaded)
                 })
@@ -218,6 +236,11 @@ export default function ChatPage() {
         const userContent = input.trim()
         setInput('')
 
+        // Parse @mention
+        const availableSlugs = allAgents.map(a => a.slug)
+        const { agentSlug: mentionedSlug, cleanMessage } = parseMention(userContent, availableSlugs)
+        const messageToSend = mentionedSlug ? cleanMessage : userContent
+
         // Optimistic UI
         const tempUserMsg: Message = { id: Date.now().toString(), role: 'user', content: userContent }
         setMessages(prev => [...prev, tempUserMsg])
@@ -226,6 +249,9 @@ export default function ChatPage() {
         // Clear state for NEW message (each message gets its own sources)
         setCurrentStep(null)
         setUsedSources([])
+        setRespondedAgent(undefined)
+        usedSourcesRef.current = []
+        respondedAgentRef.current = undefined
         
         // Add temp bot message immediately to show loading state
         setMessages(prev => [...prev, { id: 'temp-bot', role: 'assistant', content: '' }])
@@ -266,7 +292,8 @@ export default function ChatPage() {
                         role: m.role,
                         content: m.rawContent || m.content
                     })),
-                    sessionId: sid
+                    sessionId: sid,
+                    mentionedAgent: mentionedSlug || undefined
                 })
             })
 
@@ -303,14 +330,17 @@ export default function ChatPage() {
                             // Update current step for ExecutionProgress display
                             setCurrentStep(step)
                             
-                            // Collect source for final badge (check against current state, not stale closure)
+                            // Collect source for final badge (ref + state to avoid stale closure)
                             if (step.source) {
-                                setUsedSources(prev => {
-                                    if (!prev.includes(step.source)) {
-                                        return [...prev, step.source]
-                                    }
-                                    return prev
-                                })
+                                if (!usedSourcesRef.current.includes(step.source)) {
+                                    usedSourcesRef.current = [...usedSourcesRef.current, step.source]
+                                }
+                                setUsedSources([...usedSourcesRef.current])
+                            }
+                            // Track agent name for attribution (ref + state)
+                            if (step.agentName) {
+                                respondedAgentRef.current = step.agentName
+                                setRespondedAgent(step.agentName)
                             }
                         } catch (e) {
                             console.warn('[Chat] Failed to parse tool event:', line)
@@ -388,9 +418,10 @@ export default function ChatPage() {
             const finalText = botText
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(finalText))
             
-            // Capture sources from current state
-            const capturedSources = [...usedSources]
-            console.log('[Chat] 💾 Saving message with sources:', capturedSources)
+            // Capture sources from refs (avoids stale closure)
+            const capturedSources = [...usedSourcesRef.current]
+            const capturedAgentName = respondedAgentRef.current
+            console.log('[Chat] 💾 Saving message with sources:', capturedSources, 'agent:', capturedAgentName)
             
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')
@@ -399,7 +430,8 @@ export default function ChatPage() {
                     role: 'assistant', 
                     content: finalHtml, 
                     rawContent: finalText,
-                    sources: capturedSources.length > 0 ? capturedSources : undefined
+                    sources: capturedSources.length > 0 ? capturedSources : undefined,
+                    agentName: capturedAgentName
                 }]
             })
 
@@ -412,7 +444,7 @@ export default function ChatPage() {
                     sessionId: sid, 
                     role: 'assistant', 
                     content: finalText,
-                    toolCalls: capturedSources.length > 0 ? { sources: capturedSources } : undefined
+                    toolCalls: (capturedSources.length > 0 || capturedAgentName) ? { sources: capturedSources, agentName: capturedAgentName } : undefined
                 })
             })
 
@@ -573,7 +605,7 @@ export default function ChatPage() {
                                         
                                         {/* Show ToolBadge BELOW content for completed messages */}
                                         {m.sources && m.sources.length > 0 && !isStreamingBot && (
-                                            <ToolBadge sources={m.sources} />
+                                            <ToolBadge sources={m.sources} agentName={m.agentName} />
                                         )}
                                     </div>
                                 ) : (
@@ -604,6 +636,7 @@ export default function ChatPage() {
                     cancelRecording={dictation.cancel}
                     confirmRecording={confirmRecording}
                     setIsVoiceOpen={setIsVoiceOpen}
+                    agents={allAgents}
                 />
             </div>
 
