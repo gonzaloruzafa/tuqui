@@ -92,8 +92,8 @@ export default async function AdminCompanyPage() {
                   <DictationTextarea
                     name="description"
                     defaultValue={basics.description || ''}
-                    placeholder="Breve descripción de qué hace tu empresa"
-                    rows={2}
+                    placeholder="Descripción detallada de tu empresa: qué vende, a quién, escala, estructura, etc."
+                    rows={10}
                   />
                 </div>
               </div>

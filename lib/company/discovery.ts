@@ -33,6 +33,8 @@ function buildPeriods() {
 
   return {
     today,
+    threeMonthsAgo,
+    sixMonthsAgo,
     thisMonth: { start: monthStart, end: today },
     lastMonth: { start: prevMonthStart, end: prevMonthEnd },
     lastThreeMonths: { start: threeMonthsAgo, end: today },
@@ -41,7 +43,7 @@ function buildPeriods() {
   }
 }
 
-/** ALL discovery queries — maximum data extraction like the CLI script */
+/** ALL discovery queries — mirrors scripts/company-discovery.ts for maximum coverage */
 function buildDiscoveryRuns(): SkillRun[] {
   const p = buildPeriods()
 
@@ -50,18 +52,20 @@ function buildDiscoveryRuns(): SkillRun[] {
     { skillName: 'get_companies', input: { limit: 10 }, label: 'Empresas del grupo' },
     { skillName: 'get_sales_teams', input: { includeStats: true }, label: 'Equipos de venta' },
 
-    // === VENTAS (panorama completo) ===
+    // === VENTAS — panorama completo, múltiples ángulos ===
     { skillName: 'get_sales_total', input: { period: p.lastTwelveMonths }, label: 'Ventas totales 12m' },
     { skillName: 'get_sales_total', input: { period: p.thisMonth }, label: 'Ventas este mes' },
     { skillName: 'get_sales_total', input: { period: p.lastMonth }, label: 'Ventas mes pasado' },
     { skillName: 'get_sales_by_customer', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por cliente 12m' },
     { skillName: 'get_sales_by_product', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por producto 12m' },
     { skillName: 'get_sales_by_seller', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por vendedor 12m' },
+    { skillName: 'get_sales_by_seller', input: { period: p.thisMonth, limit: 20 }, label: 'Ventas por vendedor este mes' },
     { skillName: 'get_top_products', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Top productos 12m (revenue)' },
     { skillName: 'get_top_products', input: { period: p.lastTwelveMonths, limit: 30, orderBy: 'quantity' }, label: 'Top productos 12m (unidades)' },
     { skillName: 'get_top_customers', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Top clientes 12m' },
     { skillName: 'get_sales_by_category', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Ventas por categoría 12m' },
     { skillName: 'get_pending_sale_orders', input: { limit: 50 }, label: 'Pedidos pendientes' },
+    { skillName: 'get_pending_sale_orders', input: { limit: 30, pendingType: 'invoice' }, label: 'Pedidos pendientes facturar' },
 
     // === COMPARATIVAS ===
     { skillName: 'compare_sales_periods', input: {
@@ -69,29 +73,40 @@ function buildDiscoveryRuns(): SkillRun[] {
       previousPeriod: { ...p.lastMonth, label: 'Mes pasado' },
       includeProducts: true, includeCustomers: true, limit: 10,
     }, label: 'Comparativa este mes vs pasado' },
+    { skillName: 'compare_sales_periods', input: {
+      currentPeriod: { ...p.lastThreeMonths, label: 'Últimos 3 meses' },
+      previousPeriod: { start: p.sixMonthsAgo, end: p.threeMonthsAgo, label: '3 meses anteriores' },
+      includeProducts: true, includeCustomers: true, limit: 10,
+    }, label: 'Comparativa trimestral' },
 
-    // === MÁRGENES ===
+    // === MÁRGENES — doble ángulo ===
     { skillName: 'get_sales_margin_summary', input: { period: p.lastTwelveMonths }, label: 'Resumen margen 12m' },
+    { skillName: 'get_sales_margin_summary', input: { period: p.thisMonth }, label: 'Resumen margen este mes' },
     { skillName: 'get_product_margin', input: { period: p.lastTwelveMonths, limit: 30, sortBy: 'margin_total' }, label: 'Margen por producto (total) 12m' },
     { skillName: 'get_product_margin', input: { period: p.lastTwelveMonths, limit: 30, sortBy: 'margin_percent' }, label: 'Margen por producto (%) 12m' },
+    { skillName: 'get_product_margin', input: { period: p.lastTwelveMonths, limit: 20, sortBy: 'margin_percent', maxMarginPercent: 30 }, label: 'Productos bajo margen 12m' },
 
     // === FACTURACIÓN / DEUDA ===
     { skillName: 'get_debt_by_customer', input: { limit: 50, includeOverdueDays: true }, label: 'Deuda por cliente' },
     { skillName: 'get_invoices_by_customer', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Facturas por cliente 12m' },
     { skillName: 'get_overdue_invoices', input: { limit: 50, groupByCustomer: true }, label: 'Facturas vencidas' },
     { skillName: 'get_invoice_lines', input: { period: p.lastThreeMonths, limit: 100, groupBy: 'product' }, label: 'Líneas factura por producto 3m' },
+    { skillName: 'get_invoice_lines', input: { period: p.lastThreeMonths, limit: 100, groupBy: 'seller' }, label: 'Líneas factura por vendedor 3m' },
     { skillName: 'get_invoice_lines', input: { period: p.lastThreeMonths, limit: 100, groupBy: 'customer' }, label: 'Líneas factura por cliente 3m' },
 
-    // === STOCK ===
+    // === STOCK — inventario completo ===
     { skillName: 'get_product_stock', input: { limit: 50 }, label: 'Stock productos' },
     { skillName: 'get_stock_valuation', input: {}, label: 'Valuación de inventario' },
     { skillName: 'get_top_stock_products', input: { limit: 30 }, label: 'Top stock por valor' },
     { skillName: 'get_low_stock_products', input: { threshold: 10, limit: 50 }, label: 'Productos bajo stock' },
+    { skillName: 'get_expiring_stock', input: { days_ahead: 90, include_expired: true, limit: 30 }, label: 'Stock vencido/por vencer' },
     { skillName: 'get_stock_rotation', input: { period: p.lastSixMonths, limit: 30 }, label: 'Rotación stock 6m' },
+    { skillName: 'get_stock_rotation', input: { period: p.lastSixMonths, limit: 30, zeroSalesOnly: true }, label: 'Productos sin rotación 6m' },
 
     // === COMPRAS / PROVEEDORES ===
     { skillName: 'get_purchases_by_supplier', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Top proveedores 12m' },
     { skillName: 'get_purchase_orders', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Órdenes de compra 12m' },
+    { skillName: 'get_purchase_orders', input: { period: p.lastTwelveMonths, limit: 30, groupBy: 'vendor' }, label: 'Compras por proveedor 12m' },
     { skillName: 'get_vendor_bills', input: { period: p.lastTwelveMonths, limit: 50 }, label: 'Facturas proveedor 12m' },
 
     // === TESORERÍA / CONTABILIDAD ===
@@ -99,7 +114,10 @@ function buildDiscoveryRuns(): SkillRun[] {
     { skillName: 'get_accounts_receivable', input: { groupByCustomer: true, limit: 50 }, label: 'Cuentas por cobrar' },
     { skillName: 'get_accounts_receivable', input: { overdueOnly: true, groupByCustomer: true, limit: 50 }, label: 'CxC vencidas' },
     { skillName: 'get_accounts_payable', input: { groupBySupplier: true, limit: 50 }, label: 'Cuentas por pagar' },
+    { skillName: 'get_accounts_payable', input: { overdueOnly: true, groupBySupplier: true, limit: 50 }, label: 'CxP vencidas' },
     { skillName: 'get_ar_aging', input: { groupByCustomer: true, limit: 30 }, label: 'Aging deuda clientes' },
+    { skillName: 'get_account_balance', input: { limit: 100 }, label: 'Plan de cuentas con saldos' },
+    { skillName: 'get_journal_entries', input: { period: p.thisMonth, limit: 50 }, label: 'Asientos del mes' },
 
     // === PAGOS ===
     { skillName: 'get_payments_received', input: { period: p.lastTwelveMonths, groupByJournal: true }, label: 'Cobros por diario 12m' },
@@ -116,6 +134,8 @@ function buildDiscoveryRuns(): SkillRun[] {
     { skillName: 'get_crm_pipeline', input: { status: 'won', period: p.lastSixMonths, groupByStage: true, limit: 50 }, label: 'Oportunidades ganadas 6m' },
     { skillName: 'get_stale_opportunities', input: { staleDays: 30, limit: 30 }, label: 'Oportunidades estancadas' },
     { skillName: 'get_lost_opportunities', input: { period: p.lastTwelveMonths, limit: 30 }, label: 'Oportunidades perdidas 12m' },
+    { skillName: 'search_crm_opportunities', input: { status: 'open', limit: 50 }, label: 'Oportunidades abiertas' },
+    { skillName: 'get_crm_tags', input: { includeStats: true }, label: 'Tags CRM' },
 
     // === SUSCRIPCIONES ===
     { skillName: 'get_subscription_health', input: { expiringWithinDays: 90, limit: 30 }, label: 'Salud suscripciones' },
