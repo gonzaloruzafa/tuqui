@@ -52,13 +52,22 @@ export type OnThinkingStep = (step: ThinkingStep) => void
  * Mapping de tool name a source
  */
 export function getToolSource(toolName: string): ThinkingSource {
-    // Odoo skills
+    // Memory tools (not a visible source)
+    if (toolName === 'recall_memory' || toolName === 'save_memory') {
+        return 'general'
+    }
+
+    // Odoo skills — match all ERP-related tools
     const odooTools = [
         'get_sales', 'get_invoices', 'get_debt', 'get_overdue',
         'get_product', 'get_stock', 'get_customer', 'get_payments',
         'get_purchase', 'get_vendor', 'get_cash', 'get_accounts',
-        'search_customers', 'search_products', 'get_top', 'compare_sales',
-        'get_pending', 'get_low_stock', 'get_ar_aging', 'get_new_customers'
+        'search_customers', 'search_products', 'search_suppliers',
+        'get_top', 'compare_sales', 'get_pending', 'get_low_stock',
+        'get_ar_aging', 'get_new_customers', 'get_companies',
+        'get_journal', 'get_crm', 'get_inactive', 'get_stale',
+        'get_lost', 'search_crm', 'get_subscription',
+        'get_expiring', 'get_sales_margin', 'get_purchase_price'
     ]
     
     if (odooTools.some(prefix => toolName.startsWith(prefix))) {

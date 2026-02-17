@@ -73,7 +73,7 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         decision = result.decision
         selectedAgent = await getAgentBySlug(tenantId, result.agent.slug) || agent
     }
-    console.log(`[ChatEngine] Agent: ${selectedAgent.slug} (${decision.confidence}) - ${decision.reason}`)
+    console.log(`[ChatEngine] Agent: ${selectedAgent.slug} (name: ${selectedAgent.name}) (${decision.confidence}) - ${decision.reason}`)
 
     // 3. Build system prompt (shared builder — company context + agent prompt + rules)
     const systemPrompt = await buildSystemPrompt({
