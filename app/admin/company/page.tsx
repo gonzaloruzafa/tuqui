@@ -79,7 +79,7 @@ export default async function AdminCompanyPage() {
                     Datos principales de tu empresa
                   </p>
                 </div>
-                <CompanyDiscoveryButton onDiscovered={() => {}} />
+                <CompanyDiscoveryButton />
               </div>
             </div>
             <div className="p-8 space-y-6">

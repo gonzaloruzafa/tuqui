@@ -4,18 +4,7 @@ import { useState, useTransition } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { runCompanyDiscovery } from '@/app/admin/company/actions'
 
-interface DiscoveryData {
-  industry: string
-  description: string
-  topCustomers: { name: string; notes: string }[]
-  topProducts: { name: string; notes: string }[]
-}
-
-interface CompanyDiscoveryButtonProps {
-  onDiscovered: (data: DiscoveryData) => void
-}
-
-export function CompanyDiscoveryButton({ onDiscovered }: CompanyDiscoveryButtonProps) {
+export function CompanyDiscoveryButton() {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -24,8 +13,6 @@ export function CompanyDiscoveryButton({ onDiscovered }: CompanyDiscoveryButtonP
     startTransition(async () => {
       const result = await runCompanyDiscovery()
       if (result.success && result.data) {
-        onDiscovered(result.data)
-        // Also fill native form fields via DOM (for server-rendered inputs)
         fillFormField('industry', result.data.industry)
         fillFormField('description', result.data.description)
       } else {
