@@ -353,7 +353,7 @@ describe('processChatRequest (Unified Engine)', () => {
 
         // Verify the wrapper calls original with agentName injected
         const passedCallback = mockedGenerate.mock.calls[0][0].onThinkingStep!
-        passedCallback({ type: 'tool_call', toolName: 'test' })
-        expect(onStep).toHaveBeenCalledWith({ type: 'tool_call', toolName: 'test', agentName: 'Tuqui' })
+        passedCallback({ tool: 'test', source: 'general', status: 'running', startedAt: Date.now() })
+        expect(onStep).toHaveBeenCalledWith(expect.objectContaining({ tool: 'test', agentName: 'Tuqui' }))
     })
 })
