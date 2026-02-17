@@ -1,12 +1,12 @@
 /**
  * Company Discovery — Auto-discover company profile from Odoo
  * 
- * Runs ~50 Odoo queries (using _descripcion) in batches and synthesizes
+ * Runs ~70 Odoo queries (using _descripcion) in batches and synthesizes
  * a rich company profile with LLM. Based on scripts/company-discovery.ts
  * which validated 57/61 queries on Cedent in 73s.
  * 
  * Goal: understand the ENTIRE business — sales, margins, customers,
- * products, suppliers, stock, treasury, CRM, subscriptions.
+ * products, suppliers, stock, treasury, CRM, subscriptions, HR, users, communication.
  */
 
 import { loadSkillsForAgent } from '@/lib/skills/loader'
@@ -140,6 +140,19 @@ function buildDiscoveryRuns(): SkillRun[] {
     // === SUSCRIPCIONES ===
     { skillName: 'get_subscription_health', input: { expiringWithinDays: 90, limit: 30 }, label: 'Salud suscripciones' },
     { skillName: 'get_subscription_churn', input: { compareWithPrevious: true }, label: 'Churn suscripciones' },
+
+    // === RRHH / EMPLEADOS ===
+    { skillName: 'get_employees', input: { limit: 100 }, label: 'Empleados' },
+    { skillName: 'get_departments', input: { limit: 50 }, label: 'Departamentos' },
+    { skillName: 'get_leave_summary', input: { approvedOnly: true }, label: 'Resumen ausencias' },
+
+    // === USUARIOS ===
+    { skillName: 'get_users', input: { internalOnly: true, limit: 100 }, label: 'Usuarios internos Odoo' },
+
+    // === COMUNICACIÓN / CHATTER ===
+    { skillName: 'get_chatter_messages', input: { limit: 50 }, label: 'Mensajes recientes chatter' },
+    { skillName: 'get_mail_activities', input: { limit: 50 }, label: 'Actividades pendientes' },
+    { skillName: 'get_recent_emails', input: { limit: 30 }, label: 'Emails recientes' },
   ]
 }
 
@@ -157,7 +170,7 @@ export async function discoverCompanyProfile(
   try {
     const allOdooTools = [
       'odoo_sales', 'odoo_accounting', 'odoo_inventory',
-      'odoo_purchase', 'odoo_crm'
+      'odoo_purchase', 'odoo_crm', 'odoo_hr', 'odoo_mail'
     ]
     const skills = await loadSkillsForAgent(tenantId, userEmail, allOdooTools)
     const runs = buildDiscoveryRuns()
@@ -223,7 +236,7 @@ REGLAS ESTRICTAS:
 Respondé SOLO con JSON válido, sin markdown:
 {
   "industry": "rubro/industria detectada — basado en los productos reales y tipo de clientes",
-  "description": "DOSSIER EXTENSO (mínimo 10-15 oraciones). Debe cubrir:\\n1. Qué vende la empresa (productos/servicios concretos con nombres)\\n2. A quién le vende (tipo de clientes: empresas, gobierno, profesionales, etc.)\\n3. Escala: facturación anual total, cantidad de clientes activos, cantidad de productos\\n4. Estructura: ¿multi-empresa? ¿cuántas compañías? ¿equipos de venta?\\n5. Vendedores clave y su peso en la facturación\\n6. Margen bruto general y tendencia\\n7. Moneda(s) de operación\\n8. Proveedores principales\\n9. Situación de stock/inventario\\n10. Posición financiera: caja, CxC, CxP, morosidad\\n11. Pipeline comercial / CRM si hay datos\\n12. Cualquier patrón relevante (estacionalidad, concentración, riesgo)",
+  "description": "DOSSIER EXTENSO (mínimo 10-15 oraciones). Debe cubrir:\\n1. Qué vende la empresa (productos/servicios concretos con nombres)\\n2. A quién le vende (tipo de clientes: empresas, gobierno, profesionales, etc.)\\n3. Escala: facturación anual total, cantidad de clientes activos, cantidad de productos\\n4. Estructura: ¿multi-empresa? ¿cuántas compañías? ¿equipos de venta?\\n5. Vendedores clave y su peso en la facturación\\n6. Margen bruto general y tendencia\\n7. Moneda(s) de operación\\n8. Proveedores principales\\n9. Situación de stock/inventario\\n10. Posición financiera: caja, CxC, CxP, morosidad\\n11. Pipeline comercial / CRM si hay datos\\n12. Equipo humano: departamentos, cantidad de empleados, estructura organizacional\\n13. Usuarios del sistema: quiénes usan Odoo, roles\\n14. Comunicación: tono de emails y chatter, actividades pendientes\\n15. Cualquier patrón relevante (estacionalidad, concentración, riesgo)",
   "topCustomers": [{"name": "Nombre REAL del cliente", "notes": "Facturación $X (X% del total), deuda $X, X días de mora si aplica, categoría/rubro si se puede inferir"}],
   "topProducts": [{"name": "Nombre REAL del producto", "notes": "Revenue $X, margen X%, unidades vendidas X, categoría, stock actual si disponible"}]
 }

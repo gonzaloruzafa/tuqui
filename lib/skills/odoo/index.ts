@@ -81,6 +81,20 @@ export { getSubscriptionHealth } from './get-subscription-health';
 export { getSubscriptionChurn } from './get-subscription-churn';
 export { getSubscriptionDetail } from './get-subscription-detail';
 
+// HR Skills
+export { getEmployees } from './get-employees';
+export { getEmployeeLeaves } from './get-employee-leaves';
+export { getLeaveSummary } from './get-leave-summary';
+export { getDepartments } from './get-departments';
+
+// Mail/Chatter Skills
+export { getChatterMessages } from './get-chatter-messages';
+export { getMailActivities } from './get-mail-activities';
+export { getRecentEmails } from './get-recent-emails';
+
+// Users Skills
+export { getUsers } from './get-users';
+
 // Skill array for registration
 import { getSalesTotal } from './get-sales-total';
 import { getSalesByCustomer } from './get-sales-by-customer';
@@ -137,6 +151,20 @@ import { getCrmTags } from './get-crm-tags';
 import { getSubscriptionHealth } from './get-subscription-health';
 import { getSubscriptionChurn } from './get-subscription-churn';
 import { getSubscriptionDetail } from './get-subscription-detail';
+
+// HR Skills
+import { getEmployees } from './get-employees';
+import { getEmployeeLeaves } from './get-employee-leaves';
+import { getLeaveSummary } from './get-leave-summary';
+import { getDepartments } from './get-departments';
+
+// Mail/Chatter Skills
+import { getChatterMessages } from './get-chatter-messages';
+import { getMailActivities } from './get-mail-activities';
+import { getRecentEmails } from './get-recent-emails';
+
+// Users Skills
+import { getUsers } from './get-users';
 
 export const odooSkills = [
   // Sales (10)
@@ -200,4 +228,15 @@ export const odooSkills = [
   getSubscriptionHealth,
   getSubscriptionChurn,
   getSubscriptionDetail,
+  // HR (4)
+  getEmployees,
+  getEmployeeLeaves,
+  getLeaveSummary,
+  getDepartments,
+  // Mail/Chatter (3)
+  getChatterMessages,
+  getMailActivities,
+  getRecentEmails,
+  // Users (1)
+  getUsers,
 ];
