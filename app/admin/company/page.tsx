@@ -53,6 +53,7 @@ export default async function AdminCompanyPage() {
   const basics = (ctx?.basics || {}) as Record<string, string>
   const keyCustomers = (ctx?.key_customers || []) as { name: string; notes: string }[]
   const keyProducts = (ctx?.key_products || []) as { name: string; notes: string }[]
+  const keySuppliers = (ctx?.key_suppliers || []) as { name: string; notes: string }[]
   const businessRules = (ctx?.business_rules || []) as string[]
   const toneOfVoice = (ctx?.tone_of_voice || '') as string
   const webSummary = (ctx?.web_summary || '') as string
@@ -129,7 +130,18 @@ export default async function AdminCompanyPage() {
             notesPlaceholder="Ej: Producto estrella, margen 40%"
           />
 
-          {/* SECTION 5: Reglas de Negocio */}
+          {/* SECTION 5: Proveedores Clave */}
+          <DynamicList
+            label="Proveedores importantes"
+            icon="🏭"
+            subtitle="Proveedores principales con los que trabaja la empresa"
+            items={keySuppliers}
+            fieldName="key_suppliers"
+            namePlaceholder="Nombre del proveedor"
+            notesPlaceholder="Ej: Proveedor principal, plazo 60 días"
+          />
+
+          {/* SECTION 6: Reglas de Negocio */}
           <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
             <div className="p-8 border-b border-gray-50 bg-gray-50/20">
               <h2 className="text-xl font-bold text-gray-900 font-display flex items-center gap-2">

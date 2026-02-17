@@ -36,7 +36,7 @@ export async function getCompanyContext(tenantId: string): Promise<CompanyContex
     sources.push('tenant')
   }
 
-  // 2. COMPANY CONTEXT (structured)
+  // 2. COMPANY CONTEXT
   const { data: ctx } = await db
     .from('company_contexts')
     .select('*')
@@ -44,42 +44,59 @@ export async function getCompanyContext(tenantId: string): Promise<CompanyContex
     .single()
 
   if (ctx) {
-    const basics = ctx.basics as Record<string, string> | null
-    if (basics?.industry) parts.push(`RUBRO: ${basics.industry}`)
-    if (basics?.description) parts.push(`DESCRIPCIÓN: ${basics.description}`)
+    const briefing = ctx.company_briefing as string | null
 
-    if (ctx.web_summary) {
-      parts.push(`SOBRE LA EMPRESA: ${ctx.web_summary}`)
-      sources.push('web_scraping')
+    if (briefing) {
+      // Pre-generated narrative briefing (best quality, insider tone)
+      parts.push(briefing)
+      sources.push('briefing')
+    } else {
+      // Fallback: structured data with higher limits
+      const basics = ctx.basics as Record<string, string> | null
+      if (basics?.industry) parts.push(`RUBRO: ${basics.industry}`)
+      if (basics?.description) parts.push(`DESCRIPCIÓN: ${basics.description}`)
+
+      if (ctx.web_summary) {
+        parts.push(`SOBRE LA EMPRESA: ${ctx.web_summary}`)
+        sources.push('web_scraping')
+      }
+
+      const customers = (ctx.key_customers || []) as NamedItem[]
+      if (customers.length > 0) {
+        const list = customers.slice(0, 10)
+          .map(c => c.notes ? `${c.name} (${c.notes})` : c.name)
+          .join(', ')
+        parts.push(`CLIENTES CLAVE: ${list}`)
+        sources.push('manual')
+      }
+
+      const products = (ctx.key_products || []) as NamedItem[]
+      if (products.length > 0) {
+        const list = products.slice(0, 10)
+          .map(p => p.notes ? `${p.name} (${p.notes})` : p.name)
+          .join(', ')
+        parts.push(`PRODUCTOS CLAVE: ${list}`)
+      }
+
+      const suppliers = (ctx.key_suppliers || []) as NamedItem[]
+      if (suppliers.length > 0) {
+        const list = suppliers.slice(0, 10)
+          .map(s => s.notes ? `${s.name} (${s.notes})` : s.name)
+          .join(', ')
+        parts.push(`PROVEEDORES CLAVE: ${list}`)
+      }
+
+      const rules = (ctx.business_rules || []) as string[]
+      if (rules.length > 0) {
+        parts.push(`REGLAS: ${rules.slice(0, 5).join('. ')}`)
+      }
+
+      if (ctx.tone_of_voice) {
+        parts.push(`TONO: ${ctx.tone_of_voice}`)
+      }
     }
 
-    const customers = (ctx.key_customers || []) as NamedItem[]
-    if (customers.length > 0) {
-      const list = customers.slice(0, 5)
-        .map(c => c.notes ? `${c.name} (${c.notes})` : c.name)
-        .join(', ')
-      parts.push(`CLIENTES CLAVE: ${list}`)
-      sources.push('manual')
-    }
-
-    const products = (ctx.key_products || []) as NamedItem[]
-    if (products.length > 0) {
-      const list = products.slice(0, 5)
-        .map(p => p.notes ? `${p.name} (${p.notes})` : p.name)
-        .join(', ')
-      parts.push(`PRODUCTOS CLAVE: ${list}`)
-    }
-
-    const rules = (ctx.business_rules || []) as string[]
-    if (rules.length > 0) {
-      parts.push(`REGLAS: ${rules.slice(0, 3).join('. ')}`)
-    }
-
-    if (ctx.tone_of_voice) {
-      parts.push(`TONO: ${ctx.tone_of_voice}`)
-    }
-
-    // 3. LINKED DOCUMENTS
+    // LINKED DOCUMENTS (always, even with briefing)
     const linkedDocs = (ctx.linked_documents || []) as string[]
     if (linkedDocs.length > 0) {
       const { data: docs } = await db
@@ -92,7 +109,7 @@ export async function getCompanyContext(tenantId: string): Promise<CompanyContex
         const docsText = docs
           .map(d => d.content || '')
           .join(' ')
-          .slice(0, 800) // Limitar para no explotar tokens
+          .slice(0, 2000)
         parts.push(`INFO ADICIONAL: ${docsText}`)
         sources.push('documents')
       }

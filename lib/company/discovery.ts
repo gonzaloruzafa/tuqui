@@ -11,11 +11,20 @@
 
 import { loadSkillsForAgent } from '@/lib/skills/loader'
 
-interface DiscoveryResult {
+export interface DiscoveryResult {
   industry: string
   description: string
+  toneOfVoice: string
   topCustomers: { name: string; notes: string }[]
   topProducts: { name: string; notes: string }[]
+  topSuppliers: { name: string; notes: string }[]
+}
+
+export interface DiscoveryProgress {
+  completed: number
+  total: number
+  currentLabel: string
+  phase: 'querying' | 'synthesizing' | 'done'
 }
 
 type SkillRun = { skillName: string; input: Record<string, unknown>; label: string }
@@ -149,10 +158,14 @@ function buildDiscoveryRuns(): SkillRun[] {
     // === USUARIOS ===
     { skillName: 'get_users', input: { internalOnly: true, limit: 100 }, label: 'Usuarios internos Odoo' },
 
-    // === COMUNICACIÓN / CHATTER ===
-    { skillName: 'get_chatter_messages', input: { limit: 50 }, label: 'Mensajes recientes chatter' },
+    // === COMUNICACIÓN / CHATTER (MÁS volumen para detectar tono) ===
+    { skillName: 'get_chatter_messages', input: { limit: 100 }, label: 'Mensajes chatter (últimos 100)' },
+    { skillName: 'get_chatter_messages', input: { limit: 50, model: 'sale.order' }, label: 'Chatter en pedidos de venta' },
+    { skillName: 'get_chatter_messages', input: { limit: 50, model: 'account.move' }, label: 'Chatter en facturas' },
+    { skillName: 'get_chatter_messages', input: { limit: 50, model: 'crm.lead' }, label: 'Chatter en oportunidades CRM' },
     { skillName: 'get_mail_activities', input: { limit: 50 }, label: 'Actividades pendientes' },
-    { skillName: 'get_recent_emails', input: { limit: 30 }, label: 'Emails recientes' },
+    { skillName: 'get_recent_emails', input: { limit: 50 }, label: 'Emails enviados recientes' },
+    { skillName: 'get_recent_emails', input: { limit: 50, direction: 'incoming' }, label: 'Emails recibidos recientes' },
   ]
 }
 
@@ -165,7 +178,8 @@ const BATCH_DELAY_MS = 200
  */
 export async function discoverCompanyProfile(
   tenantId: string,
-  userEmail: string
+  userEmail: string,
+  onProgress?: (p: DiscoveryProgress) => void
 ): Promise<DiscoveryResult | null> {
   try {
     const allOdooTools = [
@@ -177,9 +191,12 @@ export async function discoverCompanyProfile(
 
     // Run in batches (like the script)
     const descriptions: { label: string; text: string }[] = []
+    let completed = 0
 
     for (let i = 0; i < runs.length; i += BATCH_SIZE) {
       const batch = runs.slice(i, i + BATCH_SIZE)
+      const batchLabel = batch.map(r => r.label).join(', ')
+      onProgress?.({ completed, total: runs.length, currentLabel: batchLabel, phase: 'querying' })
 
       await Promise.allSettled(
         batch.map(async (run) => {
@@ -199,6 +216,8 @@ export async function discoverCompanyProfile(
         })
       )
 
+      completed += batch.length
+
       if (i + BATCH_SIZE < runs.length) {
         await new Promise(r => setTimeout(r, BATCH_DELAY_MS))
       }
@@ -207,7 +226,10 @@ export async function discoverCompanyProfile(
     if (descriptions.length === 0) return null
 
     console.log(`[Discovery] Got ${descriptions.length}/${runs.length} results, synthesizing...`)
-    return await synthesizeProfile(descriptions)
+    onProgress?.({ completed: runs.length, total: runs.length, currentLabel: 'Sintetizando perfil con IA...', phase: 'synthesizing' })
+    const result = await synthesizeProfile(descriptions)
+    onProgress?.({ completed: runs.length, total: runs.length, currentLabel: '¡Listo!', phase: 'done' })
+    return result
   } catch (e) {
     console.error('[Discovery] Error:', e)
     return null
@@ -239,17 +261,20 @@ REGLAS ESTRICTAS:
 Respondé SOLO con JSON válido, sin markdown:
 {
   "industry": "rubro/industria detectada — basado en los productos reales y tipo de clientes",
+  "toneOfVoice": "Análisis DETALLADO del tono de comunicación basado en chatter y emails REALES. Incluí: (1) nivel de formalidad (tuteo/usted/vos), (2) largo típico de mensajes (cortos y directos vs. elaborados), (3) uso de emojis o signos, (4) si saludan/despiden o van directo al grano, (5) si usan jerga técnica o lenguaje simple, (6) velocidad percibida de respuesta, (7) si el tono cambia entre comunicación interna vs. externa. CITÁ EJEMPLOS TEXTUALES de los mensajes cuando sea posible. Ej: 'Informal, usan tuteo (\"dale, te paso el presupuesto\"), mensajes cortos de 1-2 líneas, sin saludo formal, respuestas rápidas'. Si no hay datos de comunicación suficientes, dejá string vacío.",
   "description": "PERFIL DE CONTEXTO (10-15 oraciones). Debe responder estas preguntas:\\n1. ¿Qué vende la empresa? (tipo de productos/servicios, no lista exhaustiva)\\n2. ¿A quién le vende? (perfil de clientes: empresas, gobierno, profesionales, sectores)\\n3. ¿De qué tamaño es? (facturación anual aproximada, cantidad de clientes activos, productos)\\n4. ¿Cómo está organizada? (multi-empresa, equipos de venta, departamentos, cantidad de empleados)\\n5. ¿Cómo está financieramente? (situación general de caja, deuda, morosidad — sin listar cada cliente moroso)\\n6. ¿Qué modelo de negocio tiene? (distribución, fabricación, servicios, suscripciones, mixto)\\n7. Margen bruto general y moneda(s) de operación\\n8. Proveedores: perfil general (cuántos, de qué tipo), no lista\\n9. Stock: ¿manejan inventario? ¿es crítico? situación general\\n10. CRM/Pipeline: ¿tienen proceso comercial activo? magnitud general\\n11. Equipo humano: departamentos principales, estructura organizacional\\n12. Comunicación: tono general (formal/informal), canales que usan\\nIMPORTANTE: Priorizá el MARCO GENERAL. Los detalles específicos (nombres, cifras exactas) van en topCustomers y topProducts, no en la descripción.",
   "topCustomers": [{"name": "Nombre REAL del cliente", "notes": "Facturación $X (X% del total), deuda $X, X días de mora si aplica, categoría/rubro si se puede inferir"}],
-  "topProducts": [{"name": "Nombre REAL del producto", "notes": "Revenue $X, margen X%, unidades vendidas X, categoría, stock actual si disponible"}]
+  "topProducts": [{"name": "Nombre REAL del producto", "notes": "Revenue $X, margen X%, unidades vendidas X, categoría, stock actual si disponible"}],
+  "topSuppliers": [{"name": "Nombre REAL del proveedor", "notes": "Compras $X, cantidad de OC, tipo de productos que provee, plazo de pago si se puede inferir"}]
 }
 
-IMPORTANTE sobre topCustomers y topProducts:
-- Incluí TODOS los que tengan data relevante, hasta 15 cada uno
-- Ordenalos por facturación/revenue de mayor a menor
-- Las "notes" deben ser RICAS en datos: montos, porcentajes, deuda, mora, margen, stock
-- Si un cliente tiene deuda vencida, mencionalo en sus notes
-- Si un producto tiene margen bajo o stock crítico, mencionalo
+IMPORTANTE sobre topCustomers, topProducts y topSuppliers:
+- SOLO incluí clientes/productos/proveedores que aparezcan en MÚLTIPLES fuentes de datos (ej: ventas + deuda, o revenue + margen + stock, o compras + facturas proveedor). Un nombre que aparece en un solo reporte NO tiene suficiente evidencia.
+- Máximo 10 cada uno, ordenados por facturación/revenue/compras de mayor a menor
+- Las "notes" deben tener DATOS CONCRETOS de al menos 2 fuentes: montos, porcentajes, deuda, mora, margen, stock
+- Si un cliente solo aparece en una lista sin cifras, NO lo incluyas
+- Si un producto solo tiene revenue pero no margen ni stock, mencioná solo lo que tenés
+- Priorizá los que tienen la foto más COMPLETA (revenue + margen + deuda + stock)
 
 Todo en español argentino, datos duros, sin florituras.
 
@@ -271,6 +296,6 @@ ${dataDump}`
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     return JSON.parse(cleaned) as DiscoveryResult
   } catch {
-    return { industry: '', description: '', topCustomers: [], topProducts: [] }
+    return { industry: '', description: '', toneOfVoice: '', topCustomers: [], topProducts: [], topSuppliers: [] }
   }
 }
