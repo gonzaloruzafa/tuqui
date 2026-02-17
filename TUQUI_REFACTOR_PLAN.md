@@ -3,7 +3,7 @@
 > **Filosofía:** Llegar a PMF primero, infraestructura enterprise después  
 > **Principio:** Usuarios pagando > Features perfectas  
 > **Para:** Un founder que necesita validar antes de escalar  
-> **Última actualización:** 2026-02-12
+> **Última actualización:** 2026-02-16
 
 ---
 
@@ -79,26 +79,30 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 |------|--------|-------------|----------------|
 | F7 | 2-3 días | Master Agents + RAG Centralizado | ⭐⭐⭐⭐ Diferenciación |
 | F7.5 | 0.5 días | Company Discovery (Deep Research Odoo) | ⭐⭐⭐⭐ Contexto brutal |
-| F7.6 | 2-3 días | Intelligence Layer (Curious Analyst Agent) | ⭐⭐⭐⭐⭐ Adicción |
-| F5 | 1.5 días | PWA + Push Notifications | ⭐⭐⭐ Engagement diario |
-| F6 | 1 día | Briefings Matutinos | ⭐⭐⭐ Hábito de uso |
+| F5 | 1.5 días | PWA + Push Notifications | ⭐⭐⭐ Canal de delivery |
+| F7.6 | 2-3 días | Intelligence Layer + Briefings (absorbe F6) | ⭐⭐⭐⭐⭐ Adicción |
+| F7.7 | 2 días | Google Integration (Calendar + Gmail) | ⭐⭐⭐ Contexto externo |
 | F8 | 0.5 días | Piloto Cedent | ⭐⭐⭐ Validación real |
 | F9 | — | Cobrar ($50-100/mes) | ⭐⭐⭐⭐⭐ PMF signal |
 | FX | 5 min | Optimizar modelo Gemini → bajar costos ~70% | ⭐⭐ Margen |
 
-**Total: ~8-10 días de código + validación continua**
+**Total: ~9-11 días de código + validación continua**
 
 ### Orden de ejecución
 
 ```
-F7 → F7.5 → F7.6 → F5 → F6 → F8 → F9
+F7 → F7.5 → F5 → F7.6 → F7.7 (opcional pre-piloto) → F8 → F9
 ```
 
 **¿Por qué F7 primero?** El valor de Tuqui es que SABE cosas. Hoy los agentes `contador` y `abogado` tienen 0 docs en RAG. Si mandás push sin contenido, el usuario se decepciona. Primero contenido, después engagement.
 
 **¿Por qué F7.5 después de F7?** Con RAG armado, el Company Discovery automatiza el onboarding: corre todas las skills de Odoo, sintetiza un dossier de la empresa, y alimenta el company context con data REAL. Tuqui arranca sabiendo todo desde el día 1.
 
-**¿Por qué F7.6 después de F7.5?** Con contenido (RAG) y contexto de empresa (discovery), el Intelligence Layer tiene data de calidad para generar insights. Un agente curioso que investiga usando las mismas tools del chat — no hardcodea queries, el LLM decide qué buscar. Spec completa: `INTELLIGENCE_LAYER_PLAN.md`.
+**¿Por qué F5 antes de F7.6?** El intelligence layer necesita push como canal de delivery. Si construimos F7.6 sin push, no podemos testear el flujo real (push matutino → tap → chat). Tener push listo primero permite que F7.6 incluya el briefing matutino desde el día 1.
+
+**¿Por qué F7.6 absorbe F6?** F6 planteaba un sistema separado de briefings. Pero el intelligence layer (cron matutino + teasers + push) ya cubre eso. Un solo flujo: analista investiga → cachea teasers → envía push → session opener al abrir. Cero duplicación.
+
+**¿Por qué F7.7 (Google) como fase separada?** Calendar + Gmail enriquecen al analista pero no son bloqueantes. Requiere análisis de MCP libraries existentes y OAuth setup. Se puede hacer pre-piloto o post-piloto.
 
 ### Lo que se POSPONE (post-PMF)
 
@@ -522,7 +526,8 @@ modelo de negocio, etc. Se guarda en `company_contexts.discovery_profile`.
 ## 🔜 FASE 7.6: INTELLIGENCE LAYER (~2-3 días) ⭐ DOPAMINE LOOP
 
 > **Objetivo:** Cada vez que el usuario abre Tuqui, hay algo nuevo e interesante  
-> **Depende de:** F7 (RAG) + F7.5 (company context rico)  
+> **Depende de:** F7 (RAG) + F7.5 (company context rico) + F5 (PWA + Push)  
+> **Absorbe:** F6 (Briefings Matutinos) — un solo flujo, no dos sistemas  
 > **Spec completa:** `INTELLIGENCE_LAYER_PLAN.md`  
 > **Ejecución:** F7.6a (2 sesiones) + F7.6b (1 sesión)
 
@@ -578,14 +583,19 @@ Sesión 2 — Investigator + Delivery:
 - [ ] Tests: investigator (mocks), synthesizer, engine, delivery
 - [ ] Test E2E: generar insights para Cedent con data real
 
-**F7.6b (1 sesión): Cron + Onboarding + Polish**
+**F7.6b (1 sesión): Cron + Push Delivery + Onboarding + Polish**
 - [ ] `app/api/cron/intelligence/route.ts` — cron matutino (~30 líneas)
+- [ ] Push delivery: post-cache, enviar push con teaser más impactante via `sendPushToUser()`
 - [ ] Configurar cron en `vercel.json`
 - [ ] Onboarding flow: detectar user sin profile → pregunta inicial
 - [ ] 🎤 Agregar icono mic en textarea de onboarding de user profile — usa `useDictation` hook para dictar
 - [ ] Feedback tracking: `tapped` cuando user clickea pregunta sugerida
-- [ ] Tests: cron, feedback
+- [ ] Tests: cron, push delivery, feedback
 - [ ] Eval: correr 5 días contra Cedent, medir variedad + relevancia
+
+> **⚡ F6 absorbido:** No existe como fase separada. El cron de intelligence
+> genera teasers + envía push. La config de "qué incluir" viene del user profile
+> (pain_points, watchlist, role). Cero duplicación.
 
 ### Tests
 
@@ -617,8 +627,8 @@ Hay un agente con acceso a tools que decide qué buscar.
 ### Flujo completo
 
 ```
-7:00 AM  → Cron → generateInsights() → cache (served=false)
-9:15 AM  → Usuario abre → getSessionOpener() → lee cache → 2 teasers
+7:00 AM  → Cron → generateInsights() → cache (served=false) + push matutino
+9:15 AM  → Usuario toca push → abre Tuqui PWA → getSessionOpener() → lee cache → 2 teasers
          → 👻 Macrodental no compra hace 47 días
            ¿Qué dejó de llevar?
          → 🛒 Composite: vos $45K, MeLi $62K
@@ -648,9 +658,11 @@ Hay un agente con acceso a tools que decide qué buscar.
 
 ---
 
-## 🔜 FASE 5: PWA + PUSH NOTIFICATIONS (~1.5 días) — SEGUNDA
+## 🔜 FASE 5: PWA + PUSH NOTIFICATIONS (~1.5 días)
 
 > **Objetivo:** Tuqui en el teléfono del usuario, notificaciones nativas  
+> **Depende de:** F7.5 (contenido para mostrar)  
+> **Requerido por:** F7.6 (intelligence layer usa push como canal de delivery)  
 > **Spec técnica:** Ver `TUQUI_REFACTOR_SPECS.md` § F5
 
 ### El loop de engagement
@@ -699,51 +711,90 @@ Hay un agente con acceso a tools que decide qué buscar.
 
 ---
 
-## 🔜 FASE 6: BRIEFINGS MATUTINOS (~1 día) — TERCERA
+## 🔜 FASE 7.7: GOOGLE INTEGRATION — Calendar + Gmail (~2 días)
 
-> **Objetivo:** Cada mañana, resumen automático → push notification  
-> **Depende de:** F5 (push) + skills Odoo  
-> **Spec técnica:** Ver `TUQUI_REFACTOR_SPECS.md` § F6
+> **Objetivo:** Enriquecer al analista con contexto del día (reuniones) y del mundo externo (emails)  
+> **Depende de:** F7.6 (intelligence layer funcionando)  
+> **Opcional:** Se puede hacer pre-piloto o post-piloto. El analista funciona sin esto.  
+> **Referencia:** `adhoc-tuqui-morning/` tiene implementación de Gmail + Calendar que se puede portar
 
-### Checklist
+### Concepto
 
-- [ ] Migration `220_briefing_config.sql`
-- [ ] `lib/briefings/generator.ts` (generateBriefingData, formatBriefingText)
-- [ ] `app/api/cron/briefings/route.ts`
-- [ ] Configurar cron en `vercel.json`
-- [ ] `components/BriefingSettings.tsx` (UI con checkboxes)
+El agente `analista` ya tiene acceso a Odoo + MeLi + Tavily + RAG. Agregar
+Google Calendar y Gmail como tools le da contexto del **día del usuario** y del
+**mundo externo** (emails de proveedores, cambios de precio, etc.).
 
-### Tests
+Cruces de ejemplo:
+- "Tenés reunión con Dental Sur a las 11 — hace 23 días que no compran"
+- "3M te mandó nueva lista de precios — ¿querés comparar con tus costos?"
+- "Mañana tenés 4 reuniones — acá van los datos que te conviene llevar"
 
-```typescript
-// tests/unit/briefing-generator.test.ts
-- generateBriefingData incluye ventas si config.include_sales
-- generateBriefingData omite ventas si !config.include_sales
-- generateBriefingData retorna {} si no hay credenciales Odoo
-- formatBriefingText genera texto amigable con datos
-- formatBriefingText muestra "todo tranquilo" si no hay datos
+### Approach: Skills vs MCP
 
-// tests/unit/briefing-cron.test.ts
-- GET /api/cron/briefings requiere CRON_SECRET
-- Envía solo a usuarios dentro de ventana horaria
-- No envía si last_sent_at es reciente
-- Actualiza last_sent_at después de enviar
-```
+Hay dos opciones para implementar. Evaluar cuál conviene:
+
+**Opción A: Skills propios (como Odoo)**
+- `lib/skills/google/calendar.ts` — `getCalendarEvents({ period })`
+- `lib/skills/google/gmail.ts` — `getRecentEmails({ hours, filter })`
+- Control total, misma infra de skills existente
+- OAuth flow propio con `googleapis`
+- Reutilizable de `adhoc-tuqui-morning/lib/intelligence/`
+
+**Opción B: MCP servers existentes**
+- Usar servidores MCP de Google Calendar y Gmail de la comunidad
+- Ej: `@anthropic/google-calendar-mcp`, `@anthropic/gmail-mcp`
+- Menos código propio, pero más dependencia externa
+- Requiere evaluar qué tools exponen y si son suficientes
+- Vercel AI SDK soporta MCP tools via `experimental_toMCPServerTools`
+
+**Opción C: Híbrido**
+- OAuth propio (ya probado en Antigravity)
+- Tools como skills propios pero con interface compatible MCP
+- Si aparece un MCP server bueno, migrar sin romper nada
+
+**Decisión pendiente:** investigar qué MCP servers de Google existen,
+qué tools exponen, y si cubren el caso de uso (fetch events + emails
+con filtros). Si no, ir con skills propios portando de Antigravity.
+
+### Código reutilizable de Antigravity
+
+| Archivo Antigravity | Qué tiene | Reutilizable |
+|---|---|---|
+| `lib/intelligence/heuristics.ts` | Email importance scoring (VIP senders, urgency keywords) | Sí, portar |
+| `lib/intelligence/briefing.ts` | Prompt de briefing + script generation | Parcial (prompt style) |
+| `lib/intelligence/news.ts` | Tavily news fetching | Ya existe en Tuqui |
+| `lib/intelligence/profile-analyzer.ts` | Deep email profile analysis | Parcial (overkill) |
+| Google OAuth flow | NextAuth + GoogleProvider + googleapis | Sí, portar |
+
+### Checklist (tentativo — depende de approach elegido)
+
+- [ ] Investigar MCP servers de Google (Calendar, Gmail) — evaluar coverage
+- [ ] Decidir approach: skills propios vs MCP vs híbrido
+- [ ] Migration `214_google_connections.sql` (OAuth tokens por user)
+- [ ] OAuth flow: Google consent screen + token storage
+- [ ] Implementar tools (skill o MCP según decisión)
+- [ ] Heuristics de email importance (portar de Antigravity)
+- [ ] Agregar tools al master agent `analista`
+- [ ] Tests: calendar + gmail skills con mocks
+- [ ] Test E2E: "Tenés reunión con X — hace N días que no compran"
 
 ### Riesgos
 
 | Riesgo | Impacto | Mitigación |
 |--------|---------|------------|
-| Vercel Hobby: cron máx 1/día | No puede enviar cada 15 min | Vercel Pro ($20/mes) o single daily cron |
-| Timezone: usuario en otro huso | Briefing a hora equivocada | Campo timezone en config |
-| Odoo rate limits a las 7:30 AM | Briefings fallan | Retry con backoff, ventana de 15 min |
+| OAuth consent screen lento de aprobar | Bloquea Google tools | Modo "testing" con 100 users alcanza para piloto |
+| Gmail es invasivo para empresas | Rechazo del usuario | Opt-in explícito, pantalla de permisos, solo lectura |
+| MCP servers inestables / mal mantenidos | Tools rotos | Evaluar antes, tener fallback a skills propios |
+| Tokens OAuth expiran | Tools dejan de funcionar | Refresh token flow ya resuelto en Antigravity |
+| Costo API Google | $$ | Google Calendar API gratis, Gmail API gratis hasta 1M requests/día |
 
 ---
 
 ## 🔜 FASE 8: PILOTO CEDENT (~0.5 días)
 
 > **Objetivo:** Validar uso real sin intervención  
-> **Requiere:** F7 + F5 + F6 funcionando
+> **Requiere:** F7 + F7.5 + F5 + F7.6 funcionando  
+> **Opcional pre-piloto:** F7.7 (Google) enriquece pero no bloquea
 
 ### Proceso
 
@@ -829,7 +880,7 @@ Hay un agente con acceso a tools que decide qué buscar.
 | 210 | Agent sync fix | **210 sync_slug_name_icon** (ya en disco) |
 | 211-212 | Intelligence | **211 company_discovery, 212 intelligence** |
 | 213-219 | Engagement (Push) | 213 push_subscriptions |
-| 220-229 | Engagement (Briefings) | 220 briefing_config |
+| 214 | Google Integration | **214 google_connections** (F7.7, si se implementa) |
 
 ⚠️ **Duplicados conocidos:** 120×2 (`add_auth_user_id` + `meli_force_tool_execution`), 203×2 (`memories` + `platform_admin`). No bloquean — Supabase corre por orden alfabético.
 
@@ -838,12 +889,11 @@ Hay un agente con acceso a tools que decide qué buscar.
 ```
 lib/
 ├── agents/           # Orquestación y routing
-├── skills/           # Tools para Gemini (odoo/, memory/)
+├── skills/           # Tools para Gemini (odoo/, memory/, google/)
 ├── chat/             # Engine de conversación
 ├── company/          # Contexto de empresa
 ├── push/             # Push notifications (F5)
-├── briefings/        # Briefings matutinos (F6)
-├── intelligence/     # Curious Analyst Agent (F7.6)
+├── intelligence/     # Curious Analyst Agent + Briefings (F7.6, absorbe F6)
 ├── platform/         # Super admin auth (F7)
 ├── rag/              # Procesamiento de documentos (F7)
 ├── errors/           # Manejo de errores amigables
@@ -852,7 +902,7 @@ lib/
 app/
 ├── super-admin/      # UI platform admin (F7)
 ├── api/push/         # Push subscription API (F5)
-├── api/cron/         # Cron jobs (F6 + F7.6)
+├── api/cron/         # Cron jobs (F7.6 intelligence + briefings)
 └── api/super-admin/  # Platform admin API (F7)
 ```
 
@@ -942,6 +992,14 @@ lib/chat/parse-mention.ts                                  # S3
 tests/unit/parse-mention.test.ts                           # S3
 # Nota: lib/platform/auth.ts YA EXISTE — no crear
 
+# F5 — PWA + Push (1.5 días, ANTES de F7.6)
+public/manifest.json
+public/sw.js
+lib/push/sender.ts
+app/api/push/subscribe/route.ts
+lib/hooks/use-push-notifications.ts
+components/PushNotificationToggle.tsx
+
 # F7.5 — Company Discovery (1 sesión)
 supabase/migrations/211_company_discovery.sql
 lib/company/discovery.ts
@@ -950,7 +1008,7 @@ lib/company/discovery-runner.ts
 tests/unit/discovery.test.ts
 app/api/admin/discover/route.ts
 
-# F7.6 — Intelligence Layer (3 sesiones)
+# F7.6 — Intelligence Layer + Briefings (3 sesiones, absorbe F6)
 supabase/migrations/212_intelligence.sql                   # F7.6a S1
 lib/intelligence/types.ts                                  # F7.6a S1
 lib/intelligence/profiles/extract-profile.ts               # F7.6a S1
@@ -962,7 +1020,7 @@ lib/intelligence/synthesizer.ts                            # F7.6a S2
 lib/intelligence/engine.ts                                 # F7.6a S2
 lib/intelligence/history.ts                                # F7.6a S2
 lib/intelligence/delivery.ts                               # F7.6a S2
-app/api/cron/intelligence/route.ts                         # F7.6b
+app/api/cron/intelligence/route.ts                         # F7.6b (cron + push delivery)
 tests/unit/intelligence/extract-profile.test.ts
 tests/unit/intelligence/context-assembler.test.ts
 tests/unit/intelligence/investigator.test.ts
@@ -971,19 +1029,16 @@ tests/unit/intelligence/engine.test.ts
 tests/unit/intelligence/delivery.test.ts
 tests/unit/intelligence/memory-enricher.test.ts
 # Spec completa: INTELLIGENCE_LAYER_PLAN.md
+# F6 (Briefings) NO tiene archivos propios — absorbido por F7.6
 
-# F5 — PWA + Push
-public/manifest.json
-public/sw.js
-lib/push/sender.ts
-app/api/push/subscribe/route.ts
-lib/hooks/use-push-notifications.ts
-components/PushNotificationToggle.tsx
-
-# F6 — Briefings
-lib/briefings/generator.ts
-app/api/cron/briefings/route.ts
-components/BriefingSettings.tsx
+# F7.7 — Google Integration (2 días, opcional pre-piloto)
+# Approach pendiente: skills propios vs MCP servers vs híbrido
+supabase/migrations/214_google_connections.sql
+lib/skills/google/calendar.ts                              # o MCP server
+lib/skills/google/gmail.ts                                 # o MCP server
+lib/skills/google/heuristics.ts                            # portado de Antigravity
+lib/auth/google-oauth.ts                                   # OAuth flow
+app/api/auth/google/route.ts                               # consent + callback
 ```
 
 ### Principios

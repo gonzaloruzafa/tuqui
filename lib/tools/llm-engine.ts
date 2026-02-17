@@ -345,15 +345,20 @@ export async function generateTextWithThinking({
                 }
                 
                 if (!tool || !tool.execute) {
-                    if (name === 'odoo_intelligent_query') {
+                    // Google Search grounding — Gemini invokes this natively, skip silently
+                    if (name.startsWith('google_search')) {
+                        toolResult = { result: 'Google Search grounding executed by model' }
+                        // Not an error — native Gemini capability
+                    } else if (name === 'odoo_intelligent_query') {
                         toolResult = { 
                             error: `La tool "odoo_intelligent_query" fue reemplazada. Usá: ` +
                                    `get_sales_total, get_invoices_by_customer, get_debt_by_customer, etc.`
                         }
+                        error = `Tool ${name} not found`
                     } else {
                         toolResult = { error: `Tool ${name} no está disponible.` }
+                        error = `Tool ${name} not found`
                     }
-                    error = `Tool ${name} not found`
                 } else {
                     try {
                         toolResult = await tool.execute(args)

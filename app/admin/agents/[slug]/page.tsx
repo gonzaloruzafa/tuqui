@@ -387,7 +387,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                 {/* Danger Zone - Only for custom agents */}
                 {!agent.isBaseAgent && (
                     <section className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden mt-8">
-                        <div className="p-6 border-b border-red-50 bg-red-50/50">
+                        <div className="px-4 py-4 border-b border-red-50 bg-red-50/50">
                             <div className="flex items-center gap-2">
                                 <Trash2 className="w-5 h-5 text-red-600" />
                                 <h2 className="text-lg font-semibold text-gray-900">Zona de Peligro</h2>
@@ -396,7 +396,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                                 Eliminar este agente y todas sus conversaciones. Esta acción no se puede deshacer.
                             </p>
                         </div>
-                        <div className="p-6">
+                        <div className="p-4">
                             <DeleteAgentButton agentId={agent.id} agentName={agent.name} />
                         </div>
                     </section>

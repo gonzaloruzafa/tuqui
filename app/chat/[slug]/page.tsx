@@ -215,7 +215,8 @@ export default function ChatPage() {
                         }
                         // Load sources from tool_calls.sources (where we save them)
                         const sources = m.tool_calls?.sources || m.metadata?.sources || m.sources
-                        loaded.push({ ...m, content, rawContent: m.content, sources })
+                        const agentName = m.tool_calls?.agentName || undefined
+                        loaded.push({ ...m, content, rawContent: m.content, sources, agentName })
                     }
                     setMessages(loaded)
                 })
@@ -443,7 +444,7 @@ export default function ChatPage() {
                     sessionId: sid, 
                     role: 'assistant', 
                     content: finalText,
-                    toolCalls: capturedSources.length > 0 ? { sources: capturedSources } : undefined
+                    toolCalls: (capturedSources.length > 0 || capturedAgentName) ? { sources: capturedSources, agentName: capturedAgentName } : undefined
                 })
             })
 

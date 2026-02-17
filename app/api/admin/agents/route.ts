@@ -71,14 +71,14 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { name, description, systemPrompt, ragEnabled, tools } = body
+        const { name, slug: customSlug, description, systemPrompt, ragEnabled, tools } = body
 
         if (!name?.trim()) {
             return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 })
         }
 
-        // Generate unique slug
-        let baseSlug = generateSlug(name)
+        // Use custom slug if provided, otherwise generate from name
+        let baseSlug = customSlug?.trim() ? customSlug.trim() : generateSlug(name)
         let slug = baseSlug
         let counter = 1
 

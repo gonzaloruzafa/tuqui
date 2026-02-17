@@ -51,6 +51,7 @@ export default function AdminAgentsPage() {
     const [tenantName, setTenantName] = useState<string>('')
     const [formData, setFormData] = useState({
         name: '',
+        slug: '',
         description: '',
         systemPrompt: '',
         ragEnabled: true,
@@ -82,13 +83,14 @@ export default function AdminAgentsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...formData,
+                    slug: formData.slug || undefined,
                     ragEnabled: formData.tools.includes('knowledge_base')
                 })
             })
 
             if (res.ok) {
                 setShowModal(false)
-                setFormData({ name: '', description: '', systemPrompt: '', ragEnabled: true, tools: ['web_search'] })
+                setFormData({ name: '', slug: '', description: '', systemPrompt: '', ragEnabled: true, tools: ['web_search'] })
                 fetchAgents()
             } else {
                 const data = await res.json()
@@ -234,6 +236,10 @@ export default function AdminAgentsPage() {
                             <div>
                                 <label className="block text-sm font-medium mb-2 text-gray-700">Nombre del Agente *</label>
                                 <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adhoc-violet focus:border-transparent" placeholder="Ej: Asistente de Ventas" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-700">Slug (identificador único)</label>
+                                <input type="text" value={formData.slug || ''} onChange={e => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adhoc-violet focus:border-transparent font-mono text-sm" placeholder="Se genera automático del nombre si lo dejás vacío" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-2 text-gray-700">Descripción</label>

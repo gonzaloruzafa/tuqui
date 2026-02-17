@@ -2,7 +2,8 @@
 
 > **Última actualización:** 2026-02-16  
 > **Principio:** La inteligencia está en el LLM, no en el código  
-> **Referencia:** TUQUI_REFACTOR_PLAN.md § F7.6
+> **Referencia:** TUQUI_REFACTOR_PLAN.md § F7.6  
+> **Depende de:** F5 (PWA + Push) ya implementado — el delivery incluye push notification
 
 ---
 
@@ -64,6 +65,7 @@ que recibe contexto rico y tiene acceso a las mismas herramientas del chat
 │     │   • MeLi hybrid (precios de mercado)                  │   │
 │     │   • Tavily (noticias, novedades legales)              │   │
 │     │   • RAG (documentos de conocimiento)                  │   │
+│     │   • [F7.7] Google Calendar + Gmail (si conectado)     │   │
 │     │                                                       │   │
 │     │ maxSteps: 8 — el LLM decide cuántas tools llamar     │   │
 │     │ Output: texto libre con hallazgos                     │   │
@@ -86,14 +88,15 @@ que recibe contexto rico y tiene acceso a las mismas herramientas del chat
 │     └───────────────────────────────────────────────────────┘   │
 │                              │                                  │
 │                              ▼                                  │
-│  4. DELIVERY                                                    │
+│  4. DELIVERY (session opener + push matutino)                    │
 │     ┌───────────────────────────────────────────────────────┐   │
-│     │ Session opener → primer mensaje al abrir el chat      │   │
-│     │ 2 teasers con emoji + dato                            │   │
+│     │ Cron matutino → pre-computa y cachea teasers          │   │
+│     │ Push PWA → envía el teaser más impactante al celu     │   │
+│     │ Session opener → al abrir, muestra 2-3 teasers        │   │
 │     │ Suggested questions clickeables debajo                │   │
-│     │                                                       │   │
-│     │ Cron matutino → pre-computa y cachea                  │   │
 │     │ On-demand → refresca si ya se mostró                  │   │
+│     │                                                       │   │
+│     │ ⚡ F6 (Briefings) absorbido acá — un solo flujo       │   │
 │     └───────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  5. PERFILES (alimentan el contexto)                            │
@@ -289,6 +292,14 @@ VALUES (
    5. Buscá URGENCIAS: vencimientos, deuda que crece, stock que se acaba
    6. NO repitas lo que ya se mostró (ver "INSIGHTS YA MOSTRADOS")
    7. Hacé entre 3 y 8 consultas. No más.
+   8. PRIORIZACIÓN POR ROL:
+      - dueno/gerente → visión macro: ventas totales, cobranza, anomalías
+      - comercial → su pipeline, sus clientes, oportunidades, precios de mercado
+      - compras → stock bajo, OC pendientes, precios de proveedores
+      - contador → deuda vencida, vencimientos impositivos, pagos recibidos
+      Adaptá los teasers al rol del usuario.
+   9. Si tenés acceso a Google Calendar, cruzá reuniones del día con datos del ERP
+      (ej: "Tenés reunión con Dental Sur — hace 23 días que no compran")
 
    Al final, escribí un resumen de tus hallazgos más interesantes.',
   ARRAY['odoo', 'web_search', 'knowledge_base'],
@@ -327,8 +338,11 @@ Toma los hallazgos del investigator → genera teasers estructurados. (~50 líne
 
 interface Teaser {
   emoji: string;
-  dato: string;    // 1 línea, el hook — genera curiosidad
-  pregunta: string; // pregunta sugerida — da ganas de tocar
+  dato: string;       // 1 línea, el hook — genera curiosidad
+  pregunta: string;   // pregunta sugerida — da ganas de tocar
+  actionHint?: string; // acción sugerida: "Enviar recordatorio", "Crear OC"
+                       // se muestra como chip secundario, futuro-proof para
+                       // acciones directas cuando haya Odoo bidireccional
 }
 
 async function synthesize(
@@ -343,6 +357,7 @@ async function synthesize(
         emoji: z.string(),
         dato: z.string().describe('1 línea concisa, el hook — genera curiosidad'),
         pregunta: z.string().describe('pregunta sugerida que invite a profundizar'),
+        actionHint: z.string().optional().describe('acción concreta sugerida: "Enviar recordatorio", "Crear OC", etc.'),
       })).min(2).max(3),
     }),
     system: `Convertí hallazgos en teasers irresistibles.
@@ -401,6 +416,9 @@ async function generateInsights(
 
 ## 6. DELIVERY
 
+> **F6 (Briefings Matutinos) está absorbido acá.** No existe como fase separada.
+> Un solo flujo: analista investiga → teasers → cache → push + session opener.
+
 ### 6.1 Session Opener
 
 Al abrir el chat, se muestran 2 teasers + preguntas sugeridas clickeables.
@@ -440,9 +458,11 @@ async function getSessionOpener(
 }
 ```
 
-### 6.2 Cron Matutino
+### 6.2 Cron Matutino + Push Delivery
 
-Pre-computa insights para que estén listos cuando el usuario abra.
+Pre-computa insights Y los envía como push notification.
+El push es el HOOK matutino — 1 línea con el dato más impactante.
+El session opener es el CONTENIDO completo al abrir.
 
 ```typescript
 // app/api/cron/intelligence/route.ts
@@ -451,23 +471,45 @@ export async function GET(request: Request) {
   // Verificar CRON_SECRET
   // Para cada tenant activo:
   //   Para cada user que usó Tuqui en los últimos 7 días:
-  //     generateInsights(tenantId, userId, userEmail)
-  //     → queda en insight_cache, served = false
+  //     1. generateInsights(tenantId, userId, userEmail)
+  //        → queda en insight_cache, served = false
+  //     2. Enviar push con el teaser más impactante:
+  //        sendPushToUser(db, tenantId, userEmail, {
+  //          title: '🌅 Buenos días',
+  //          body: teasers[0].emoji + ' ' + teasers[0].dato,
+  //          link: '/chat/tuqui'
+  //        })
+  //        → usa infra de F5 (lib/push/sender.ts)
 }
 ```
 
-### 6.3 Flujo completo
+**Flujo completo:**
 
 ```
-7:00 AM  → Cron corre → generateInsights() → cache en DB (served=false)
-9:15 AM  → Usuario abre chat → getSessionOpener() → lee cache → muestra 2 teasers
-         → Usuario toca "¿Qué dejó de llevar?" → mensaje normal al chat
-         → Tuqui responde usando las mismas tools → conversación natural
+7:00 AM  → Cron → generateInsights() → cache (served=false)
+7:01 AM  → Push al celu: "👻 Macrodental no compra hace 47 días"
+9:15 AM  → Usuario toca push → abre Tuqui PWA (ya logueado)
+         → getSessionOpener() → lee cache → 2-3 teasers completos
+         → Usuario toca pregunta → chat normal → Tuqui responde
          → cache marcado served=true
-
-13:00    → Usuario abre de nuevo → cache ya served → on-demand refresh
+13:00    → Abre de nuevo → cache ya served → on-demand refresh
          → Nuevos teasers generados → sorpresa diferente
 ```
+
+**¿Por qué absorber F6 acá?**
+
+F6 planteaba un `lib/briefings/generator.ts` + migration `220_briefing_config.sql` + 
+cron separado + UI de config. Todo eso es redundante porque:
+- El intelligence layer YA genera contenido matutino personalizado
+- La personalización viene de `user_profiles` (pain_points, watchlist, role)
+- El canal de delivery es push (F5) que ya existe
+- Un solo cron, un solo flujo, cero duplicación
+
+**Archivos eliminados (antes en F6):**
+- ~~`lib/briefings/generator.ts`~~ → absorbido por `lib/intelligence/engine.ts`
+- ~~`app/api/cron/briefings/route.ts`~~ → absorbido por `app/api/cron/intelligence/route.ts`
+- ~~`components/BriefingSettings.tsx`~~ → absorbido por onboarding conversacional
+- ~~`migration 220_briefing_config.sql`~~ → no se necesita
 
 ---
 
@@ -479,11 +521,11 @@ LUNES
   ¿Qué dejó de llevar?
 
   📦 Siliconas Vericom: stock para 12 días, sin OC abierta
-  ¿Querés que busque alternativas de proveedor?
-
+  ¿Querés que busque alternativas de proveedor?  ✨ Acción sugerida: Crear OC a proveedor alternativo
 MARTES
   🛒 Composite 3M: lo vendés a $45.000, en MeLi el más barato está $62.000
   ¿Estoy regalando margen?
+  ✨ Acción sugerida: Actualizar precio
 
   ⚖️ ARCA: nuevas retenciones de IVA para contribuyentes intensivos
   ¿Me afecta?
@@ -501,6 +543,7 @@ JUEVES
 
   📊 Cobranza: entraron $11M de los $18M facturados (61%)
   ¿Quién es el que más debe?
+  ✨ Acción sugerida: Enviar recordatorios de pago
 
 VIERNES
   🦷 "Alineadores estéticos" creció 23% en búsquedas en Argentina
@@ -605,7 +648,7 @@ lib/intelligence/
   investigator.ts           # ~80 líneas — agentic loop con tools existentes
   synthesizer.ts            # ~50 líneas — hallazgos → teasers estructurados
   engine.ts                 # ~40 líneas — orquesta context→investigate→synthesize
-  delivery.ts               # ~50 líneas — session opener + cache logic
+  delivery.ts               # ~60 líneas — session opener + push + cache logic
   history.ts                # ~40 líneas — insight_history CRUD + cooldown
 
 lib/intelligence/profiles/
@@ -629,8 +672,9 @@ tests/unit/intelligence/
   delivery.test.ts
   memory-enricher.test.ts
 
-Total: ~13 archivos de código, ~520 líneas
+Total: ~13 archivos de código, ~530 líneas
        + 1 migration, 7 tests
+       + push delivery reutiliza lib/push/sender.ts de F5
 ```
 
 ---
@@ -652,6 +696,7 @@ Total: ~13 archivos de código, ~520 líneas
 | Agent service | `lib/agents/service.ts` | `getAgentBySlug('analista')` → prompt + tools de DB |
 | Merged prompt | `lib/agents/service.ts` | `buildMergedPrompt()` → master + custom_instructions |
 | Agent sync | `sync_agents_from_masters()` | Propaga analista a todos los tenants |
+| Push sender | `lib/push/sender.ts` | `sendPushToUser()` de F5 para delivery matutino |
 
 ### Qué se modifica (mínimo)
 
@@ -660,6 +705,33 @@ Total: ~13 archivos de código, ~520 líneas
 | `lib/chat/engine.ts` | Llamar `enrichFromMessage()` post-mensaje | ~5 líneas |
 | `app/chat/[slug]/page.tsx` | Llamar `getSessionOpener()` al abrir sesión nueva | ~10 líneas |
 | `vercel.json` | Agregar cron schedule para `/api/cron/intelligence` | ~3 líneas |
+
+### Qué se reutiliza de F5 (PWA + Push)
+
+| Componente | Archivo | Uso |
+|---|---|---|
+| Push sender | `lib/push/sender.ts` | `sendPushToUser()` envía el teaser matutino |
+| Push subscribe | `app/api/push/subscribe/route.ts` | Suscripción ya gestionada por F5 |
+| Service worker | `public/sw.js` | Ya maneja push events + click → open app |
+
+### Integración futura: Google Tools (F7.7)
+
+Cuando F7.7 (Google Calendar + Gmail) esté implementado, el investigator
+automáticamente los puede usar si el agente `analista` tiene acceso a esos tools.
+No requiere cambios en el intelligence layer — solo agregar los tools al array
+del master agent: `ARRAY['odoo', 'web_search', 'knowledge_base', 'google']`.
+
+Cruce de ejemplo: "Tenés reunión con Dental Sur a las 11 — hace 23 días que
+no compran, llevan $45K en deuda vencida."
+
+### Nota sobre Prometeo
+
+Prometeo (`lib/prometeo/`) ya tiene infra completa para alertas condicionales
+(cron polling, AI evaluation, multi-channel notifications). Por ahora el
+intelligence layer opera de forma independiente. En el futuro, se puede evaluar
+si conectar el investigator con Prometeo para alertas real-time (ej: venta grande,
+stock crítico) tiene sentido como extensión. Por ahora, el cron matutino +
+push + session opener cubren el caso de uso.
 
 ---
 
@@ -688,13 +760,14 @@ Total: ~13 archivos de código, ~520 líneas
 - [ ] Integrar: memory-enricher en `lib/chat/engine.ts`
 - [ ] Probar con Cedent: verificar insights con data real
 
-### F7.6b: Cron + Polish (1 sesión)
+### F7.6b: Cron + Push Delivery + Polish (1 sesión)
 
-- [ ] `app/api/cron/intelligence/route.ts` — cron matutino
+- [ ] `app/api/cron/intelligence/route.ts` — cron matutino + push delivery
 - [ ] Configurar en `vercel.json`
+- [ ] Push delivery: después de cachear, enviar push con teaser más impactante
 - [ ] Feedback tracking: guardar `tapped` cuando user hace click
 - [ ] Onboarding flow: detectar user sin profile → mostrar pregunta inicial
-- [ ] Tests: cron, feedback tracking
+- [ ] Tests: cron, push delivery, feedback tracking
 - [ ] Eval: correr contra Cedent 5 días, medir variedad + relevancia
 
 ---
@@ -712,6 +785,7 @@ Total: ~13 archivos de código, ~520 líneas
 | Mention 3x "Macrodental" | Auto-agrega a watchlist |
 | `getSessionOpener()` con cache fresco | Retorna teasers del cache, marca served |
 | `getSessionOpener()` sin cache | Genera on-demand, cachea |
+| Push delivery envía teaser más impactante | `sendPushToUser` llamado post-cache |
 | `generateInsights()` E2E con Cedent | Teasers con datos reales y relevantes |
 
 ---
@@ -740,6 +814,7 @@ Conclusión: negligible. Menos que una conversación normal.
 |---------|--------|
 | DAU / MAU ratio | >40% |
 | Tap rate en preguntas sugeridas | >30% |
+| Push open rate | >40% |
 | Variedad de sources por semana | ≥2 tipos distintos |
 | Session length post-teaser | ≥3 mensajes |
 | "No sabía esto" rate (feedback) | >50% |
@@ -755,8 +830,12 @@ algo en tu ERP. A veces en el mercado. A veces en las noticias legales. Siempre
 personalizado a lo que te importa. Siempre con una pregunta que te invita a 
 profundizar.
 
-~13 archivos, ~520 líneas. El LLM hace el trabajo pesado.
+~13 archivos, ~530 líneas. El LLM hace el trabajo pesado.
 Las tools ya existen. El código nuevo es solo orquestación.
+El push matutino reusa la infra de F5. F6 no existe como fase separada.
+
+Cuando F7.7 (Google) esté listo, el analista cruza tu agenda con tu ERP
+sin tocar una línea del intelligence layer.
 
 ---
 
