@@ -136,6 +136,8 @@ export default function ChatPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const lastUpdateRef = useRef<number>(0)
     const pendingUpdateRef = useRef<NodeJS.Timeout | null>(null)
+    const usedSourcesRef = useRef<ThinkingSource[]>([])
+    const respondedAgentRef = useRef<string | undefined>(undefined)
 
     // Auto open sidebar on desktop, keep closed on mobile
     useEffect(() => {
@@ -176,15 +178,16 @@ export default function ChatPage() {
             })
     }, [agentSlug])
 
-    // Load all agents for @mention autocomplete
+    // Load all agents for @mention autocomplete (wait for agent to confirm auth is ready)
     useEffect(() => {
+        if (!agent) return
         fetch('/api/agents')
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) setAllAgents(data.map((a: any) => ({ slug: a.slug, name: a.name })))
             })
             .catch(() => {})
-    }, [])
+    }, [agent])
 
     // Load Sessions
     useEffect(() => {
@@ -246,6 +249,8 @@ export default function ChatPage() {
         setCurrentStep(null)
         setUsedSources([])
         setRespondedAgent(undefined)
+        usedSourcesRef.current = []
+        respondedAgentRef.current = undefined
         
         // Add temp bot message immediately to show loading state
         setMessages(prev => [...prev, { id: 'temp-bot', role: 'assistant', content: '' }])
@@ -324,17 +329,16 @@ export default function ChatPage() {
                             // Update current step for ExecutionProgress display
                             setCurrentStep(step)
                             
-                            // Collect source for final badge (check against current state, not stale closure)
+                            // Collect source for final badge (ref + state to avoid stale closure)
                             if (step.source) {
-                                setUsedSources(prev => {
-                                    if (!prev.includes(step.source)) {
-                                        return [...prev, step.source]
-                                    }
-                                    return prev
-                                })
+                                if (!usedSourcesRef.current.includes(step.source)) {
+                                    usedSourcesRef.current = [...usedSourcesRef.current, step.source]
+                                }
+                                setUsedSources([...usedSourcesRef.current])
                             }
-                            // Track agent name for attribution
+                            // Track agent name for attribution (ref + state)
                             if (step.agentName) {
+                                respondedAgentRef.current = step.agentName
                                 setRespondedAgent(step.agentName)
                             }
                         } catch (e) {
@@ -413,9 +417,10 @@ export default function ChatPage() {
             const finalText = botText
             const finalHtml = wrapTablesInScrollContainer(await marked.parse(finalText))
             
-            // Capture sources from current state
-            const capturedSources = [...usedSources]
-            console.log('[Chat] 💾 Saving message with sources:', capturedSources)
+            // Capture sources from refs (avoids stale closure)
+            const capturedSources = [...usedSourcesRef.current]
+            const capturedAgentName = respondedAgentRef.current
+            console.log('[Chat] 💾 Saving message with sources:', capturedSources, 'agent:', capturedAgentName)
             
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== 'temp-bot')
@@ -425,7 +430,7 @@ export default function ChatPage() {
                     content: finalHtml, 
                     rawContent: finalText,
                     sources: capturedSources.length > 0 ? capturedSources : undefined,
-                    agentName: respondedAgent
+                    agentName: capturedAgentName
                 }]
             })
 
