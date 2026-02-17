@@ -27,25 +27,25 @@ export async function GET(req: NextRequest) {
   const db = getClient()
   const { data: targetUser } = await db
     .from('users')
-    .select('email')
+    .select('name, email')
     .eq('id', targetUserId)
     .eq('tenant_id', session.tenant.id)
     .single()
 
-  if (!targetUser?.email) {
-    return NextResponse.json({ success: false, error: 'Usuario no encontrado' }, { status: 404 })
+  if (!targetUser?.name) {
+    return NextResponse.json({ success: false, error: 'Usuario sin nombre configurado' }, { status: 404 })
   }
 
   const result = await discoverUserProfile(
     session.tenant.id,
     session.user.email,
-    targetUser.email
+    targetUser.name
   )
 
   if (!result) {
     return NextResponse.json({
       success: false,
-      error: 'No se encontró al usuario en Odoo. Verificá que el email coincida.',
+      error: 'No se encontró al usuario en Odoo. Verificá que el nombre coincida.',
     })
   }
 

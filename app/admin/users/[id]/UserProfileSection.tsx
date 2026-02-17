@@ -88,7 +88,7 @@ export function UserProfileSection({ userId, profile }: Props) {
             type="button"
             onClick={handleDiscovery}
             disabled={discovering}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-adhoc-violet to-purple-600 text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-all disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2 bg-adhoc-violet text-white rounded-xl text-xs font-semibold hover:bg-adhoc-violet/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
           >
             <Sparkles className={`w-3.5 h-3.5 ${discovering ? 'animate-pulse' : ''}`} />
             {discovering ? 'Detectando...' : 'Detectar desde Odoo'}

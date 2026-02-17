@@ -19,12 +19,12 @@ export interface UserDiscoveryResult {
 export async function discoverUserProfile(
   tenantId: string,
   userEmail: string,
-  targetEmail: string
+  targetName: string
 ): Promise<UserDiscoveryResult | null> {
   try {
     const skills = await loadSkillsForAgent(tenantId, userEmail, ['odoo_hr', 'odoo_mail'])
 
-    // 1. Find user in Odoo
+    // 1. Find user in Odoo by name
     const getUsersFn = skills['get_users']
     if (!getUsersFn?.execute) return null
 
@@ -33,8 +33,9 @@ export async function discoverUserProfile(
       data?: { users?: { id: number; name: string; login: string }[] }
     }
 
+    const nameLower = targetName.toLowerCase()
     const odooUser = usersResult.data?.users?.find(
-      u => u.login?.toLowerCase() === targetEmail.toLowerCase()
+      u => u.name?.toLowerCase().includes(nameLower) || nameLower.includes(u.name?.toLowerCase())
     )
     if (!odooUser) return null
 
