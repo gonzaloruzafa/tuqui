@@ -333,9 +333,10 @@ export async function generateTextWithThinking({
                 let error: string | undefined
                 const startTime = Date.now()
                 const source = getToolSource(name)
+                const isBlockedGoogleSearch = name.startsWith('google_search') && !(tools && 'web_search' in tools)
                 
-                // Emit thinking step: running
-                if (onThinkingStep) {
+                // Emit thinking step: running (skip for blocked google_search)
+                if (onThinkingStep && !isBlockedGoogleSearch) {
                     onThinkingStep({
                         tool: name,
                         source,
@@ -345,10 +346,20 @@ export async function generateTextWithThinking({
                 }
                 
                 if (!tool || !tool.execute) {
-                    // Google Search grounding — Gemini invokes this natively, skip silently
+                    // Google Search grounding — Gemini may invoke natively
                     if (name.startsWith('google_search')) {
-                        toolResult = { result: 'Google Search grounding executed by model' }
-                        // Not an error — native Gemini capability
+                        const hasWebSearch = tools && 'web_search' in tools
+                        if (hasWebSearch) {
+                            // Agent has web_search → allow grounding
+                            toolResult = { result: 'Google Search grounding executed by model' }
+                        } else {
+                            // Agent does NOT have web_search → block grounding
+                            toolResult = { 
+                                error: 'NO tenés acceso a búsqueda web. Respondé SOLO con la información de las herramientas disponibles (knowledge_base, etc). NO busques en internet.'
+                            }
+                            error = 'Google Search not authorized for this agent'
+                            console.warn(`[NativeGeminiV2] Blocked google_search grounding — agent lacks web_search tool`)
+                        }
                     } else if (name === 'odoo_intelligent_query') {
                         toolResult = { 
                             error: `La tool "odoo_intelligent_query" fue reemplazada. Usá: ` +
@@ -371,8 +382,8 @@ export async function generateTextWithThinking({
                 
                 const durationMs = Date.now() - startTime
                 
-                // Emit thinking step: done or error
-                if (onThinkingStep) {
+                // Emit thinking step: done or error (skip for blocked google_search)
+                if (onThinkingStep && !isBlockedGoogleSearch) {
                     onThinkingStep({
                         tool: name,
                         source,
