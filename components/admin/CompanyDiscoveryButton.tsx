@@ -79,12 +79,12 @@ export function CompanyDiscoveryButton() {
     : 0
 
   return (
-    <div className="w-full">
+    <div className="shrink-0">
       <button
         type="button"
         onClick={handleDiscovery}
         disabled={running}
-        className="relative w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-adhoc-violet to-purple-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:cursor-not-allowed shadow-sm overflow-hidden"
+        className="relative flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-adhoc-violet to-purple-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:cursor-not-allowed shadow-sm overflow-hidden whitespace-nowrap"
       >
         {/* Progress fill */}
         {running && (

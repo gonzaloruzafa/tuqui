@@ -15,6 +15,7 @@ export interface UserProfile {
   role_title: string | null
   area: string | null
   bio: string | null
+  interests: string | null
   created_at: string
   updated_at: string
 }
@@ -24,6 +25,7 @@ export interface UserProfileInput {
   role_title?: string
   area?: string
   bio?: string
+  interests?: string
 }
 
 /** Get user profile, returns null if not created yet */
@@ -58,6 +60,7 @@ export async function saveUserProfile(
       role_title: input.role_title || null,
       area: input.area || null,
       bio: input.bio || null,
+      interests: input.interests || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,tenant_id' })
     .select()
@@ -114,7 +117,7 @@ async function syncBioToMemory(
     })
 }
 
-/** Get minimal user context for prompt injection (~10 tokens) */
+/** Get minimal user context for prompt injection (~15 tokens) */
 export async function getUserContextTag(
   tenantId: string,
   userId: string
@@ -126,6 +129,7 @@ export async function getUserContextTag(
   if (profile.display_name) parts.push(profile.display_name)
   if (profile.role_title) parts.push(profile.role_title)
   if (profile.area) parts.push(profile.area)
+  if (profile.interests) parts.push(`Intereses: ${profile.interests}`)
 
   if (parts.length === 0) return null
   return `[Usuario: ${parts.join(' | ')}]`
