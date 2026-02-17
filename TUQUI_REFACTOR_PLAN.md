@@ -718,75 +718,206 @@ Hay un agente con acceso a tools que decide qué buscar.
 > **Opcional:** Se puede hacer pre-piloto o post-piloto. El analista funciona sin esto.  
 > **Referencia:** `adhoc-tuqui-morning/` tiene implementación de Gmail + Calendar que se puede portar
 
-### Concepto
+### Decisión de approach: Skills directos (no MCP)
 
-El agente `analista` ya tiene acceso a Odoo + MeLi + Tavily + RAG. Agregar
-Google Calendar y Gmail como tools le da contexto del **día del usuario** y del
-**mundo externo** (emails de proveedores, cambios de precio, etc.).
+**MCP descartado.** MCP es un protocolo de transporte pensado para agentes locales
+(Claude Desktop, Cursor). Para Tuqui no aporta:
+- Los MCP servers de Google son **single-user** — Tuqui es multi-tenant, multi-user
+- `googleapis` (npm) ya es la puerta de entrada a Google — oficial, tipada, 10 líneas
+- Agregaría una capa de indirección innecesaria entre el skill y la API
+- La arquitectura de skills de Tuqui ya resuelve descubrimiento + ejecución
 
-Cruces de ejemplo:
-- "Tenés reunión con Dental Sur a las 11 — hace 23 días que no compran"
-- "3M te mandó nueva lista de precios — ¿querés comparar con tus costos?"
-- "Mañana tenés 4 reuniones — acá van los datos que te conviene llevar"
+**Se implementa como skills propios**, igual que Odoo y MeLi. Mismo patrón,
+mismo registry, mismas descripciones ricas. El código base se porta de Antigravity.
 
-### Approach: Skills vs MCP
+### Concepto: Per-User Tool Connections
 
-Hay dos opciones para implementar. Evaluar cuál conviene:
+**Cambio de modelo:** Hoy las integraciones son **per-tenant** (`integrations` table,
+`UNIQUE(tenant_id, type)`). Cada usuario del tenant comparte las mismas credenciales
+de Odoo, MeLi, etc.
 
-**Opción A: Skills propios (como Odoo)**
-- `lib/skills/google/calendar.ts` — `getCalendarEvents({ period })`
-- `lib/skills/google/gmail.ts` — `getRecentEmails({ hours, filter })`
-- Control total, misma infra de skills existente
-- OAuth flow propio con `googleapis`
-- Reutilizable de `adhoc-tuqui-morning/lib/intelligence/`
+Google Calendar y Gmail son **personales** — cada usuario conecta SU cuenta.
+Esto introduce un nuevo concepto: **user connections** (integraciones per-user).
 
-**Opción B: MCP servers existentes**
-- Usar servidores MCP de Google Calendar y Gmail de la comunidad
-- Ej: `@anthropic/google-calendar-mcp`, `@anthropic/gmail-mcp`
-- Menos código propio, pero más dependencia externa
-- Requiere evaluar qué tools exponen y si son suficientes
-- Vercel AI SDK soporta MCP tools via `experimental_toMCPServerTools`
+```
+Hoy (per-tenant):                  Nuevo (per-user):
+┌───────────────────┐          ┌───────────────────────┐
+│ integrations       │          │ user_connections       │
+│ tenant_id + type   │          │ tenant_id + user_id    │
+│ = 1 Odoo por tenant│          │ + type                 │
+└───────────────────┘          │ = 1 Google por usuario │
+                                 └───────────────────────┘
+```
 
-**Opción C: Híbrido**
-- OAuth propio (ya probado en Antigravity)
-- Tools como skills propios pero con interface compatible MCP
-- Si aparece un MCP server bueno, migrar sin romper nada
+El usuario configura sus connections desde **/herramientas** (settings de usuario):
+- Google Calendar: botón "Conectar Google" → OAuth consent → calendar.readonly
+- Gmail: botón "Conectar Gmail" → OAuth consent → gmail.readonly (opt-in explícito)
+- Cada connection es per-user, no per-tenant
+- El skill retorna `{ available: false }` si el user no conectó
 
-**Decisión pendiente:** investigar qué MCP servers de Google existen,
-qué tools exponen, y si cubren el caso de uso (fetch events + emails
-con filtros). Si no, ir con skills propios portando de Antigravity.
+### Nota: Odoo también debería migrar a per-user (futuro)
+
+Hoy Odoo es per-tenant: todos los usuarios comparten las mismas credenciales.
+Esto significa que un vendedor tiene acceso a las mismas queries que el dueño.
+
+**Ideal futuro:** cada usuario conecta SU cuenta de Odoo → los permisos de Odoo
+restringen qué ve cada uno. Un vendedor solo ve SUS ventas si Odoo tiene access
+rights configurados. Se resuelve migrando Odoo de `integrations` (per-tenant)
+a `user_connections` (per-user).
+
+**Para F7.7 no es bloqueante** — se puede hacer después. Pero la tabla
+`user_connections` se diseña genérica para soportar Google Y Odoo:
+
+```sql
+-- Migration 214_user_connections.sql
+
+CREATE TABLE user_connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  type TEXT NOT NULL,              -- 'google_calendar', 'google_gmail', 'odoo' (futuro)
+  config JSONB NOT NULL DEFAULT '{}', -- tokens, scopes, credentials
+  is_active BOOLEAN DEFAULT true,
+  expires_at TIMESTAMPTZ,          -- para OAuth tokens
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(tenant_id, user_id, type) -- 1 connection por user por tipo
+);
+
+ALTER TABLE user_connections ENABLE ROW LEVEL SECURITY;
+
+-- Cada user solo ve sus propias connections
+CREATE POLICY "users_own_connections" ON user_connections
+  FOR ALL USING (user_id = auth.uid());
+
+-- Service role para cron (intelligence layer)
+CREATE POLICY "service_manages_connections" ON user_connections
+  FOR SELECT USING (true);
+```
+
+### Flujo de carga de tools con user connections
+
+```
+getToolsForAgent(tenantId, agent, userEmail, userId)
+  │
+  ├── Odoo: loadOdooCredentials(tenantId)           // per-tenant (hoy)
+  │       → futuro: loadUserConnection(userId, 'odoo') // per-user
+  │
+  ├── Google Calendar: loadUserConnection(userId, 'google_calendar')
+  │       → si existe + active + no expirado → skill disponible
+  │       → si no existe → skill retorna { available: false }
+  │
+  └── Gmail: loadUserConnection(userId, 'google_gmail')
+          → idem Calendar
+```
+
+### Skills Google (skills directos con `googleapis`)
+
+**`lib/skills/google/calendar.ts`** (~60 líneas)
+```typescript
+// Skill: getCalendarEvents
+// Descripción rica:
+// USAR CUANDO: el analista quiere contextualizar insights con la agenda del día
+// EJEMPLO: "Tenés reunión con Dental Sur a las 11 — hace 23 días que no compran"
+// PARÁMETROS: period ('today' | 'tomorrow' | 'this_week')
+// RETORNA: { available: boolean, events: [{ title, start, end, attendees }] }
+// NOTA: Solo disponible si el usuario conectó Google Calendar desde /herramientas
+
+export async function execute(params, context) {
+  const conn = await loadUserConnection(context.userId, 'google_calendar')
+  if (!conn) return { available: false }
+  const auth = await getGoogleAuth(conn)  // refresh si expiró
+  const calendar = google.calendar({ version: 'v3', auth })
+  // ... fetch events, return structured
+}
+```
+
+**`lib/skills/google/gmail.ts`** (~80 líneas)
+```typescript
+// Skill: getRecentEmails
+// USAR CUANDO: buscar contexto externo (proveedores, clientes, regulatorio)
+// EJEMPLO: "3M te mandó nueva lista de precios — ¿querés comparar con tus costos?"
+// PARÁMETROS: hours (default 24), maxResults (default 10)
+// RETORNA: { available: boolean, emails: [{ from, subject, snippet, importance }] }
+// NOTA: Solo disponible si el usuario conectó Gmail desde /herramientas. Opt-in explícito.
+
+export async function execute(params, context) {
+  const conn = await loadUserConnection(context.userId, 'google_gmail')
+  if (!conn) return { available: false }
+  // ... fetch + score con heurísticas portadas de Antigravity
+}
+```
 
 ### Código reutilizable de Antigravity
 
 | Archivo Antigravity | Qué tiene | Reutilizable |
 |---|---|---|
 | `lib/intelligence/heuristics.ts` | Email importance scoring (VIP senders, urgency keywords) | Sí, portar |
-| `lib/intelligence/briefing.ts` | Prompt de briefing + script generation | Parcial (prompt style) |
+| `lib/intelligence/briefing.ts` | Prompt de briefing + script generation | No (reemplazado por intelligence layer) |
 | `lib/intelligence/news.ts` | Tavily news fetching | Ya existe en Tuqui |
-| `lib/intelligence/profile-analyzer.ts` | Deep email profile analysis | Parcial (overkill) |
 | Google OAuth flow | NextAuth + GoogleProvider + googleapis | Sí, portar |
 
-### Checklist (tentativo — depende de approach elegido)
+### UI: /herramientas (settings de usuario)
 
-- [ ] Investigar MCP servers de Google (Calendar, Gmail) — evaluar coverage
-- [ ] Decidir approach: skills propios vs MCP vs híbrido
-- [ ] Migration `214_google_connections.sql` (OAuth tokens por user)
-- [ ] OAuth flow: Google consent screen + token storage
-- [ ] Implementar tools (skill o MCP según decisión)
-- [ ] Heuristics de email importance (portar de Antigravity)
-- [ ] Agregar tools al master agent `analista`
-- [ ] Tests: calendar + gmail skills con mocks
+Página donde cada usuario gestiona SUS connections:
+
+```
+┌─────────────────────────────────────────┐
+│  Mis Herramientas                        │
+│                                         │
+│  📅 Google Calendar                       │
+│  [ Conectar Google ]                     │
+│  Estado: ✅ Conectado (martin@cedent.com)  │
+│  Permiso: Solo lectura de calendario     │
+│  [ Desconectar ]                         │
+│                                         │
+│  📧 Gmail                                 │
+│  [ Conectar Gmail ]                      │
+│  Estado: ❌ No conectado                   │
+│  ℹ️ Tuqui podrá leer tus emails recientes │
+│     para cruzar con datos del negocio    │
+│                                         │
+│  📦 Odoo (futuro)                         │
+│  Conectado via empresa (compartido)      │
+│  ℹ️ Próximamente: conectar tu propia cuenta │
+└─────────────────────────────────────────┘
+```
+
+### Checklist
+
+- [ ] Migration `214_user_connections.sql` (tabla genérica per-user)
+- [ ] `lib/skills/google/auth.ts` — OAuth helper + refresh tokens (~50 líneas)
+- [ ] `lib/skills/google/calendar.ts` — skill getCalendarEvents (~60 líneas)
+- [ ] `lib/skills/google/gmail.ts` — skill getRecentEmails (~80 líneas)
+- [ ] `lib/skills/google/heuristics.ts` — email importance scoring (~50 líneas, portado de Antigravity)
+- [ ] `app/api/auth/google/route.ts` — OAuth consent + callback (~40 líneas)
+- [ ] `app/herramientas/page.tsx` — UI per-user connections (~100 líneas)
+- [ ] Modificar `lib/skills/loader.ts` — `loadUserConnection()` helper (~20 líneas)
+- [ ] Agregar `google` al tool catalog en `lib/tools/executor.ts`
+- [ ] Agregar tools al master agent `analista`: `ARRAY[..., 'google']`
+- [ ] Tests: calendar + gmail skills con mocks, loader con user connections
 - [ ] Test E2E: "Tenés reunión con X — hace N días que no compran"
+
+### Migración futura: Odoo per-user
+
+Cuando se quiera restringir permisos de Odoo por usuario:
+1. Cada usuario conecta su propia cuenta Odoo desde /herramientas
+2. Se guarda en `user_connections` (type='odoo', config={url,db,user,password})
+3. `loadSkillsForAgent` busca primero `user_connections` (per-user), fallback a `integrations` (per-tenant)
+4. Los access rights de Odoo restringen qué ve cada uno automáticamente
+5. No requiere cambios en skills — solo en el loader de credenciales
+
+Esto es post-PMF. Para el piloto, Odoo per-tenant alcanza.
 
 ### Riesgos
 
 | Riesgo | Impacto | Mitigación |
 |--------|---------|------------|
 | OAuth consent screen lento de aprobar | Bloquea Google tools | Modo "testing" con 100 users alcanza para piloto |
-| Gmail es invasivo para empresas | Rechazo del usuario | Opt-in explícito, pantalla de permisos, solo lectura |
-| MCP servers inestables / mal mantenidos | Tools rotos | Evaluar antes, tener fallback a skills propios |
-| Tokens OAuth expiran | Tools dejan de funcionar | Refresh token flow ya resuelto en Antigravity |
-| Costo API Google | $$ | Google Calendar API gratis, Gmail API gratis hasta 1M requests/día |
+| Gmail es invasivo para empresas | Rechazo del usuario | Opt-in explícito con explicación clara, solo lectura |
+| Tokens OAuth expiran | Tools dejan de funcionar | Refresh token automático (ya resuelto en Antigravity) |
+| Costo API Google | $$ | Calendar y Gmail API gratis hasta 1M requests/día |
+| Permisos de Odoo per-user cambia el loader | Refactor loader | Tabla `user_connections` genérica, fallback a `integrations` |
 
 ---
 
@@ -944,10 +1075,13 @@ Semana 2 (F7.6b — Intelligence: Cron + Polish — 1 sesión):
 ├── Onboarding flow (user sin profile)
 └── Feedback tracking + eval contra Cedent
 
-Semana 3 (F5 + F6 — Engagement):
-├── Día 1: F5 completo (PWA + Push) + tests
-├── Día 2: F6.1-6.3 (briefing config + generator + cron)
-└── Día 3: F6.4-6.5 (vercel cron + UI) + tests
+Semana 3 (F5 — PWA + Push — 1.5 días):
+├── Día 1: manifest.json + sw.js + push sender + subscribe API
+└── Día 2: hook + toggle component + tests
+
+Semana 3 (F7.7 — Google + Per-User Connections — 2 días, opcional):
+├── Día 1: user_connections migration + OAuth flow + calendar skill + tests
+└── Día 2: gmail skill + heuristics + /herramientas UI + tests
 
 Semana 3-4 (F8 — Piloto):
 ├── Setup Cedent + onboarding
@@ -1031,14 +1165,18 @@ tests/unit/intelligence/memory-enricher.test.ts
 # Spec completa: INTELLIGENCE_LAYER_PLAN.md
 # F6 (Briefings) NO tiene archivos propios — absorbido por F7.6
 
-# F7.7 — Google Integration (2 días, opcional pre-piloto)
-# Approach pendiente: skills propios vs MCP servers vs híbrido
-supabase/migrations/214_google_connections.sql
-lib/skills/google/calendar.ts                              # o MCP server
-lib/skills/google/gmail.ts                                 # o MCP server
+# F7.7 — Google Integration + Per-User Connections (2 días, opcional pre-piloto)
+supabase/migrations/214_user_connections.sql                # tabla genérica per-user
+lib/skills/google/auth.ts                                  # OAuth helper + refresh
+lib/skills/google/calendar.ts                              # skill getCalendarEvents
+lib/skills/google/gmail.ts                                 # skill getRecentEmails
 lib/skills/google/heuristics.ts                            # portado de Antigravity
-lib/auth/google-oauth.ts                                   # OAuth flow
 app/api/auth/google/route.ts                               # consent + callback
+app/herramientas/page.tsx                                  # UI per-user connections
+components/UserConnectionsPanel.tsx                        # cards por integración
+tests/unit/google/calendar.test.ts
+tests/unit/google/gmail.test.ts
+tests/unit/google/user-connections.test.ts
 ```
 
 ### Principios

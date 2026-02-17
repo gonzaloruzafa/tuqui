@@ -82,8 +82,10 @@ async function updateAgent(formData: FormData) {
         }).eq('tenant_id', session.tenant.id).eq('id', agent.id)
     } else {
         // CUSTOM AGENT: Update everything
+        const newSlug = (formData.get('new_slug') as string)?.trim()?.toLowerCase()?.replace(/[^a-z0-9_-]/g, '') || slug
         await db.from('agents').update({
             name: name,
+            slug: newSlug,
             system_prompt: systemPrompt,
             is_active: isActive,
             tools: tools
@@ -126,6 +128,13 @@ async function updateAgent(formData: FormData) {
 
     revalidatePath(`/admin/agents/${slug}`)
     revalidatePath('/admin/agents')
+
+    // Redirect to new slug if it changed (custom agents only)
+    const newSlug = !isBaseAgent ? (formData.get('new_slug') as string)?.trim()?.toLowerCase()?.replace(/[^a-z0-9_-]/g, '') : null
+    if (newSlug && newSlug !== slug) {
+        revalidatePath(`/admin/agents/${newSlug}`)
+        redirect(`/admin/agents/${newSlug}`)
+    }
 }
 
 export default async function AgentEditorPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -199,14 +208,27 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
                         </div>
                         <div className="p-6 sm:p-8 space-y-6">
                             {!agent.isBaseAgent && (
-                                <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Agente</label>
-                                    <input
-                                        name="name"
-                                        defaultValue={agent.name || ''}
-                                        type="text"
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Agente</label>
+                                        <input
+                                            name="name"
+                                            defaultValue={agent.name || ''}
+                                            type="text"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Slug</label>
+                                        <input
+                                            name="new_slug"
+                                            defaultValue={agent.slug || ''}
+                                            type="text"
+                                            pattern="^[a-z][a-z0-9_-]{1,48}$"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">Minúsculas, números, guiones. Ej: mi-agente-ventas</p>
+                                    </div>
                                 </div>
                             )}
 
@@ -386,7 +408,7 @@ export default async function AgentEditorPage({ params }: { params: Promise<{ sl
 
                 {/* Danger Zone - Only for custom agents */}
                 {!agent.isBaseAgent && (
-                    <section className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden mt-8">
+                    <section className="max-w-3xl mx-auto bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden mt-8">
                         <div className="px-4 py-4 border-b border-red-50 bg-red-50/50">
                             <div className="flex items-center gap-2">
                                 <Trash2 className="w-5 h-5 text-red-600" />

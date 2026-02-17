@@ -721,6 +721,12 @@ automáticamente los puede usar si el agente `analista` tiene acceso a esos tool
 No requiere cambios en el intelligence layer — solo agregar los tools al array
 del master agent: `ARRAY['odoo', 'web_search', 'knowledge_base', 'google']`.
 
+**Per-user connections:** Los Google tools son per-user (cada usuario conecta
+SU cuenta desde `/herramientas`). El investigator recibe `userId` en el context
+→ `loadUserConnection(userId, 'google_calendar')` → si el user no conectó,
+el skill retorna `{ available: false }` y el investigator lo omite.
+Esto es transparente para el intelligence layer — el skill se encarga.
+
 Cruce de ejemplo: "Tenés reunión con Dental Sur a las 11 — hace 23 días que
 no compran, llevan $45K en deuda vencida."
 
