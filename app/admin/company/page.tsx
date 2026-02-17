@@ -11,6 +11,8 @@ import { RulesList } from '@/components/admin/RulesList'
 import { WebScanner } from '@/components/admin/WebScanner'
 import { DocumentSelector } from '@/components/ui/DocumentSelector'
 import { getCompanyContext } from '@/lib/company/context-injector'
+import { DictationTextarea } from '@/components/ui/DictationTextarea'
+import { CompanyDiscoveryButton } from '@/components/admin/CompanyDiscoveryButton'
 import Link from 'next/link'
 
 async function getTenantData(tenantId: string) {
@@ -67,13 +69,18 @@ export default async function AdminCompanyPage() {
           {/* SECTION 1: Datos Básicos */}
           <section className="bg-white rounded-3xl border border-adhoc-lavender/30 shadow-sm overflow-hidden">
             <div className="p-8 border-b border-gray-50 bg-gray-50/20">
-              <h2 className="text-xl font-bold text-gray-900 font-display flex items-center gap-2">
-                <Building className="w-5 h-5 text-adhoc-violet" />
-                Información básica
-              </h2>
-              <p className="text-sm text-gray-500 mt-1 italic">
-                Datos principales de tu empresa
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 font-display flex items-center gap-2">
+                    <Building className="w-5 h-5 text-adhoc-violet" />
+                    Información básica
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1 italic">
+                    Datos principales de tu empresa
+                  </p>
+                </div>
+                <CompanyDiscoveryButton onDiscovered={() => {}} />
+              </div>
             </div>
             <div className="p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -81,12 +88,11 @@ export default async function AdminCompanyPage() {
                 <InputField label="Industria / Rubro" name="industry" icon={Building} defaultValue={basics.industry || ''} placeholder="Ej: Distribuidora odontológica" />
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Descripción</label>
-                  <textarea
+                  <DictationTextarea
                     name="description"
                     defaultValue={basics.description || ''}
                     placeholder="Breve descripción de qué hace tu empresa"
                     rows={2}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm resize-none focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
                   />
                 </div>
               </div>
@@ -144,12 +150,11 @@ export default async function AdminCompanyPage() {
               </h2>
             </div>
             <div className="p-8">
-              <textarea
+              <DictationTextarea
                 name="tone_of_voice"
                 defaultValue={toneOfVoice}
                 placeholder="Ej: Profesional pero cercano. Tutear al cliente. Usar emojis con moderación."
                 rows={3}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm resize-none focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none transition-all"
               />
             </div>
           </section>

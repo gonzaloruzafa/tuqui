@@ -87,3 +87,35 @@ function safeParseJSON(str: string | null, fallback: any): any {
   if (!str) return fallback
   try { return JSON.parse(str) } catch { return fallback }
 }
+
+interface DiscoveryResult {
+  success: boolean
+  error?: string
+  data?: {
+    industry: string
+    description: string
+    topCustomers: { name: string; notes: string }[]
+    topProducts: { name: string; notes: string }[]
+  }
+}
+
+export async function runCompanyDiscovery(): Promise<DiscoveryResult> {
+  const session = await auth()
+  if (!session?.tenant?.id || !session.isAdmin || !session.user?.email) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  try {
+    const { discoverCompanyProfile } = await import('@/lib/company/discovery')
+    const result = await discoverCompanyProfile(session.tenant.id, session.user.email)
+    
+    if (!result) {
+      return { success: false, error: 'No se pudo detectar el perfil. ¿Está conectado Odoo?' }
+    }
+
+    return { success: true, data: result }
+  } catch (e) {
+    console.error('[Discovery Action] Error:', e)
+    return { success: false, error: 'Error al conectar con Odoo' }
+  }
+}

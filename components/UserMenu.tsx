@@ -1,8 +1,9 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, KeyRound } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 
 interface UserMenuProps {
     user: {
@@ -47,14 +48,34 @@ export function UserMenu({ user }: UserMenuProps) {
                         <p className="text-sm font-semibold text-gray-900 truncate">{user.name || 'Usuario'}</p>
                         <p className="text-xs text-gray-500 truncate">{user.email}</p>
                     </div>
-                    
-                    <button
-                        onClick={() => signOut({ callbackUrl: '/login' })}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+
+                    <Link
+                        href="/admin/user"
+                        onClick={() => setIsOpen(false)}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
-                        <LogOut className="w-4 h-4" />
-                        Cerrar sesión
-                    </button>
+                        <User className="w-4 h-4" />
+                        Mi Perfil
+                    </Link>
+
+                    <Link
+                        href="/admin/user#security"
+                        onClick={() => setIsOpen(false)}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        <KeyRound className="w-4 h-4" />
+                        Cambiar Contraseña
+                    </Link>
+
+                    <div className="border-t border-gray-50 mt-1 pt-1">
+                        <button
+                            onClick={() => signOut({ callbackUrl: '/login' })}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Cerrar sesión
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

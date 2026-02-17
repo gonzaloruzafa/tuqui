@@ -82,7 +82,8 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
         routedAgent: selectedAgent.slug !== agent.slug ? selectedAgent : undefined,
         routingDecision: decision,
         baseAgentSlug: agent.slug,
-        channel
+        channel,
+        userId
     })
 
     // 4. Load tools
