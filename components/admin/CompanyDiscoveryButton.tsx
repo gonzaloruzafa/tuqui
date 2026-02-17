@@ -17,9 +17,17 @@ export function CompanyDiscoveryButton() {
       try {
         const result = await runCompanyDiscovery()
         if (result.success && result.data) {
-          // Dispatch custom events for each field — DictationTextarea and inputs listen for these
-          for (const [name, value] of Object.entries(result.data)) {
-            if (typeof value === 'string' && value) {
+          // Map discovery field names → form field names
+          const fieldMap: Record<string, string> = {
+            topCustomers: 'key_customers',
+            topProducts: 'key_products',
+          }
+          // Dispatch custom events for each field
+          // Strings → DictationTextarea / AutofillInput listen
+          // Arrays → DynamicList listens
+          for (const [key, value] of Object.entries(result.data)) {
+            const name = fieldMap[key] || key
+            if (value && (typeof value === 'string' || Array.isArray(value))) {
               window.dispatchEvent(new CustomEvent(AUTOFILL_EVENT, { detail: { name, value } }))
             }
           }

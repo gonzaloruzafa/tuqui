@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, X } from 'lucide-react'
+import { AUTOFILL_EVENT } from '@/components/admin/CompanyDiscoveryButton'
 
 interface NamedItem {
   name: string
@@ -23,6 +24,18 @@ export function DynamicList({
   namePlaceholder = 'Nombre', notesPlaceholder = 'Notas (opcional)',
 }: DynamicListProps) {
   const [items, setItems] = useState<NamedItem[]>(initial.length > 0 ? initial : [])
+
+  // Listen for autofill events (from CompanyDiscoveryButton)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { name, value } = (e as CustomEvent).detail
+      if (name === fieldName && Array.isArray(value) && value.length > 0) {
+        setItems(value as NamedItem[])
+      }
+    }
+    window.addEventListener(AUTOFILL_EVENT, handler)
+    return () => window.removeEventListener(AUTOFILL_EVENT, handler)
+  }, [fieldName])
 
   const addItem = () => setItems([...items, { name: '', notes: '' }])
 
