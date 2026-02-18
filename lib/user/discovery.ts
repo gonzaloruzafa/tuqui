@@ -130,7 +130,8 @@ export async function discoverUserProfile(
     if (messageSample) dataParts.push(`Mensajes escritos por el usuario (muestra):\n${messageSample}`)
     if (activitySample) dataParts.push(`Actividades programadas:\n${activitySample}`)
 
-    return await synthesizeUserProfile(odooUser.name, dataParts.join('\n\n'))
+    const realMessageCount = allMessages.filter(m => m.bodyPreview && m.bodyPreview.length > 10).length
+    return await synthesizeUserProfile(odooUser.name, dataParts.join('\n\n'), realMessageCount)
   } catch (e) {
     console.error('[UserDiscovery] Error:', e)
     return null
@@ -139,29 +140,30 @@ export async function discoverUserProfile(
 
 async function synthesizeUserProfile(
   name: string,
-  data: string
+  data: string,
+  messageCount: number
 ): Promise<UserDiscoveryResult> {
   const { GoogleGenAI } = await import('@google/genai')
   const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 
-  const prompt = `Analizá la actividad real de ${name} en Odoo durante el último año y generá su perfil profesional y psicológico.
+  const hasMessages = messageCount >= 5
 
-Tu objetivo NO es listar qué hace, sino ENTENDER QUIÉN ES como persona y cómo trabaja: su foco, su estilo, su personalidad funcional.
+  const prompt = `Analizá la actividad real de ${name} en Odoo durante el último año y generá su perfil profesional${hasMessages ? ' y de personalidad' : ''}.
 
 Respondé SOLO con JSON válido, sin markdown:
 {
-  "display_name": "Nombre real de la persona (tal como aparece en Odoo, sin apellidos técnicos ni iniciales raras)",
-  "role_title": "Cargo/rol inferido. Si hay dato de RRHH, usá ese. Si no, inferilo de los módulos que más usa.",
-  "area": "Área principal (ej: 'Ventas', 'Administración', 'Contabilidad'). Una sola área principal.",
-  "bio": "2-3 oraciones. Describí qué hace esta persona, en qué procesos está metida, y algo de cómo trabaja. Basate en patrones reales, no en el cargo. Ej: 'Gestiona la facturación y el seguimiento de cobranza. Tiene un ritmo de trabajo constante y metódico, con foco en el cierre de operaciones. Interactúa principalmente con clientes de Cedent SRL.'",
-  "interests": "Perfil funcional y psicológico para comunicarse mejor con esta persona. Incluí: (1) en qué procesos tiene más foco, (2) si es más pragmático/directo o detallista/cuidadoso, (3) si parece proactivo (inicia cosas) o reactivo (responde cosas), (4) cómo comunicarse bien con él/ella (ej: 'directo y con datos concretos', 'con contexto y paciencia', 'mensajes cortos y accionables'). Separado por coma. Ej: 'foco en facturación y cobranza, estilo directo y pragmático, proactivo, comunicarse con datos concretos y sin rodeos'"
+  "display_name": "Nombre real (como aparece en Odoo)",
+  "role_title": "Cargo/rol. Si hay dato de RRHH, usá ese. Si no, inferilo de los módulos que más usa.",
+  "area": "Área principal (ej: 'Ventas', 'Administración'). Una sola.",
+  "bio": "3-5 oraciones: qué hace operativamente, con quiénes interactúa, en qué procesos está más metido/a, cómo es su ritmo de trabajo.${hasMessages ? ' Cerrá con una oración sobre su tipo de personalidad Jung/MBTI (ej: ESTJ, INFP, ENTP) inferido ÚNICAMENTE del tono, longitud y estilo de sus mensajes reales de chatter/email. Justificá brevemente por qué ese tipo (ej: mensajes cortos y directos, inicia temas → ESTJ). Si los mensajes no son suficientemente claros para inferir, no lo pongas.' : ''}",
+  "interests": "Síntesis para que un colega sepa cómo trabajar con esta persona: foco principal, estilo de comunicación (directo/detallado, breve/extenso, formal/informal), si es más proactivo o reactivo, y recomendación concreta de cómo comunicarse (ej: 'mensajes cortos con acción clara', 'dar contexto antes de pedir algo')"
 }
 
-REGLAS CRÍTICAS:
-- Basate SOLO en los datos reales de actividad — no inventes
-- El campo "interests" es el más importante: tiene que ayudar a un colega a entender CÓMO trabajar con esta persona
-- Si los mensajes muestran textos cortos → mencionar estilo directo. Si son largos y detallados → mencionar que aprecia contexto
-- Si el usuario tiene muchas actividades en un módulo específico → inferir foco
+REGLAS:
+- Basate SOLO en datos reales — no inventes
+- "bio" debe leerse como ficha de persona, no como CV
+${hasMessages ? '- El perfil Jung/MBTI se infiere de los MENSAJES: cortos/directos → T/J, largos con contexto → F/N, inicia conversaciones → E, solo responde → I, planifica → J, variedad de temas → P. Si no hay señales claras, NO pongas tipo Jung.' : '- NO menciones Jung, MBTI ni personalidad — no hay suficientes mensajes para inferirlo.'}
+- "interests" es para que cualquier colega entienda en 2 segundos cómo comunicarse
 - Español argentino, directo
 
 DATOS DE ACTIVIDAD:
