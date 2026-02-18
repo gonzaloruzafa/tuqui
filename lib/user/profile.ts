@@ -117,12 +117,29 @@ async function syncBioToMemory(
     })
 }
 
-/** Get minimal user context for prompt injection (~15 tokens) */
+/** Get minimal user context for prompt injection (~15 tokens)
+ * userId can be either a users table UUID or an auth UUID — we try both */
 export async function getUserContextTag(
   tenantId: string,
   userId: string
 ): Promise<string | null> {
-  const profile = await getUserProfile(tenantId, userId)
+  // Try direct match first (users table UUID)
+  let profile = await getUserProfile(tenantId, userId)
+
+  // If not found, userId might be an auth UUID — resolve it
+  if (!profile) {
+    const db = getClient()
+    const { data: user } = await db
+      .from('users')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('auth_user_id', userId)
+      .single()
+    if (user) {
+      profile = await getUserProfile(tenantId, user.id)
+    }
+  }
+
   if (!profile) return null
 
   const parts: string[] = []
