@@ -34,9 +34,15 @@ export async function discoverUserProfile(
     }
 
     const nameLower = targetName.toLowerCase()
-    const odooUser = usersResult.data?.users?.find(
-      u => u.name?.toLowerCase().includes(nameLower) || nameLower.includes(u.name?.toLowerCase())
-    )
+    const odooUser = usersResult.data?.users?.find(u => {
+      const uName = u.name?.toLowerCase() || ''
+      const uLogin = u.login?.toLowerCase() || ''
+      // Match by login (exact) or name (bidirectional contains, min 3 chars to avoid false positives)
+      return uLogin === nameLower
+        || uLogin.startsWith(nameLower)
+        || (nameLower.length >= 3 && uName.includes(nameLower))
+        || (nameLower.length >= 3 && uLogin.includes(nameLower))
+    })
     if (!odooUser) return null
 
     // 2. Fetch activity

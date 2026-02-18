@@ -109,7 +109,7 @@ export function UserProfileSection({ userId, profile }: Props) {
               type="text"
               value={odooName}
               onChange={e => setOdooName(e.target.value)}
-              placeholder="Tu nombre en Odoo (ej: Martin Gomez)"
+              placeholder="Usuario o nombre en Odoo (ej: mtravella o Martin Travella)"
               autoFocus
               className="flex-grow bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none"
               onKeyDown={e => { if (e.key === 'Enter' && odooName.trim()) handleDiscovery(odooName.trim()) }}
