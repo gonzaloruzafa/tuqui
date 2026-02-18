@@ -362,10 +362,3 @@ export async function toggleAgentActive(
 // =============================================================================
 // LEGACY COMPATIBILITY
 // =============================================================================
-
-/**
- * @deprecated Use getAgentBySlug instead
- */
-export async function getTuqui(tenantId: string): Promise<AgentWithMergedPrompt | null> {
-    return getAgentBySlug(tenantId, 'tuqui')
-}

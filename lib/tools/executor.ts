@@ -1,5 +1,5 @@
 import { webSearchTool } from './web-search'
-import { loadSkillsForAgent, hasOdooTools, shouldUseSkills } from '@/lib/skills/loader'
+import { loadSkillsForAgent, hasOdooTools } from '@/lib/skills/loader'
 import { createRagTool } from './definitions/rag-tool'
 import { createMemoryTools } from '@/lib/skills/memory'
 
@@ -69,22 +69,15 @@ export async function getToolsForAgent(
         console.log('[Tools/Executor] Memory tools loaded (recall_memory, save_memory)')
     }
 
-    // Odoo Skills - New atomic skills architecture
+    // Odoo Skills - Atomic skills architecture
     if (hasOdooTools(agentTools) && userEmail) {
-        const useSkills = await shouldUseSkills(tenantId)
-
-        if (useSkills) {
-            console.log('[Tools/Executor] Loading Odoo Skills for tenant:', tenantId)
-            try {
-                const skillTools = await loadSkillsForAgent(tenantId, userEmail, agentTools)
-                Object.assign(tools, skillTools)
-                console.log('[Tools/Executor] Loaded', Object.keys(skillTools).length, 'skills')
-            } catch (error) {
-                console.error('[Tools/Executor] Error loading skills:', error)
-                // Fallback: Skills will not be available, God Tool will be used
-            }
-        } else {
-            console.log('[Tools/Executor] Skills disabled for tenant, will use God Tool fallback')
+        console.log('[Tools/Executor] Loading Odoo Skills for tenant:', tenantId)
+        try {
+            const skillTools = await loadSkillsForAgent(tenantId, userEmail, agentTools)
+            Object.assign(tools, skillTools)
+            console.log('[Tools/Executor] Loaded', Object.keys(skillTools).length, 'skills')
+        } catch (error) {
+            console.error('[Tools/Executor] Error loading skills:', error)
         }
     }
 

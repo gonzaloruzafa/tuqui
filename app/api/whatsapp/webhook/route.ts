@@ -3,7 +3,7 @@ import { getTenantByPhone } from '@/lib/supabase/client'
 import { sendWhatsApp } from '@/lib/twilio/client'
 import { getOrCreateWhatsAppSession, getSessionMessages, saveMessage } from '@/lib/supabase/chat-history'
 import { processChatRequest } from '@/lib/chat/engine'
-import { getTuqui } from '@/lib/agents/service'
+import { getAgentBySlug } from '@/lib/agents/service'
 
 export const maxDuration = 60 // Allow longer timeout for tools
 
@@ -151,7 +151,7 @@ async function processMessageAsync(from: string, body: string) {
         const { id: tenantId, userEmail } = tenantInfo
 
         // 2. Get Tuqui (the default agent for WhatsApp)
-        const agent = await getTuqui(tenantId)
+        const agent = await getAgentBySlug(tenantId, 'tuqui')
         if (!agent) {
             console.error(`[WhatsApp] Tuqui agent not found for tenant ${tenantId}`)
             await sendWhatsApp(tenantId, from, '❌ Error: No se encontró el agente.')
