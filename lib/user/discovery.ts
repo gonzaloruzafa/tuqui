@@ -34,14 +34,17 @@ export async function discoverUserProfile(
     }
 
     const nameLower = targetName.toLowerCase()
+    // Normalize accents for comparison (e.g. "martin" matches "Martín")
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const nameNorm = normalize(targetName)
     const odooUser = usersResult.data?.users?.find(u => {
-      const uName = u.name?.toLowerCase() || ''
-      const uLogin = u.login?.toLowerCase() || ''
-      // Match by login (exact) or name (bidirectional contains, min 3 chars to avoid false positives)
-      return uLogin === nameLower
-        || uLogin.startsWith(nameLower)
-        || (nameLower.length >= 3 && uName.includes(nameLower))
-        || (nameLower.length >= 3 && uLogin.includes(nameLower))
+      const uNameNorm = normalize(u.name || '')
+      const uLoginNorm = normalize(u.login || '')
+      return uLoginNorm === nameNorm
+        || uLoginNorm.startsWith(nameNorm)
+        || (nameNorm.length >= 3 && uNameNorm.includes(nameNorm))
+        || (nameNorm.length >= 3 && uLoginNorm.includes(nameNorm))
     })
     if (!odooUser) return null
 
