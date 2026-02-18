@@ -20,25 +20,27 @@ export async function discoverUserProfile(
   tenantId: string,
   userEmail: string,
   targetName: string
-): Promise<UserDiscoveryResult | null> {
+): Promise<UserDiscoveryResult | { notFound: true; debug: string } | null> {
   try {
     const skills = await loadSkillsForAgent(tenantId, userEmail, ['odoo_hr', 'odoo_mail'])
 
-    // 1. Find user in Odoo by name
+    // 1. Find user in Odoo by name or login
     const getUsersFn = skills['get_users']
     if (!getUsersFn?.execute) return null
 
-    const usersResult = await getUsersFn.execute({ internalOnly: false, limit: 200 }) as {
+    const usersResult = await getUsersFn.execute({ activeOnly: false, internalOnly: false, limit: 500 }) as {
       success: boolean
       data?: { users?: { id: number; name: string; login: string }[] }
     }
 
-    const nameLower = targetName.toLowerCase()
+    const allUsers = usersResult.data?.users || []
+    console.log(`[UserDiscovery] Got ${allUsers.length} users from Odoo, searching for "${targetName}"`)
+
     // Normalize accents for comparison (e.g. "martin" matches "Martín")
     const normalize = (s: string) =>
       s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     const nameNorm = normalize(targetName)
-    const odooUser = usersResult.data?.users?.find(u => {
+    const odooUser = allUsers.find(u => {
       const uNameNorm = normalize(u.name || '')
       const uLoginNorm = normalize(u.login || '')
       return uLoginNorm === nameNorm
@@ -46,7 +48,13 @@ export async function discoverUserProfile(
         || (nameNorm.length >= 3 && uNameNorm.includes(nameNorm))
         || (nameNorm.length >= 3 && uLoginNorm.includes(nameNorm))
     })
-    if (!odooUser) return null
+
+    if (!odooUser) {
+      // Return sample of users for debugging
+      const sample = allUsers.slice(0, 5).map(u => `${u.name} (${u.login})`).join(', ')
+      console.log(`[UserDiscovery] Not found. Sample users: ${sample}`)
+      return { notFound: true, debug: `${allUsers.length} usuarios en Odoo. Primeros: ${sample || 'ninguno'}` }
+    }
 
     // 2. Fetch activity
     const getActivityFn = skills['get_user_activity']

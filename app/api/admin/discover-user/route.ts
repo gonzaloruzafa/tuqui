@@ -45,9 +45,13 @@ export async function GET(req: NextRequest) {
   )
 
   if (!result) {
+    return NextResponse.json({ success: false, error: 'Error al conectar con Odoo' })
+  }
+
+  if ('notFound' in result) {
     return NextResponse.json({
       success: false,
-      error: `No se encontró "${searchName}" en Odoo. Revisá el nombre e intentá de nuevo.`,
+      error: `No se encontró "${searchName}" en Odoo. ${result.debug}`,
     })
   }
 
