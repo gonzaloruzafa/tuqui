@@ -22,13 +22,14 @@ export const GetUserActivityInputSchema = z.object({
   /** Or filter by user name/login */
   userLogin: z.string().optional(),
   /** Days back to look */
-  daysBack: z.number().int().min(1).max(180).default(30),
+  daysBack: z.number().int().min(1).max(365).default(30),
   /** Max messages to fetch */
   limit: z.number().int().min(1).max(100).default(50),
 });
 
 export interface UserActivityOutput {
   user: { id: number; name: string; login: string } | null;
+  groups: string[];
   messages: { subject: string | null; bodyPreview: string; model: string | null; date: string; type: string }[];
   activities: { summary: string | null; type: string; deadline: string; model: string; state: string }[];
   modelInteractions: Record<string, number>;
@@ -36,7 +37,7 @@ export interface UserActivityOutput {
   totalActivities: number;
 }
 
-function stripHtml(html: string, maxLen = 300): string {
+function stripHtml(html: string, maxLen = 500): string {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLen);
 }
 
@@ -92,12 +93,30 @@ Devuelve: mensajes recientes, actividades, distribución por modelo (sale.order,
         const _descripcion = 'No se encontró el usuario especificado.';
         return success({
           _descripcion,
-          user: null, messages: [], activities: [],
+          user: null, groups: [], messages: [], activities: [],
           modelInteractions: {}, totalMessages: 0, totalActivities: 0,
         });
       }
 
-      // 2. Fetch messages authored by this user
+      // 2. Fetch user groups (permissions) — strong signal of role
+      let groups: string[] = [];
+      try {
+        const userWithGroups = await odoo.searchRead<{
+          id: number; groups_id: number[];
+        }>('res.users', [['id', '=', userId]], {
+          fields: ['groups_id'], limit: 1,
+        });
+        if (userWithGroups[0]?.groups_id?.length) {
+          const groupRecords = await odoo.searchRead<{
+            id: number; full_name: string;
+          }>('res.groups', [['id', 'in', userWithGroups[0].groups_id]], {
+            fields: ['full_name'], limit: 200,
+          });
+          groups = groupRecords.map(g => g.full_name).filter(Boolean);
+        }
+      } catch { /* non-critical */ }
+
+      // 3. Fetch messages authored by this user
       const msgDomain: OdooDomain = [
         ['author_id.user_ids', 'in', [userId]],
         ['date', '>=', since],
@@ -121,7 +140,7 @@ Devuelve: mensajes recientes, actividades, distribución por modelo (sale.order,
         type: m.message_type,
       }));
 
-      // 3. Fetch activities assigned to this user
+      // 4. Fetch activities assigned to this user
       const actDomain: OdooDomain = [
         ['user_id', '=', userId],
         ['date_deadline', '>=', since],
@@ -149,7 +168,7 @@ Devuelve: mensajes recientes, actividades, distribución por modelo (sale.order,
         state: stateLabels[a.state] || a.state,
       }));
 
-      // 4. Count interactions by model
+      // 5. Count interactions by model
       const modelInteractions: Record<string, number> = {};
       messages.forEach(m => {
         if (m.model) modelInteractions[m.model] = (modelInteractions[m.model] || 0) + 1;
@@ -158,7 +177,7 @@ Devuelve: mensajes recientes, actividades, distribución por modelo (sale.order,
         modelInteractions[a.model] = (modelInteractions[a.model] || 0) + 1;
       });
 
-      // 5. Build _descripcion
+      // 6. Build _descripcion
       const modelSummary = Object.entries(modelInteractions)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)
@@ -176,6 +195,7 @@ Devuelve: mensajes recientes, actividades, distribución por modelo (sale.order,
       return success({
         _descripcion,
         user: { id: userId, name: userName, login: userLogin },
+        groups,
         messages,
         activities,
         modelInteractions,

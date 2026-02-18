@@ -60,6 +60,7 @@ export async function discoverUserProfile(
           success: boolean
           data?: {
             _descripcion?: string
+            groups?: string[]
             modelInteractions?: Record<string, number>
             messages?: { subject: string | null; bodyPreview: string; model: string | null; date: string; type: string }[]
             activities?: { summary: string | null; type: string; deadline: string; model: string; state: string }[]
@@ -94,6 +95,7 @@ export async function discoverUserProfile(
     const allMessages = activity?.messages || []
     const allActivities = activity?.activities || []
     const modelInteractions = activity?.modelInteractions || {}
+    const userGroups = activity?.groups || []
 
     // Model interaction summary (sorted by frequency)
     const modelSummary = Object.entries(modelInteractions)
@@ -127,6 +129,14 @@ export async function discoverUserProfile(
     if (employeeInfo) dataParts.push(employeeInfo)
     dataParts.push(`Estadísticas: ${activity?.totalMessages || 0} mensajes, ${activity?.totalActivities || 0} actividades en el último año`)
     if (modelSummary) dataParts.push(`Interacciones por módulo Odoo:\n${modelSummary}`)
+    if (userGroups.length) {
+      // Filter to meaningful groups (skip technical/base groups)
+      const meaningful = userGroups.filter(g => 
+        !g.startsWith('base.') && !g.startsWith('Extra Rights') 
+        && g.length > 3 && !g.includes('Technical')
+      )
+      if (meaningful.length) dataParts.push(`Permisos/grupos habilitados en Odoo (señal fuerte de rol):\n${meaningful.join(', ')}`)
+    }
     if (messageSample) dataParts.push(`Mensajes escritos por el usuario (muestra):\n${messageSample}`)
     if (activitySample) dataParts.push(`Actividades programadas:\n${activitySample}`)
 
