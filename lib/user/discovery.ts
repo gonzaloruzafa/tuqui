@@ -170,7 +170,7 @@ DATOS DE ACTIVIDAD:
 ${data}`
 
   const response = await client.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: { maxOutputTokens: 2048 },
   })
