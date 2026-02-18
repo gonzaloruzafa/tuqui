@@ -32,8 +32,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
   }
 
-  // Build search name: prefer users.name, then profile display_name, then email prefix
-  let searchName = targetUser?.name
+  // Use explicit odooName override if provided, otherwise fallback chain
+  const odooNameOverride = req.nextUrl.searchParams.get('odooName')
+  let searchName = odooNameOverride || targetUser?.name
   if (!searchName) {
     const { data: profile } = await db
       .from('user_profiles')
@@ -59,7 +60,8 @@ export async function GET(req: NextRequest) {
   if (!result) {
     return NextResponse.json({
       success: false,
-      error: 'No se encontró al usuario en Odoo. Verificá que el nombre coincida.',
+      notFound: true,
+      error: `No se encontró "${searchName}" en Odoo.`,
     })
   }
 

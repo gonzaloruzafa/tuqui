@@ -23,6 +23,8 @@ export function UserProfileSection({ userId, profile }: Props) {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [discovering, setDiscovering] = useState(false)
   const [discoveryError, setDiscoveryError] = useState<string | null>(null)
+  const [askOdooName, setAskOdooName] = useState(false)
+  const [odooName, setOdooName] = useState('')
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -39,11 +41,14 @@ export function UserProfileSection({ userId, profile }: Props) {
     })
   }
 
-  const handleDiscovery = async () => {
+  const handleDiscovery = async (nameOverride?: string) => {
     setDiscovering(true)
     setDiscoveryError(null)
+    setAskOdooName(false)
     try {
-      const res = await fetch(`/api/admin/discover-user?userId=${userId}`)
+      const params = new URLSearchParams({ userId })
+      if (nameOverride) params.set('odooName', nameOverride)
+      const res = await fetch(`/api/admin/discover-user?${params}`)
       const data = await res.json()
       if (data.success && data.data) {
         // Autofill form fields
@@ -60,7 +65,6 @@ export function UserProfileSection({ userId, profile }: Props) {
           if (value) {
             const input = form.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement
             if (input) {
-              // For DictationTextarea, dispatch custom event
               if (input.tagName === 'TEXTAREA') {
                 window.dispatchEvent(new CustomEvent('tuqui:autofill', { detail: { name, value } }))
               } else {
@@ -69,6 +73,10 @@ export function UserProfileSection({ userId, profile }: Props) {
             }
           }
         }
+      } else if (data.notFound) {
+        // User not found in Odoo — ask for name
+        setAskOdooName(true)
+        setDiscoveryError('No se encontró el usuario en Odoo. Ingresá el nombre como aparece allá:')
       } else {
         setDiscoveryError(data.error || 'No se pudo detectar el perfil')
       }
@@ -90,7 +98,7 @@ export function UserProfileSection({ userId, profile }: Props) {
           </div>
           <button
             type="button"
-            onClick={handleDiscovery}
+            onClick={() => handleDiscovery()}
             disabled={discovering}
             className="flex items-center gap-2 px-4 py-2 bg-adhoc-violet text-white rounded-xl text-xs font-semibold hover:bg-adhoc-violet/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
           >
@@ -103,6 +111,26 @@ export function UserProfileSection({ userId, profile }: Props) {
         </p>
         {discoveryError && (
           <p className="text-xs text-red-500 mt-1">{discoveryError}</p>
+        )}
+        {askOdooName && (
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="text"
+              value={odooName}
+              onChange={e => setOdooName(e.target.value)}
+              placeholder="Ej: Martin Gomez"
+              className="flex-grow bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none"
+              onKeyDown={e => { if (e.key === 'Enter' && odooName.trim()) handleDiscovery(odooName.trim()) }}
+            />
+            <button
+              type="button"
+              onClick={() => odooName.trim() && handleDiscovery(odooName.trim())}
+              disabled={discovering || !odooName.trim()}
+              className="px-3 py-1.5 bg-adhoc-violet text-white rounded-lg text-xs font-semibold hover:bg-adhoc-violet/90 transition-colors disabled:opacity-60"
+            >
+              Buscar
+            </button>
+          </div>
         )}
       </div>
 
