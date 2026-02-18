@@ -49,6 +49,7 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
 
     const keyCustomers = safeParseJSON(formData.get('key_customers') as string, [])
     const keyProducts = safeParseJSON(formData.get('key_products') as string, [])
+    const keySuppliers = safeParseJSON(formData.get('key_suppliers') as string, [])
     const businessRules = safeParseJSON(formData.get('business_rules') as string, [])
     const toneOfVoice = formData.get('tone_of_voice') as string || ''
     const webSummary = formData.get('web_summary') as string || ''
@@ -60,6 +61,7 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
       basics,
       key_customers: keyCustomers,
       key_products: keyProducts,
+      key_suppliers: keySuppliers,
       business_rules: businessRules,
       tone_of_voice: toneOfVoice,
       web_summary: webSummary || null,
@@ -70,7 +72,29 @@ export async function saveCompanyContext(formData: FormData): Promise<SaveResult
 
     if (ctxError) throw ctxError
 
-    // 3. Get fresh preview
+    // 3. Generate narrative briefing from all structured data
+    try {
+      const { generateCompanyBriefing } = await import('@/lib/company/briefing')
+      const briefing = await generateCompanyBriefing({
+        name: formData.get('name') as string || '',
+        industry: basics.industry,
+        description: basics.description,
+        toneOfVoice,
+        keyCustomers,
+        keyProducts,
+        keySuppliers,
+        businessRules,
+        webSummary: webSummary || '',
+      })
+      if (briefing) {
+        await db.from('company_contexts').update({ company_briefing: briefing }).eq('tenant_id', tenantId)
+      }
+    } catch (e) {
+      console.warn('[saveCompanyContext] Briefing generation failed:', e)
+      // Non-blocking — form still saves successfully
+    }
+
+    // 4. Get fresh preview
     const preview = await getCompanyContext(tenantId)
 
     revalidatePath('/admin/company')
@@ -87,3 +111,5 @@ function safeParseJSON(str: string | null, fallback: any): any {
   if (!str) return fallback
   try { return JSON.parse(str) } catch { return fallback }
 }
+
+// Note: runCompanyDiscovery server action removed — discovery now uses SSE via /api/admin/discover

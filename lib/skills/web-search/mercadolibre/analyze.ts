@@ -32,7 +32,7 @@ export async function analyzeMeliPricesWithGrounding(
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     tools: [{ googleSearch: {} } as any],
   })
 
@@ -119,7 +119,7 @@ export async function getProductPricesWithGrounding(
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     tools: [{ googleSearch: {} } as any],
   })
 

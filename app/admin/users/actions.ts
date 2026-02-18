@@ -5,6 +5,7 @@ import { getClient } from '@/lib/supabase/client'
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { saveUserProfile, getUserProfile } from '@/lib/user/profile'
 
 // Get Supabase Admin client for auth operations
 function getSupabaseAdmin() {
@@ -13,6 +14,19 @@ function getSupabaseAdmin() {
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { autoRefreshToken: false, persistSession: false } }
     )
+}
+
+/** Check if session.user (auth UUID) matches the users table row */
+async function checkIsSelf(tenantId: string, authUserId: string, tableUserId: string): Promise<boolean> {
+    const db = getClient()
+    const { data } = await db
+        .from('users')
+        .select('id')
+        .eq('id', tableUserId)
+        .eq('auth_user_id', authUserId)
+        .eq('tenant_id', tenantId)
+        .single()
+    return !!data
 }
 
 export async function createUser(formData: FormData) {
@@ -190,7 +204,16 @@ export async function updateUserPhone(userId: string, whatsappPhone: string) {
 
 export async function getUserById(userId: string) {
     const session = await auth()
-    if (!session?.tenant?.id || !session.isAdmin) {
+    if (!session?.tenant?.id) {
+        throw new Error('No autorizado')
+    }
+
+    // Allow non-admins to view their own profile
+    // session.user.id is the auth UUID, userId is the users table UUID — compare via DB
+    const isSelf = !session.isAdmin && session.user?.id
+        ? await checkIsSelf(session.tenant.id, session.user.id, userId)
+        : false
+    if (!session.isAdmin && !isSelf) {
         throw new Error('No autorizado')
     }
 
@@ -208,6 +231,39 @@ export async function getUserById(userId: string) {
     }
 
     return data
+}
+
+/** Get user profile data (display_name, role_title, area, bio, interests) */
+export async function getUserProfileData(userId: string) {
+    const session = await auth()
+    if (!session?.tenant?.id) return null
+
+    const isSelf = session.user?.id ? await checkIsSelf(session.tenant.id, session.user.id, userId) : false
+    if (!session.isAdmin && !isSelf) return null
+
+    return getUserProfile(session.tenant.id, userId)
+}
+
+/** Save profile section (accessible by owner or admin) */
+export async function saveProfileAction(userId: string, formData: FormData) {
+    const session = await auth()
+    if (!session?.tenant?.id) throw new Error('No autorizado')
+
+    const isSelf = session.user?.id ? await checkIsSelf(session.tenant.id, session.user.id, userId) : false
+    if (!session.isAdmin && !isSelf) throw new Error('No autorizado')
+
+    const result = await saveUserProfile(session.tenant.id, userId, {
+        display_name: formData.get('display_name') as string || undefined,
+        role_title: formData.get('role_title') as string || undefined,
+        area: formData.get('area') as string || undefined,
+        bio: formData.get('bio') as string || undefined,
+        interests: formData.get('interests') as string || undefined,
+    })
+
+    if (!result) throw new Error('Error al guardar perfil')
+
+    revalidatePath(`/admin/users/${userId}`)
+    revalidatePath('/admin/users')
 }
 
 export async function updateUser(userId: string, formData: FormData) {

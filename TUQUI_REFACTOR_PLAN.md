@@ -504,14 +504,23 @@ modelo de negocio, etc. Se guarda en `company_contexts.discovery_profile`.
 
 ### Checklist
 
-- [ ] Migration `211_company_discovery.sql` (campo `discovery_profile TEXT` en `company_contexts`)
-- [ ] `lib/company/discovery.ts` — define las queries a correr por categoría
-- [ ] `lib/company/discovery-synthesizer.ts` — LLM sintetiza resultados en perfil (~500 tokens)
-- [ ] `lib/company/discovery-runner.ts` — ejecuta queries en paralelo con retry
-- [ ] `app/api/admin/discover/route.ts` — botón "Descubrir empresa" en admin
-- [ ] Enriquecer `context-injector.ts` para incluir `discovery_profile`
-- [ ] 🎤 Agregar icono mic en textareas de `/admin/company` — usa `useDictation` hook para dictar descripciones
-- [ ] Tests: discovery-runner con mocks, synthesizer con data real parcial
+- [x] ~~Migration `211_company_discovery.sql`~~ (no fue necesaria, usa campos existentes de `company_contexts`)
+- [x] `lib/company/discovery.ts` — 70+ queries en batches de 6, usa `_descripcion` de skills
+- [x] LLM sintetiza resultados en perfil (Gemini 2.0 Flash, 8192 tokens)
+- [x] `app/admin/company/actions.ts` → `runCompanyDiscovery()` server action
+- [x] Botón "Detectar desde Odoo" en admin (`CompanyDiscoveryButton.tsx`)
+- [x] CustomEvent `tuqui:autofill` para llenar formulario (industry, description, customers, products)
+- [x] 🎤 Dictation en textareas (`DictationTextarea.tsx`)
+- [x] 8 skills nuevos: HR (employees, leaves, departments), Mail (chatter, activities, emails), Users
+- [x] Prompt orientado a CONTEXTO GENERAL (no dossier exhaustivo)
+- [ ] Tests: discovery con mocks
+
+### User Discovery (pre-intelligence layer)
+
+- [x] Skill `get_user_activity` — actividad reciente de un usuario en Odoo
+- [ ] `lib/user/discovery.ts` — orquesta queries por usuario + LLM synthesis → bio
+- [ ] Botón "Detectar perfil desde Odoo" en UI de perfil
+- [ ] Enriquecer `context-injector.ts` para incluir `user_profiles.bio`
 
 ### Riesgos
 

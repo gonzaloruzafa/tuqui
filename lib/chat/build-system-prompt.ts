@@ -12,6 +12,7 @@
  */
 
 import { getCompanyContextString } from '@/lib/company/context-injector'
+import { getUserContextTag } from '@/lib/user/profile'
 import { DateService } from '@/lib/date/service'
 import type { AvailableAgent, RoutingDecision } from '@/lib/agents/orchestrator'
 
@@ -25,17 +26,25 @@ export interface BuildSystemPromptParams {
     /** Base agent slug (what the UI sent) */
     baseAgentSlug?: string
     channel: 'web' | 'whatsapp' | 'voice'
+    /** Auth user ID for user profile context */
+    userId?: string
 }
 
 export async function buildSystemPrompt(params: BuildSystemPromptParams): Promise<string> {
-    const { tenantId, agentSystemPrompt, routedAgent, routingDecision, baseAgentSlug, channel } = params
+    const { tenantId, agentSystemPrompt, routedAgent, routingDecision, baseAgentSlug, channel, userId } = params
 
     const parts: string[] = []
 
     // 1. Company context goes FIRST (universal for all agents)
     const companyContext = await getCompanyContextString(tenantId)
     if (companyContext) {
-        parts.push(`CONTEXTO DE LA EMPRESA:\n${companyContext}\nEl usuario que te habla es parte del equipo de esta empresa. Cuando dice "yo", "nosotros", "nuestro", se refiere a la empresa.\n---`)
+        parts.push(`CONOCIMIENTO INTERNO DE LA EMPRESA:\n${companyContext}\nRespondé como alguien que trabaja acá hace años y conoce cómo funciona todo. El usuario que te habla es parte del equipo — cuando dice "yo", "nosotros", "nuestro", se refiere a la empresa.\n---`)
+    }
+
+    // 1b. User context tag (~10 tokens, just name + role)
+    if (userId) {
+        const userTag = await getUserContextTag(tenantId, userId)
+        if (userTag) parts.push(userTag)
     }
 
     // 2. Agent system prompt (already merged with custom_instructions)

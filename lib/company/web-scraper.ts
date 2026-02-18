@@ -174,7 +174,7 @@ export async function scrapeAndSummarize(
     const allText = texts.join('\n\n---\n\n').slice(0, 15_000)
 
     const { text: summary } = await generateText({
-      model: google('gemini-2.0-flash'),
+      model: google('gemini-2.5-flash'),
       prompt: `Analizá el siguiente contenido de un sitio web empresarial (${urls.length} páginas escaneadas) y generá un resumen conciso (máximo 200 palabras) que incluya:
 - Qué hace la empresa (productos/servicios)
 - A quién le vende (clientes objetivo)

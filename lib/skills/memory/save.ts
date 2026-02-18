@@ -27,14 +27,19 @@ export interface SaveMemoryOutput {
   message: string
 }
 
-export const saveMemoryDescription = `Guarda una nota sobre un cliente, producto o proveedor para recordar después.
+export const saveMemoryDescription = `Guarda información relevante sobre un cliente, producto, proveedor o el propio usuario para futuras conversaciones.
 
-USAR CUANDO: El usuario dice "recordá que...", "anotá que...", "tené en cuenta que..."
-o te da información relevante sobre una entidad del negocio.
-NO USAR: Para guardar datos temporales o de una sola vez.
+USAR CUANDO:
+- El usuario dice "recordá que...", "anotá que...", "tené en cuenta que..."
+- El usuario revela su rol, área o responsabilidades ("soy el gerente de ventas")
+- El usuario expresa preferencias ("me gusta ver datos en tabla", "no me mandes PDFs")
+- El usuario menciona clientes o productos que le importan repetidamente
+- El usuario comparte contexto de negocio relevante ("abrimos sucursal en Córdoba")
+- El usuario corrige algo ("el período fiscal cierra en junio, no diciembre")
+NO USAR: Para datos que ya están en Odoo/herramientas, preguntas casuales, o saludos.
 
 PARÁMETROS:
-- entity_name: Nombre del cliente/producto/proveedor
+- entity_name: Nombre del cliente/producto/proveedor, o '_preferencia' para preferencias del usuario
 - entity_type: 'customer' | 'product' | 'supplier' | 'general'
 - content: La nota a guardar (max 500 chars)
 RETORNA: Confirmación`
