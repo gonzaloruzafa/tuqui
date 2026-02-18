@@ -28,7 +28,7 @@ export async function discoverUserProfile(
     const getUsersFn = skills['get_users']
     if (!getUsersFn?.execute) return null
 
-    const usersResult = await getUsersFn.execute({ activeOnly: false, internalOnly: false, limit: 500 }) as {
+    const usersResult = await getUsersFn.execute({ activeOnly: false, internalOnly: true, limit: 500 }) as {
       success: boolean
       data?: { users?: { id: number; name: string; login: string }[] }
     }
