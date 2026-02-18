@@ -41,17 +41,15 @@ export function UserProfileSection({ userId, profile }: Props) {
     })
   }
 
-  const handleDiscovery = async (nameOverride?: string) => {
+  const handleDiscovery = async (name: string) => {
     setDiscovering(true)
     setDiscoveryError(null)
-    setAskOdooName(false)
     try {
-      const params = new URLSearchParams({ userId })
-      if (nameOverride) params.set('odooName', nameOverride)
+      const params = new URLSearchParams({ userId, odooName: name })
       const res = await fetch(`/api/admin/discover-user?${params}`)
       const data = await res.json()
       if (data.success && data.data) {
-        // Autofill form fields
+        setAskOdooName(false)
         const form = document.querySelector('[data-profile-form]') as HTMLFormElement
         if (!form) return
         const fieldMap: Record<string, string> = {
@@ -60,25 +58,21 @@ export function UserProfileSection({ userId, profile }: Props) {
           bio: 'bio',
           interests: 'interests',
         }
-        for (const [key, name] of Object.entries(fieldMap)) {
+        for (const [key, fieldName] of Object.entries(fieldMap)) {
           const value = data.data[key]
           if (value) {
-            const input = form.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement
+            const input = form.querySelector(`[name="${fieldName}"]`) as HTMLInputElement | HTMLTextAreaElement
             if (input) {
               if (input.tagName === 'TEXTAREA') {
-                window.dispatchEvent(new CustomEvent('tuqui:autofill', { detail: { name, value } }))
+                window.dispatchEvent(new CustomEvent('tuqui:autofill', { detail: { name: fieldName, value } }))
               } else {
                 input.value = value
               }
             }
           }
         }
-      } else if (data.notFound) {
-        // User not found in Odoo — ask for name
-        setAskOdooName(true)
-        setDiscoveryError('No se encontró el usuario en Odoo. Ingresá el nombre como aparece allá:')
       } else {
-        setDiscoveryError(data.error || 'No se pudo detectar el perfil')
+        setDiscoveryError(data.error || 'No se encontró ese usuario en Odoo')
       }
     } catch (e) {
       console.error('[UserDiscovery] Error:', e)
@@ -98,7 +92,7 @@ export function UserProfileSection({ userId, profile }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => handleDiscovery()}
+            onClick={() => { setAskOdooName(true); setDiscoveryError(null) }}
             disabled={discovering}
             className="flex items-center gap-2 px-4 py-2 bg-adhoc-violet text-white rounded-xl text-xs font-semibold hover:bg-adhoc-violet/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
           >
@@ -109,16 +103,14 @@ export function UserProfileSection({ userId, profile }: Props) {
         <p className="text-sm text-gray-500 mt-1">
           Tuqui usa estos datos para personalizar tus respuestas
         </p>
-        {discoveryError && (
-          <p className="text-xs text-red-500 mt-1">{discoveryError}</p>
-        )}
         {askOdooName && (
           <div className="flex items-center gap-2 mt-2">
             <input
               type="text"
               value={odooName}
               onChange={e => setOdooName(e.target.value)}
-              placeholder="Ej: Martin Gomez"
+              placeholder="Tu nombre en Odoo (ej: Martin Gomez)"
+              autoFocus
               className="flex-grow bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-adhoc-violet/20 focus:border-adhoc-violet outline-none"
               onKeyDown={e => { if (e.key === 'Enter' && odooName.trim()) handleDiscovery(odooName.trim()) }}
             />
@@ -128,9 +120,12 @@ export function UserProfileSection({ userId, profile }: Props) {
               disabled={discovering || !odooName.trim()}
               className="px-3 py-1.5 bg-adhoc-violet text-white rounded-lg text-xs font-semibold hover:bg-adhoc-violet/90 transition-colors disabled:opacity-60"
             >
-              Buscar
+              {discovering ? 'Buscando...' : 'Buscar'}
             </button>
           </div>
+        )}
+        {discoveryError && (
+          <p className="text-xs text-red-500 mt-1">{discoveryError}</p>
         )}
       </div>
 

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const db = getClient()
   const { data: targetUser } = await db
     .from('users')
-    .select('name, email, auth_user_id')
+    .select('auth_user_id')
     .eq('id', targetUserId)
     .eq('tenant_id', session.tenant.id)
     .single()
@@ -32,23 +32,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
   }
 
-  // Use explicit odooName override if provided, otherwise fallback chain
-  const odooNameOverride = req.nextUrl.searchParams.get('odooName')
-  let searchName = odooNameOverride || targetUser?.name
-  if (!searchName) {
-    const { data: profile } = await db
-      .from('user_profiles')
-      .select('display_name')
-      .eq('user_id', targetUserId)
-      .eq('tenant_id', session.tenant.id)
-      .single()
-    searchName = profile?.display_name
-  }
-  if (!searchName && targetUser?.email) {
-    searchName = targetUser.email.split('@')[0].replace(/[._-]/g, ' ')
-  }
-  if (!searchName) {
-    return NextResponse.json({ success: false, error: 'No se pudo determinar el nombre del usuario' })
+  // odooName is always provided (user types it in the UI)
+  const searchName = req.nextUrl.searchParams.get('odooName')
+  if (!searchName?.trim()) {
+    return NextResponse.json({ success: false, error: 'Nombre de Odoo requerido' })
   }
 
   const result = await discoverUserProfile(
@@ -60,8 +47,7 @@ export async function GET(req: NextRequest) {
   if (!result) {
     return NextResponse.json({
       success: false,
-      notFound: true,
-      error: `No se encontró "${searchName}" en Odoo.`,
+      error: `No se encontró "${searchName}" en Odoo. Revisá el nombre e intentá de nuevo.`,
     })
   }
 
