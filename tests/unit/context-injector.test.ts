@@ -150,14 +150,14 @@ describe('Context Injector', () => {
     expect(result.context).toContain('Producto B')
   })
 
-  test('includes business_rules (max 3)', async () => {
+  test('includes business_rules (max 5)', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'tenants') return mockQuery({ name: 'Test' })
       return mockQuery({
         basics: null,
         key_customers: [],
         key_products: [],
-        business_rules: ['Siempre cobrar IVA', 'No dar descuentos > 15%', 'Facturar antes de enviar', 'Regla extra ignorada'],
+        business_rules: ['Siempre cobrar IVA', 'No dar descuentos > 15%', 'Facturar antes de enviar', 'Regla 4', 'Regla 5', 'Regla extra ignorada'],
         tone_of_voice: null,
         web_summary: null,
         linked_documents: [],
@@ -170,7 +170,9 @@ describe('Context Injector', () => {
     expect(result.context).toContain('Siempre cobrar IVA')
     expect(result.context).toContain('No dar descuentos > 15%')
     expect(result.context).toContain('Facturar antes de enviar')
-    // 4th rule should be cut off (max 3)
+    expect(result.context).toContain('Regla 4')
+    expect(result.context).toContain('Regla 5')
+    // 6th rule should be cut off (max 5)
     expect(result.context).not.toContain('Regla extra ignorada')
   })
 
