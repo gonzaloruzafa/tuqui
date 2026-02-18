@@ -53,6 +53,7 @@ export function UserProfileSection({ userId, profile }: Props) {
         const form = document.querySelector('[data-profile-form]') as HTMLFormElement
         if (!form) return
         const fieldMap: Record<string, string> = {
+          display_name: 'display_name',
           role_title: 'role_title',
           area: 'area',
           bio: 'bio',
@@ -66,7 +67,10 @@ export function UserProfileSection({ userId, profile }: Props) {
               if (input.tagName === 'TEXTAREA') {
                 window.dispatchEvent(new CustomEvent('tuqui:autofill', { detail: { name: fieldName, value } }))
               } else {
-                input.value = value
+                // Use native setter to trigger React's synthetic onChange
+                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+                nativeSetter?.call(input, value)
+                input.dispatchEvent(new Event('input', { bubbles: true }))
               }
             }
           }

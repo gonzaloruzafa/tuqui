@@ -1,15 +1,14 @@
 /**
  * User Discovery — Infer user profile from Odoo activity
  * 
- * 1. Locate user by email in Odoo
- * 2. Fetch activity (messages, activities, model interactions)
- * 3. Fetch HR data (department, job title) if available
- * 4. LLM synthesizes: role_title, area, bio, interests
+ * Fetches 1 year of chatter messages, scheduled activities, and HR data
+ * to synthesize a functional + psychological profile of the user.
  */
 
 import { loadSkillsForAgent } from '@/lib/skills/loader'
 
 export interface UserDiscoveryResult {
+  display_name: string
   role_title: string
   area: string
   bio: string
@@ -50,56 +49,86 @@ export async function discoverUserProfile(
     })
 
     if (!odooUser) {
-      // Return sample of users for debugging
       const sample = allUsers.slice(0, 5).map(u => `${u.name} (${u.login})`).join(', ')
-      console.log(`[UserDiscovery] Not found. Sample users: ${sample}`)
       return { notFound: true, debug: `${allUsers.length} usuarios en Odoo. Primeros: ${sample || 'ninguno'}` }
     }
 
-    // 2. Fetch activity
+    // 2. Fetch 1 year of activity — messages + activities + model distribution
     const getActivityFn = skills['get_user_activity']
     const activityResult = getActivityFn?.execute
-      ? await getActivityFn.execute({ userId: odooUser.id, daysBack: 90, limit: 100 }) as {
+      ? await getActivityFn.execute({ userId: odooUser.id, daysBack: 365, limit: 100 }) as {
           success: boolean
-          data?: { _descripcion?: string; modelInteractions?: Record<string, number>; messages?: { subject: string | null; bodyPreview: string }[] }
+          data?: {
+            _descripcion?: string
+            modelInteractions?: Record<string, number>
+            messages?: { subject: string | null; bodyPreview: string; model: string | null; date: string; type: string }[]
+            activities?: { summary: string | null; type: string; deadline: string; model: string; state: string }[]
+            totalMessages?: number
+            totalActivities?: number
+          }
         }
       : null
 
-    // 3. Fetch employee data (department, job title)
+    // 3. Fetch HR data (job title, department)
     const getEmployeesFn = skills['get_employees']
     let employeeInfo = ''
     if (getEmployeesFn?.execute) {
       const empResult = await getEmployeesFn.execute({ limit: 200 }) as {
         success: boolean
-        data?: { _descripcion?: string; employees?: { name: string; department?: string; job_title?: string }[] }
+        data?: { employees?: { name: string; department?: string; job_title?: string }[] }
       }
+      const firstWord = normalize(odooUser.name.split(' ')[0])
       const emp = empResult.data?.employees?.find(
-        e => e.name?.toLowerCase().includes(odooUser.name.split(' ')[0].toLowerCase())
+        e => normalize(e.name || '').includes(firstWord)
       )
       if (emp) {
         const parts: string[] = []
-        if (emp.job_title) parts.push(`Cargo en Odoo: ${emp.job_title}`)
+        if (emp.job_title) parts.push(`Cargo RRHH: ${emp.job_title}`)
         if (emp.department) parts.push(`Departamento: ${emp.department}`)
         employeeInfo = parts.join('. ')
       }
     }
 
-    // 4. Synthesize with LLM
-    const dataParts: string[] = []
-    dataParts.push(`Nombre: ${odooUser.name}`)
-    dataParts.push(`Email: ${odooUser.login}`)
+    // 4. Build rich data package
+    const activity = activityResult?.data
+    const allMessages = activity?.messages || []
+    const allActivities = activity?.activities || []
+    const modelInteractions = activity?.modelInteractions || {}
+
+    // Model interaction summary (sorted by frequency)
+    const modelSummary = Object.entries(modelInteractions)
+      .sort((a, b) => b[1] - a[1])
+      .map(([model, count]) => `${model}: ${count} interacciones`)
+      .join('\n')
+
+    // Sample messages — full body for communication style analysis
+    const messageSample = allMessages
+      .filter(m => m.bodyPreview && m.bodyPreview.length > 10)
+      .slice(0, 30)
+      .map(m => {
+        const parts = []
+        if (m.subject) parts.push(`[${m.subject}]`)
+        if (m.model) parts.push(`(${m.model})`)
+        parts.push(m.bodyPreview)
+        return parts.join(' ')
+      })
+      .join('\n---\n')
+
+    // Activity summaries
+    const activitySample = allActivities
+      .slice(0, 20)
+      .map(a => `[${a.type}] ${a.summary || 'sin resumen'} — ${a.model} (${a.state})`)
+      .join('\n')
+
+    const dataParts: string[] = [
+      `Nombre en Odoo: ${odooUser.name}`,
+      `Login: ${odooUser.login}`,
+    ]
     if (employeeInfo) dataParts.push(employeeInfo)
-    if (activityResult?.data?._descripcion) {
-      dataParts.push(`Actividad Odoo: ${activityResult.data._descripcion}`)
-    }
-    if (activityResult?.data?.messages?.length) {
-      const sampleMsgs = activityResult.data.messages
-        .filter(m => m.bodyPreview)
-        .slice(0, 10)
-        .map(m => m.subject ? `[${m.subject}] ${m.bodyPreview}` : m.bodyPreview)
-        .join('\n')
-      dataParts.push(`Mensajes recientes:\n${sampleMsgs}`)
-    }
+    dataParts.push(`Estadísticas: ${activity?.totalMessages || 0} mensajes, ${activity?.totalActivities || 0} actividades en el último año`)
+    if (modelSummary) dataParts.push(`Interacciones por módulo Odoo:\n${modelSummary}`)
+    if (messageSample) dataParts.push(`Mensajes escritos por el usuario (muestra):\n${messageSample}`)
+    if (activitySample) dataParts.push(`Actividades programadas:\n${activitySample}`)
 
     return await synthesizeUserProfile(odooUser.name, dataParts.join('\n\n'))
   } catch (e) {
@@ -115,20 +144,25 @@ async function synthesizeUserProfile(
   const { GoogleGenAI } = await import('@google/genai')
   const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 
-  const prompt = `Analizá la actividad real de ${name} en Odoo y generá su perfil profesional.
+  const prompt = `Analizá la actividad real de ${name} en Odoo durante el último año y generá su perfil profesional y psicológico.
+
+Tu objetivo NO es listar qué hace, sino ENTENDER QUIÉN ES como persona y cómo trabaja: su foco, su estilo, su personalidad funcional.
 
 Respondé SOLO con JSON válido, sin markdown:
 {
-  "role_title": "Cargo/rol inferido de su actividad (ej: 'Responsable Comercial', 'Administrativo Contable'). Si hay cargo de RRHH, usá ese.",
-  "area": "Área principal donde trabaja (ej: 'Ventas', 'Administración', 'Logística'). Inferir del departamento o de los modelos que más usa.",
-  "bio": "1-2 oraciones describiendo qué hace esta persona en la empresa, basado en sus interacciones reales. Ej: 'Se encarga del seguimiento comercial de clientes grandes y la gestión de pedidos. Tiene foco en la cobranza y los márgenes.'",
-  "interests": "Temas/procesos en los que más se enfoca, separados por coma. Inferir de los modelos y temas de sus mensajes. Ej: 'seguimiento de pedidos, pipeline CRM, cobranza a clientes'"
+  "display_name": "Nombre real de la persona (tal como aparece en Odoo, sin apellidos técnicos ni iniciales raras)",
+  "role_title": "Cargo/rol inferido. Si hay dato de RRHH, usá ese. Si no, inferilo de los módulos que más usa.",
+  "area": "Área principal (ej: 'Ventas', 'Administración', 'Contabilidad'). Una sola área principal.",
+  "bio": "2-3 oraciones. Describí qué hace esta persona, en qué procesos está metida, y algo de cómo trabaja. Basate en patrones reales, no en el cargo. Ej: 'Gestiona la facturación y el seguimiento de cobranza. Tiene un ritmo de trabajo constante y metódico, con foco en el cierre de operaciones. Interactúa principalmente con clientes de Cedent SRL.'",
+  "interests": "Perfil funcional y psicológico para comunicarse mejor con esta persona. Incluí: (1) en qué procesos tiene más foco, (2) si es más pragmático/directo o detallista/cuidadoso, (3) si parece proactivo (inicia cosas) o reactivo (responde cosas), (4) cómo comunicarse bien con él/ella (ej: 'directo y con datos concretos', 'con contexto y paciencia', 'mensajes cortos y accionables'). Separado por coma. Ej: 'foco en facturación y cobranza, estilo directo y pragmático, proactivo, comunicarse con datos concretos y sin rodeos'"
 }
 
-REGLAS:
-- Basate SOLO en los datos proporcionados, no inventes
-- Si no hay suficiente info para un campo, dejá string vacío
-- Español argentino, directo, sin florituras
+REGLAS CRÍTICAS:
+- Basate SOLO en los datos reales de actividad — no inventes
+- El campo "interests" es el más importante: tiene que ayudar a un colega a entender CÓMO trabajar con esta persona
+- Si los mensajes muestran textos cortos → mencionar estilo directo. Si son largos y detallados → mencionar que aprecia contexto
+- Si el usuario tiene muchas actividades en un módulo específico → inferir foco
+- Español argentino, directo
 
 DATOS DE ACTIVIDAD:
 ${data}`
@@ -136,7 +170,7 @@ ${data}`
   const response = await client.models.generateContent({
     model: 'gemini-2.0-flash',
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    config: { maxOutputTokens: 1024 },
+    config: { maxOutputTokens: 2048 },
   })
 
   const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
@@ -144,6 +178,6 @@ ${data}`
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     return JSON.parse(cleaned) as UserDiscoveryResult
   } catch {
-    return { role_title: '', area: '', bio: '', interests: '' }
+    return { display_name: '', role_title: '', area: '', bio: '', interests: '' }
   }
 }
