@@ -2,8 +2,9 @@
 
 > Código de referencia para implementación de F5-F7.  
 > El plan estratégico está en `TUQUI_REFACTOR_PLAN.md`.  
-> **Orden de ejecución: F7 → F5 → F6**  
-> Última actualización: 2026-02-12
+> Intelligence layer spec: `INTELLIGENCE_LAYER_PLAN.md`  
+> **Orden de ejecución: ✅ F7 → ✅ F7.5 → ✅ Phase 0 → F5 → F7.6 → F7.7**  
+> Última actualización: 2026-02-18
 
 ### Convención de migrations
 
@@ -11,8 +12,12 @@
 |--------|------|-------------|
 | `208` | F7 | master_documents + chunks + M2M |
 | `209` | F7 | fix match_documents (UNION tenant + master) + cleanup rag_enabled |
-| `210` | F5 | push_subscriptions |
-| `220` | F6 | user_briefing_config |
+| `210` | F7 | sync_slug_name_icon |
+| `211` | F7.5 | user_profiles |
+| `213` | F7.5 | user_profile_interests (ALTER TABLE) |
+| `214` | Phase 0 | enable_rls_public_tables |
+| `215` | F5 | *(reservado — push_subscriptions ya existe)* |
+| `216` | F7.6 | intelligence (ALTER user_profiles + entity_mentions + insight_history + insight_cache) |
 
 ---
 
@@ -815,7 +820,14 @@ export async function getPlatformAdmin() {
 
 ## F5: PWA + PUSH NOTIFICATIONS
 
-### 5.1: PWA Base (~3h)
+> **Estado:** ~85% del backend ya implementado.  
+> **Ya existe:** sw.js, use-push-notifications hook, push/subscribe API, NotificationBell,  
+> push sender en notifier.ts, push_subscriptions table, VAPID keys, web-push dep.  
+> **Falta:** manifest.json + icons, meta tags en layout, SW registration wiring,  
+> PushNotificationToggle standalone, extraer sendPushToUser/sendPushToTenant.  
+> **Estimación restante:** ~4h (no 1.5 días).
+
+### 5.1: PWA Base (~2h)
 
 **Archivos nuevos:**
 

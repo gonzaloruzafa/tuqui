@@ -1,9 +1,21 @@
 # TUQUI INTELLIGENCE LAYER — Curious Analyst Agent
 
-> **Última actualización:** 2026-02-17  
+> **Última actualización:** 2026-02-18  
 > **Principio:** La inteligencia está en el LLM, no en el código  
 > **Referencia:** TUQUI_REFACTOR_PLAN.md § F7.6  
-> **Depende de:** F5 (PWA + Push) ya implementado — el delivery incluye push notification
+> **Depende de:** F5 (PWA + Push) ya implementado — el delivery incluye push notification  
+> **Modelos:** gemini-2.5-flash (investigator + synthesizer)  
+>
+> ### ⚠️ Notas de reconciliación (2026-02-18)
+>
+> **user_profiles ya existe** (migration 211 + 213). Schema actual: `display_name`, `role_title`,
+> `area`, `bio`, `interests`. El schema de § 8 propone campos diferentes: `role`, `pain_points[]`,
+> `watchlist[]`, `communication_style`, `onboarded`, `raw_onboarding_text`.  
+> **Acción:** Migration 212 debe hacer ALTER TABLE para agregar las columnas faltantes, no CREATE TABLE.
+>
+> **Push sender:** El plan referencia `lib/push/sender.ts` que no existe como archivo separado.
+> La funcionalidad existe en `lib/prometeo/notifier.ts` como `sendPushNotification()` (private).
+> **Acción:** En F5, extraer a `lib/push/sender.ts` con exports `sendPushToUser()` y `sendPushToTenant()`.
 
 ---
 
@@ -286,7 +298,7 @@ async function investigate(
 
   // 2. Agentic loop — el LLM decide qué tools llamar
   const { text } = await generateText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-2.5-flash'),
     maxSteps: 8,
     tools,
     system: `${systemPrompt}\n\nCONTEXTO DEL USUARIO Y EMPRESA:\n${context}`,
@@ -382,7 +394,7 @@ async function synthesize(
   previousInsights: string[]
 ): Promise<Teaser[]> {
   const { object } = await generateObject({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-2.5-flash'),
     schema: z.object({
       teasers: z.array(z.object({
         emoji: z.string(),
@@ -591,21 +603,19 @@ pregunta que invita a profundizar. El usuario abre por curiosidad.**
 
 ## 8. ESQUEMA DE DATOS
 
+> **⚠️ NOTA:** `user_profiles` ya existe (migrations 211 + 213) con schema:
+> `id, user_id, tenant_id, display_name, role_title, area, bio, interests, created_at, updated_at`.
+> La migration 212 debe usar ALTER TABLE para agregar columnas faltantes.
+
 ```sql
 -- Migration 212_intelligence.sql
 
--- Perfiles de usuario (onboarding conversacional)
-CREATE TABLE user_profiles (
-  user_id UUID PRIMARY KEY REFERENCES auth.users(id),
-  tenant_id UUID NOT NULL REFERENCES tenants(id),
-  role TEXT,                          -- 'dueno', 'comercial', 'compras', etc.
-  pain_points TEXT[] DEFAULT '{}',    -- ['cobranza', 'stock_sin_movimiento']
-  watchlist TEXT[] DEFAULT '{}',      -- ['siliconas', 'Córdoba', 'Macrodental']
-  communication_style TEXT,           -- 'directo, informal'
-  onboarded BOOLEAN DEFAULT false,
-  raw_onboarding_text TEXT,           -- texto original del usuario
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+-- Agregar columnas de intelligence a user_profiles (ya existe desde migration 211)
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS pain_points TEXT[] DEFAULT '{}';
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS watchlist TEXT[] DEFAULT '{}';
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS communication_style TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT false;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS raw_onboarding_text TEXT;
 
 -- Auto-watchlist: trackea menciones repetidas
 CREATE TABLE entity_mentions (
@@ -727,7 +737,7 @@ Total: ~13 archivos de código, ~530 líneas
 | Agent service | `lib/agents/service.ts` | `getAgentBySlug('analista')` → prompt + tools de DB |
 | Merged prompt | `lib/agents/service.ts` | `buildMergedPrompt()` → master + custom_instructions |
 | Agent sync | `sync_agents_from_masters()` | Propaga analista a todos los tenants |
-| Push sender | `lib/push/sender.ts` | `sendPushToUser()` de F5 para delivery matutino |
+| Push sender | `lib/push/sender.ts` | `sendPushToUser()` — extraer de `lib/prometeo/notifier.ts` en F5 |
 
 ### Qué se modifica (mínimo)
 
@@ -741,7 +751,7 @@ Total: ~13 archivos de código, ~530 líneas
 
 | Componente | Archivo | Uso |
 |---|---|---|
-| Push sender | `lib/push/sender.ts` | `sendPushToUser()` envía el teaser matutino |
+| Push sender | `lib/push/sender.ts` | `sendPushToUser()` envía el teaser matutino (extraer en F5) |
 | Push subscribe | `app/api/push/subscribe/route.ts` | Suscripción ya gestionada por F5 |
 | Service worker | `public/sw.js` | Ya maneja push events + click → open app |
 
@@ -834,7 +844,7 @@ Por generación de insights (1 usuario):
   Context assembler:  ~0 (queries a DB)
   Investigator:       ~3-8 tool calls × ~200 tokens = ~1600 tokens input
                       + LLM reasoning: ~500 tokens
-                      = ~$0.002 per run (gemini-2.0-flash)
+                      = ~$0.002 per run (gemini-2.5-flash)
   Synthesizer:        ~800 tokens input, ~200 output = ~$0.001
 
   Total por usuario por día: ~$0.003
