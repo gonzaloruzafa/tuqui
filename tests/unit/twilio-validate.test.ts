@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock twilio before importing
 vi.mock('twilio', () => ({
@@ -22,19 +22,23 @@ function makeRequest(headers: Record<string, string> = {}, url = 'https://tuqui.
 describe('validateTwilioSignature', () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        process.env.TWILIO_AUTH_TOKEN = 'test-auth-token'
-        process.env.NODE_ENV = 'production'
+        vi.stubEnv('TWILIO_AUTH_TOKEN', 'test-auth-token')
+        vi.stubEnv('NODE_ENV', 'production')
+    })
+
+    afterEach(() => {
+        vi.unstubAllEnvs()
     })
 
     test('returns false when no auth token in production', () => {
-        delete process.env.TWILIO_AUTH_TOKEN
+        vi.stubEnv('TWILIO_AUTH_TOKEN', '')
         const result = validateTwilioSignature(makeRequest(), 'Body=hello&From=whatsapp:+123')
         expect(result).toBe(false)
     })
 
     test('returns true when no auth token in development', () => {
-        delete process.env.TWILIO_AUTH_TOKEN
-        process.env.NODE_ENV = 'development'
+        vi.stubEnv('TWILIO_AUTH_TOKEN', '')
+        vi.stubEnv('NODE_ENV', 'development')
         const result = validateTwilioSignature(makeRequest(), 'Body=hello')
         expect(result).toBe(true)
     })
@@ -46,7 +50,7 @@ describe('validateTwilioSignature', () => {
 
     test('delegates to twilio.validateRequest with correct params', () => {
         mockValidateRequest.mockReturnValue(true)
-        process.env.NEXTAUTH_URL = 'https://tuqui.vercel.app'
+        vi.stubEnv('NEXTAUTH_URL', 'https://tuqui.vercel.app')
         
         const req = makeRequest({ 'x-twilio-signature': 'valid-sig' })
         const body = 'Body=hello&From=whatsapp%3A%2B5491112345678'
@@ -73,8 +77,8 @@ describe('validateTwilioSignature', () => {
 
     test('uses VERCEL_URL when NEXTAUTH_URL is not set', () => {
         mockValidateRequest.mockReturnValue(true)
-        delete process.env.NEXTAUTH_URL
-        process.env.VERCEL_URL = 'tuqui-abc123.vercel.app'
+        vi.stubEnv('NEXTAUTH_URL', '')
+        vi.stubEnv('VERCEL_URL', 'tuqui-abc123.vercel.app')
         
         const req = makeRequest({ 'x-twilio-signature': 'sig' })
         validateTwilioSignature(req, 'Body=test')
@@ -85,7 +89,5 @@ describe('validateTwilioSignature', () => {
             'https://tuqui-abc123.vercel.app/api/webhooks/twilio',
             { Body: 'test' }
         )
-        
-        delete process.env.VERCEL_URL
     })
 })
