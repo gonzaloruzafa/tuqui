@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth/config'
 
 const TTS_VOICE_CONFIG = {
     voiceName: 'Aoede', // Breezy - fresca y natural
@@ -17,6 +18,11 @@ Accent: Latin American Spanish with Argentine flavor. Natural Buenos Aires urban
 
 export async function POST(req: Request) {
     try {
+        const session = await auth()
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
         const { text } = await req.json()
 
         if (!text || typeof text !== 'string') {

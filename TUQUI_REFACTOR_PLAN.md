@@ -11,25 +11,28 @@
 
 | Campo | Valor |
 |-------|-------|
-| Fases completadas | F0-F4 (Orquestador, Context, Skills, Memory) |
-| Branch | `feat/memory` (PR #11) |
-| Unit tests | ~337 passing (~1.5s) |
+| Fases completadas | F0-F4, F7 (RAG), F7.5 (User Profile + Company Discovery), Phase 0 (Hardening) |
+| Branch | `main` (último merge: PR #32 → 51b103c) |
+| Branch activo | `fix/phase0-hardening` (ff80ba3) |
+| Unit tests | 533 passing, 55 archivos (~2s) |
 | Eval baseline | 98.5% (66/67) |
 | Eval cases | 75 (67 originales + 8 quality) |
-| Skills Odoo | 50 |
+| Skills Odoo | 58 (8 nuevos en PR #32) |
 | Memory Skills | 2 (recall_memory, save_memory) |
 | Docs en RAG | ⚠️ 0 (crítico) |
 | Master Agents UI | ❌ Solo via SQL |
 | Clientes pagando | 0 |
 | Pilotos activos | Cedent (demo), Active Learning (pendiente) |
 | Tenant Isolation | ✅ Fix dd4b223 (23 archivos, ~45 queries) |
+| Modelos | gemini-2.5-flash (lightweight), gemini-3-flash-preview (chat main) |
 
-### El problema
+### Lo que falta
 
 ```
-Skills Odoo:      ████████████████████████████████████ 36
+Skills Odoo:      ██████████████████████████████████████████████████████████ 58
 Docs RAG:         ⬜ 0
 Master Agents UI: ⬜ No existe
+PWA:              ▓▓▓▓▓▓░░ ~85% backend (falta manifest + icons + wiring)
 Clientes:         ⬜ 0
 ```
 
@@ -75,28 +78,27 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 
 ### Resumen
 
-| Fase | Tiempo | Descripción | Impacto en PMF |
-|------|--------|-------------|----------------|
-| F7 | 2-3 días | Master Agents + RAG Centralizado | ⭐⭐⭐⭐ Diferenciación |
-| F7.5 | 0.5 días | Company Discovery (Deep Research Odoo) | ⭐⭐⭐⭐ Contexto brutal |
-| F5 | 1.5 días | PWA + Push Notifications | ⭐⭐⭐ Canal de delivery |
-| F7.6 | 2-3 días | Intelligence Layer + Briefings (absorbe F6) | ⭐⭐⭐⭐⭐ Adicción |
-| F7.7 | 2 días | Google Integration (Calendar + Gmail) | ⭐⭐⭐ Contexto externo |
-| F8 | 0.5 días | Piloto Cedent | ⭐⭐⭐ Validación real |
-| F9 | — | Cobrar ($50-100/mes) | ⭐⭐⭐⭐⭐ PMF signal |
-| FX | 5 min | Optimizar modelo Gemini → bajar costos ~70% | ⭐⭐ Margen |
+| Fase | Tiempo | Descripción | Estado |
+|------|--------|-------------|--------|
+| F7 | 2-3 días | Master Agents + RAG Centralizado | ✅ Completada |
+| F7.5 | 0.5 días | Company Discovery (Deep Research Odoo) | ✅ Completada (PR #32) |
+| Phase 0 | 0.5 días | Hardening (security + cleanup) | ✅ Completada (ff80ba3) |
+| F5 | ~4h | PWA + Push Notifications | 🔜 ~85% backend listo |
+| F7.6 | 2-3 días | Intelligence Layer + Briefings (absorbe F6) | 🔜 Siguiente |
+| F7.7 | 2 días | Google Integration (Calendar + Gmail) | 🔜 Opcional pre-piloto |
+| F8 | 0.5 días | Piloto Cedent | 🔜 Validación real |
+| F9 | — | Cobrar ($50-100/mes) | 🔜 PMF signal |
+| FX | 5 min | Optimizar modelo Gemini → bajar costos ~70% | 🔜 Margen |
 
-**Total: ~9-11 días de código + validación continua**
+**Total restante: ~5-7 días de código + validación continua**
 
 ### Orden de ejecución
 
 ```
-F7 → F7.5 → F5 → F7.6 → F7.7 (opcional pre-piloto) → F8 → F9
+✅ F7 → ✅ F7.5 → ✅ Phase 0 → F5 → F7.6 → F7.7 (opcional) → F8 → F9
 ```
 
-**¿Por qué F7 primero?** El valor de Tuqui es que SABE cosas. Hoy los agentes `contador` y `abogado` tienen 0 docs en RAG. Si mandás push sin contenido, el usuario se decepciona. Primero contenido, después engagement.
-
-**¿Por qué F7.5 después de F7?** Con RAG armado, el Company Discovery automatiza el onboarding: corre todas las skills de Odoo, sintetiza un dossier de la empresa, y alimenta el company context con data REAL. Tuqui arranca sabiendo todo desde el día 1.
+**¿Por qué F5 ahora?** El 85% del backend de push ya existe. Solo faltan manifest + icons + wiring (~4h). F7.6 necesita push como canal de delivery, así que completar F5 primero es prerequisito.
 
 **¿Por qué F5 antes de F7.6?** El intelligence layer necesita push como canal de delivery. Si construimos F7.6 sin push, no podemos testear el flujo real (push matutino → tap → chat). Tener push listo primero permite que F7.6 incluya el briefing matutino desde el día 1.
 
@@ -490,11 +492,9 @@ Enter → "@contador " se inserta
 
 ---
 
-## 🔜 FASE 7.5: COMPANY DISCOVERY (~0.5 días)
+## ✅ FASE 7.5: COMPANY DISCOVERY (~0.5 días) — COMPLETADA
 
-> **Objetivo:** Auto-generar perfil profundo de la empresa corriendo skills de Odoo  
-> **Depende de:** F7 (skills funcionando con `_descripcion`)  
-> **Valida:** POC `scripts/company-discovery.ts` — 57/61 queries en 73s sobre Cedent
+> PR #32 mergeado (51b103c). 45 archivos, +3094/-203 líneas.
 
 ### Concepto
 
@@ -529,6 +529,39 @@ modelo de negocio, etc. Se guarda en `company_contexts.discovery_profile`.
 | Odoo rate limits con 50 queries | Timeout / bloqueo | Batch de 10, delay entre batches |
 | Skills que fallan (sin datos) | Resultados parciales | `Promise.allSettled`, ignorar fallos |
 | Perfil genérico / poco útil | Contexto débil | Prompt del synthesizer con ejemplos ricos |
+
+---
+
+## ✅ PHASE 0: HARDENING (~0.5 días) — COMPLETADA
+
+> **Branch:** `fix/phase0-hardening` (ff80ba3). 11 archivos, +142/-500 líneas.  
+> **Objetivo:** Corregir deuda técnica crítica pre-PMF detectada en auditoría completa.
+
+### Fixes aplicados
+
+| Fix | Archivo | Detalle |
+|-----|---------|---------|
+| Crypto real (AES-256-GCM) | `lib/crypto.ts` | Era base64, ahora GCM con IV random + auth tags. Backwards compatible. |
+| Auth en TTS | `app/api/tts/route.ts` | Endpoint 100% abierto → ahora requiere `auth()` |
+| Engine prompt bug | `lib/chat/engine.ts` | Usaba prompt del agente BASE cuando routeaba a otro agente |
+| Zoom accesibilidad | `app/layout.tsx` | `maximumScale: 1` bloqueaba pinch-to-zoom (WCAG) |
+| Dead code: router | `lib/agents/router.deprecated.ts` | Eliminado (452 líneas, 0 imports) |
+| Dead code: getTuqui | `lib/agents/service.ts` | Wrapper deprecado eliminado |
+| Dead code: shouldUseSkills | `lib/tools/executor.ts` | Feature flag que siempre retornaba `true` |
+
+### Tests agregados
+
+- `tests/unit/crypto.test.ts` — 6 tests: roundtrip, legacy compat, tamper detection, IV uniqueness
+- `tests/unit/engine.test.ts` — +1 test: regression para prompt routing bug
+
+### Issues pendientes (para Quality Sweep futuro)
+
+- WhatsApp webhook: sin validación de firma Twilio
+- 3 SDKs de Google AI (consolidar a `@ai-sdk/google`)
+- Session callback: 3+ DB queries por request autenticado
+- `dangerouslySetInnerHTML` sin DOMPurify en chat
+- 0/16 API routes con unit tests
+- Archivos >200 líneas: chat page (661), query-builder (1364), web-search (589)
 
 ---
 
@@ -667,12 +700,37 @@ Hay un agente con acceso a tools que decide qué buscar.
 
 ---
 
-## 🔜 FASE 5: PWA + PUSH NOTIFICATIONS (~1.5 días)
+## 🔜 FASE 5: PWA + PUSH NOTIFICATIONS (~0.5 días)
 
 > **Objetivo:** Tuqui en el teléfono del usuario, notificaciones nativas  
 > **Depende de:** F7.5 (contenido para mostrar)  
 > **Requerido por:** F7.6 (intelligence layer usa push como canal de delivery)  
-> **Spec técnica:** Ver `TUQUI_REFACTOR_SPECS.md` § F5
+> **Spec técnica:** Ver `TUQUI_REFACTOR_SPECS.md` § F5  
+> **Nota:** ~85% del backend ya existe. Solo falta manifest, icons, y wiring.
+
+### Ya implementado ✅
+
+| Componente | Archivo | Estado |
+|------------|---------|--------|
+| Service Worker | `public/sw.js` | ✅ Push receive + notification click |
+| Subscribe API | `app/api/push/subscribe/route.ts` | ✅ Guarda suscripción en DB |
+| Push hook | `lib/hooks/use-push-notifications.ts` | ✅ Suscribe/desuscribe |
+| NotificationBell | `components/NotificationBell.tsx` | ✅ Toggle en header |
+| Push sender | `lib/prometeo/notifier.ts` | ✅ `sendPushNotification()` (per-user) |
+| DB tabla | `push_subscriptions` | ✅ Con RLS |
+| VAPID keys | `.env` | ✅ Configurado |
+| web-push dep | `package.json` | ✅ ^3.6.7 |
+
+### Falta implementar
+
+- [ ] `public/manifest.json` + icons (192px, 512px)
+- [ ] Meta tags PWA en `app/layout.tsx` (`<link rel="manifest">`, `theme-color`, etc.)
+- [ ] SW registration wiring (actualmente no se registra automáticamente)
+- [ ] `PushNotificationToggle.tsx` — componente standalone para settings
+- [ ] Extraer `sendPushToUser()` y `sendPushToTenant()` como funciones reutilizables
+      (hoy `sendPushNotification` está private en `notifier.ts`)
+
+### Estimación: ~4h (no 1.5 días como se estimó originalmente)
 
 ### El loop de engagement
 
@@ -686,14 +744,14 @@ Hay un agente con acceso a tools que decide qué buscar.
 ### Checklist
 
 - [ ] `public/manifest.json` + icons (192px, 512px)
-- [ ] `public/sw.js` (service worker para push)
+- [x] ~~`public/sw.js`~~ (ya existe)
 - [ ] Meta tags PWA en `app/layout.tsx`
-- [ ] Migration `213_push_subscriptions.sql`
-- [ ] `lib/push/sender.ts` (sendPushToUser, sendPushToTenant)
-- [ ] `app/api/push/subscribe/route.ts`
-- [ ] `lib/hooks/use-push-notifications.ts`
-- [ ] `components/PushNotificationToggle.tsx`
-- [ ] Generar VAPID keys, agregar a `.env`
+- [x] ~~Migration push_subscriptions~~ (ya existe)
+- [ ] `lib/push/sender.ts` (extraer de notifier.ts → sendPushToUser, sendPushToTenant)
+- [x] ~~`app/api/push/subscribe/route.ts`~~ (ya existe)
+- [x] ~~`lib/hooks/use-push-notifications.ts`~~ (ya existe)
+- [ ] `components/PushNotificationToggle.tsx` (standalone para settings)
+- [x] ~~VAPID keys~~ (ya configurado)
 
 ### Tests
 
@@ -1116,6 +1174,10 @@ lib/improvement/auditor.ts          # 5 dimensiones (incl insightScore)
 lib/improvement/loop.ts             # Progressive L1→L5
 lib/skills/memory/                  # recall + save + tools
 lib/errors/friendly-messages.ts     # Errores → mensajes amigables
+lib/crypto.ts                       # AES-256-GCM encrypt/decrypt (Phase 0)
+lib/prometeo/notifier.ts            # Push notifications + in-app + email
+lib/company/discovery.ts            # Company discovery desde Odoo
+lib/user/discovery.ts               # User profile discovery
 ```
 
 ### Archivos nuevos por fase
@@ -1198,8 +1260,8 @@ tests/unit/google/user-connections.test.ts
 
 ---
 
-*Última actualización: 2026-02-16*  
-*PRs mergeados: #2-#10 | PR abierto: #11 (feat/memory)*  
+*Última actualización: 2026-02-18*  
+*PRs mergeados: #2-#32 | Branch activo: `fix/phase0-hardening`*  
 *Spec técnica detallada: `TUQUI_REFACTOR_SPECS.md`*  
 *Intelligence Layer spec: `INTELLIGENCE_LAYER_PLAN.md`*  
 *Versión anterior archivada: `docs/archive/TUQUI_REFACTOR_PLAN_v3.md`*  

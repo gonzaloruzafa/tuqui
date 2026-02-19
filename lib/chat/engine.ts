@@ -76,9 +76,10 @@ export async function processChatRequest(params: ChatEngineParams): Promise<Chat
     console.log(`[ChatEngine] Agent: ${selectedAgent.slug} (name: ${selectedAgent.name}) (${decision.confidence}) - ${decision.reason}`)
 
     // 3. Build system prompt (shared builder — company context + agent prompt + rules)
+    // Use selectedAgent's prompt (not base agent) so routed agents get their own prompt
     const systemPrompt = await buildSystemPrompt({
         tenantId,
-        agentSystemPrompt: agent.merged_system_prompt || agent.system_prompt || '',
+        agentSystemPrompt: selectedAgent.merged_system_prompt || selectedAgent.system_prompt || '',
         routedAgent: selectedAgent.slug !== agent.slug ? selectedAgent : undefined,
         routingDecision: decision,
         baseAgentSlug: agent.slug,

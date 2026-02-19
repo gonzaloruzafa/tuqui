@@ -141,14 +141,44 @@ describe('processChatRequest (Unified Engine)', () => {
         }))
     })
 
+    test('uses SELECTED agent prompt when routed to different agent (bug fix)', async () => {
+        const contadorAgent = {
+            ...baseAgent,
+            id: 'agent-contador',
+            slug: 'contador',
+            name: 'Contador',
+            system_prompt: 'Sos un contador.',
+            merged_system_prompt: 'Sos un contador. Siempre sugerí consultar con un profesional.',
+            tools: ['odoo', 'knowledge_base']
+        }
+        mockedOrchestrate.mockResolvedValue({
+            agent: { id: 'agent-contador', slug: 'contador', name: 'Contador', description: null, tools: ['odoo'] },
+            decision: { agentSlug: 'contador', confidence: 'high', reason: 'tax question' }
+        })
+        mockedGetAgentBySlug.mockResolvedValue(contadorAgent as any)
+
+        await processChatRequest({
+            tenantId: 'tenant-1', userEmail: 'user@test.com',
+            agent: baseAgent as any, messages: [{ role: 'user' as const, content: '¿cuánto debo de IVA?' }], channel: 'web'
+        })
+
+        // Should use contador's prompt, NOT tuqui's
+        expect(mockedBuildPrompt).toHaveBeenCalledWith(expect.objectContaining({
+            agentSystemPrompt: 'Sos un contador. Siempre sugerí consultar con un profesional.'
+        }))
+    })
+
     test('falls back to system_prompt when no merged_system_prompt', async () => {
         const agentNoMerged = { ...baseAgent, merged_system_prompt: '' }
+        // When orchestrator routes to the same agent, getAgentBySlug returns it
+        mockedGetAgentBySlug.mockResolvedValue(agentNoMerged as any)
 
         await processChatRequest({
             tenantId: 'tenant-1', userEmail: 'user@test.com',
             agent: agentNoMerged as any, messages: baseMessages, channel: 'web'
         })
 
+        // Engine should use selectedAgent's prompt (from getAgentBySlug), falling back to system_prompt
         expect(mockedBuildPrompt).toHaveBeenCalledWith(expect.objectContaining({
             agentSystemPrompt: 'Sos Tuqui.'
         }))

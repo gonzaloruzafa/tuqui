@@ -41,7 +41,6 @@ export {
   createSkillContext,
   loadSkillsForAgent,
   hasOdooTools,
-  shouldUseSkills,
 } from './loader';
 
 // Odoo skills (for direct imports if needed)
