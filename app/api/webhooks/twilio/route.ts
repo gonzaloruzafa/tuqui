@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { after } from 'next/server'
 import { getTenantByPhone } from '@/lib/supabase/client'
 import { sendWhatsApp } from '@/lib/twilio/client'
 import { getOrCreateWhatsAppSession, getSessionMessages, saveMessage } from '@/lib/supabase/chat-history'
@@ -124,13 +125,14 @@ export async function POST(req: NextRequest) {
 
         console.log(`[WhatsApp] Incoming from ${from}: ${body}`)
 
-        // IMPORTANT: Respond to Twilio immediately to avoid timeout
-        // Process the message asynchronously (fire and forget)
-        processMessageAsync(from, body).catch(err => {
-            console.error('[WhatsApp] Background processing error:', err)
-        })
+        // Respond to Twilio immediately, process in background via after()
+        // after() keeps the Vercel function alive until the promise resolves
+        after(
+            processMessageAsync(from, body).catch(err => {
+                console.error('[WhatsApp] Background processing error:', err)
+            })
+        )
 
-        // Return 200 immediately to Twilio (within milliseconds)
         return new Response('<Response></Response>', {
             status: 200,
             headers: { 'Content-Type': 'text/xml' }
