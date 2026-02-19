@@ -13,6 +13,7 @@ import {
     AudioLines, Settings
 } from 'lucide-react'
 import { marked } from 'marked'
+import DOMPurify from 'isomorphic-dompurify'
 import { useDictation } from '@/lib/hooks/useDictation'
 import { parseMention } from '@/lib/chat/parse-mention'
 import { VoiceChat } from '@/components/chat/VoiceChat'
@@ -600,7 +601,7 @@ export default function ChatPage() {
                                         <MeliSkillsRenderer content={m.rawContent || m.content} />
                                         {/* Always render the message content */}
                                         {m.content && (
-                                            <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: m.content }}></div>
+                                            <div className="bot-message text-[15px] leading-relaxed text-gray-900 overflow-x-auto min-w-0" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(m.content) }}></div>
                                         )}
                                         
                                         {/* Show ToolBadge BELOW content for completed messages */}
