@@ -37,13 +37,13 @@ describe('API Smoke Tests', () => {
   describe('WhatsApp Webhook', () => {
     it('should accept GET for verification', async () => {
       // Twilio sends GET for webhook verification
-      const response = await fetch(`${BASE_URL}/api/whatsapp/webhook`)
+      const response = await fetch(`${BASE_URL}/api/webhooks/twilio`)
       // Should return something (not crash) - 405 is valid for GET-only webhook
       expect([200, 400, 401, 405]).toContain(response.status)
     })
     
     it('should accept POST without body gracefully', async () => {
-      const response = await fetch(`${BASE_URL}/api/whatsapp/webhook`, {
+      const response = await fetch(`${BASE_URL}/api/webhooks/twilio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: ''

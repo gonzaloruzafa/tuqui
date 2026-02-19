@@ -45,7 +45,7 @@ function buildWebhookUrl(req: NextRequest): string {
         || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
 
     if (baseUrl) {
-        return `${baseUrl}/api/whatsapp/webhook`
+        return `${baseUrl}/api/webhooks/twilio`
     }
 
     // Fallback: reconstruct from request

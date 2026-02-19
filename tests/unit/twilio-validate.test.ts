@@ -12,7 +12,7 @@ import twilio from 'twilio'
 
 const mockValidateRequest = vi.mocked(twilio.validateRequest)
 
-function makeRequest(headers: Record<string, string> = {}, url = 'https://tuqui.vercel.app/api/whatsapp/webhook') {
+function makeRequest(headers: Record<string, string> = {}, url = 'https://tuqui.vercel.app/api/webhooks/twilio') {
     return {
         headers: new Headers(headers),
         url,
@@ -57,7 +57,7 @@ describe('validateTwilioSignature', () => {
         expect(mockValidateRequest).toHaveBeenCalledWith(
             'test-auth-token',
             'valid-sig',
-            'https://tuqui.vercel.app/api/whatsapp/webhook',
+            'https://tuqui.vercel.app/api/webhooks/twilio',
             { Body: 'hello', From: 'whatsapp:+5491112345678' }
         )
     })
@@ -82,7 +82,7 @@ describe('validateTwilioSignature', () => {
         expect(mockValidateRequest).toHaveBeenCalledWith(
             'test-auth-token',
             'sig',
-            'https://tuqui-abc123.vercel.app/api/whatsapp/webhook',
+            'https://tuqui-abc123.vercel.app/api/webhooks/twilio',
             { Body: 'test' }
         )
         

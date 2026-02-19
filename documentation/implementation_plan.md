@@ -69,7 +69,7 @@ URL: https://ancgbbzvfhoqqxiueyoz.supabase.co/project/ancgbbzvfhoqqxiueyoz/sql/n
 | Componente | Estado | Detalles |
 |------------|--------|----------|
 | `lib/twilio/client.ts` | ✅ Listo | Cliente Twilio |
-| `app/api/whatsapp/webhook/route.ts` | ✅ Listo | Webhook handler |
+| `app/api/webhooks/twilio/route.ts` | ✅ Listo | Webhook handler |
 | TWILIO_ACCOUNT_SID | ⚠️ Vacío | Agregar credenciales |
 | TWILIO_AUTH_TOKEN | ⚠️ Vacío | Agregar credenciales |
 | Integration en DB | ❌ Falta | Configurar en tenant |
@@ -81,7 +81,7 @@ URL: https://ancgbbzvfhoqqxiueyoz.supabase.co/project/ancgbbzvfhoqqxiueyoz/sql/n
    TWILIO_ACCOUNT_SID=ACxxxxxxx
    TWILIO_AUTH_TOKEN=xxxxxxx
    ```
-3. Configurar webhook en Twilio: `https://tuqui.vercel.app/api/whatsapp/webhook`
+3. Configurar webhook en Twilio: `https://tuqui.vercel.app/api/webhooks/twilio`
 
 ---
 
@@ -153,7 +153,7 @@ UPDATE tenants SET twilio_phone = '+1234567890' WHERE id = '<tenant-uuid>';
 ```
 
 #### 2.4 Configurar webhook en Twilio
-- URL: `https://tuqui.vercel.app/api/whatsapp/webhook`
+- URL: `https://tuqui.vercel.app/api/webhooks/twilio`
 - Método: POST
 - Eventos: Incoming messages
 
