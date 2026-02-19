@@ -26,6 +26,7 @@
     "cron-parser": "^5.4.0",
     "dotenv": "^17.2.3",
     "dotenv-flow": "^4.1.0",
+    "isomorphic-dompurify": "^2.36.0",
     "lucide-react": "^0.562.0",
     "marked": "^17.0.1",
     "next": "16.1.0",

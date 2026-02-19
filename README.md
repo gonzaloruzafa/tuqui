@@ -194,7 +194,7 @@ Abrir http://localhost:3000
 
 1. Crear cuenta Twilio
 2. Activar WhatsApp Sandbox
-3. Configurar webhook: `https://tuqui.adhoc.inc/api/whatsapp/webhook`
+3. Configurar webhook: `https://tuqui.adhoc.inc/api/webhooks/twilio`
 
 ---
 
@@ -216,7 +216,7 @@ Content-Type: application/json
 ### WhatsApp Webhook (Twilio)
 
 ```
-POST /api/whatsapp/webhook
+POST /api/webhooks/twilio
 ```
 
 Twilio envía mensajes entrantes a este endpoint.

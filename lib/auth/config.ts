@@ -94,21 +94,32 @@ export const authConfig = {
         async session({ session, token }) {
             if (session.user?.email) {
                 try {
-                    const { getTenantForUser, isUserAdmin, getClient } = await import("@/lib/supabase/client")
-                    const tenant = await getTenantForUser(session.user.email)
+                    const { getClient } = await import("@/lib/supabase/client")
+                    const db = getClient()
 
-                    if (tenant) {
-                        session.tenant = tenant
-                        session.isAdmin = await isUserAdmin(session.user.email)
+                    // Single query: get tenant + is_admin in one roundtrip
+                    const { data: users } = await db
+                        .from('users')
+                        .select('tenant_id, is_admin, tenants!inner(id, name, slug)')
+                        .eq('email', session.user.email)
+                        .limit(1)
+
+                    const user = users?.[0]
+                    if (user) {
+                        const tenant = Array.isArray(user.tenants) ? user.tenants[0] : user.tenants
+                        if (tenant) {
+                            session.tenant = { id: tenant.id, name: tenant.name, slug: tenant.slug }
+                            session.isAdmin = user.is_admin || false
+                        }
                         
                         if (token?.sub) {
                             session.user.id = token.sub
-                            const db = getClient()
+                            // Conditional update — only fires when auth_user_id is null
                             await db
                                 .from('users')
                                 .update({ auth_user_id: token.sub })
                                 .eq('email', session.user.email)
-                                .eq('tenant_id', tenant.id)
+                                .eq('tenant_id', user.tenant_id)
                                 .is('auth_user_id', null)
                         }
                     } else {

@@ -29,6 +29,7 @@ export { getLowStockProducts } from './get-low-stock-products';
 export { getStockValuation } from './get-stock-valuation';
 export { getExpiringStock, type GetExpiringStockInput, type GetExpiringStockOutput } from './get-expiring-stock';
 export { getStockRotation } from './get-stock-rotation';
+export { getBelowReorderPoint } from './get-below-reorder-point';
 
 // Payment Skills
 export { getPaymentsReceived, type GetPaymentsReceivedInput, type GetPaymentsReceivedOutput } from './get-payments-received';
@@ -134,6 +135,7 @@ import { getAccountsPayable } from './get-accounts-payable';
 import { getPaymentsMade } from './get-payments-made';
 import { getExpiringStock } from './get-expiring-stock';
 import { getStockRotation } from './get-stock-rotation';
+import { getBelowReorderPoint } from './get-below-reorder-point';
 
 // Intelligence Revamp Phase 1
 import { getCrmPipeline } from './get-crm-pipeline';
@@ -194,6 +196,7 @@ export const odooSkills = [
   getTopStockProducts,
   getExpiringStock, // NEW - expiration date tracking
   getStockRotation, // NEW - stock rotation analysis
+  getBelowReorderPoint, // NEW - products below reorder point
   // Payments (1)
   getPaymentsReceived,
   // Purchases (3)

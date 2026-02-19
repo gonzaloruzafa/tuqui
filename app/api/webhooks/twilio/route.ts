@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server'
+import { after } from 'next/server'
 import { getTenantByPhone } from '@/lib/supabase/client'
 import { sendWhatsApp } from '@/lib/twilio/client'
 import { getOrCreateWhatsAppSession, getSessionMessages, saveMessage } from '@/lib/supabase/chat-history'
 import { processChatRequest } from '@/lib/chat/engine'
 import { getAgentBySlug } from '@/lib/agents/service'
+import { validateTwilioSignature } from '@/lib/twilio/validate'
 
 export const maxDuration = 60 // Allow longer timeout for tools
 
@@ -91,9 +93,17 @@ export async function POST(req: NextRequest) {
 
     try {
         const rawBody = await req.text()
+
+        // 0. Validate Twilio signature (skip in dev if no token configured)
+        const isValid = validateTwilioSignature(req, rawBody)
+        if (!isValid) {
+            console.warn('[WhatsApp] Invalid Twilio signature — rejecting request')
+            return new Response('Forbidden', { status: 403 })
+        }
+
         const params = new URLSearchParams(rawBody)
 
-        // 0. Handle Twilio Debugger or Status Callbacks
+        // 1. Handle Twilio Debugger or Status Callbacks
         if (params.has('Payload') || params.has('MessageStatus')) {
             console.log('[WhatsApp] Ignoring Twilio event:', params.has('Payload') ? 'Debugger' : 'Status Callback')
             return new Response('<Response></Response>', {
@@ -115,13 +125,14 @@ export async function POST(req: NextRequest) {
 
         console.log(`[WhatsApp] Incoming from ${from}: ${body}`)
 
-        // IMPORTANT: Respond to Twilio immediately to avoid timeout
-        // Process the message asynchronously (fire and forget)
-        processMessageAsync(from, body).catch(err => {
-            console.error('[WhatsApp] Background processing error:', err)
-        })
+        // Respond to Twilio immediately, process in background via after()
+        // after() keeps the Vercel function alive until the promise resolves
+        after(
+            processMessageAsync(from, body).catch(err => {
+                console.error('[WhatsApp] Background processing error:', err)
+            })
+        )
 
-        // Return 200 immediately to Twilio (within milliseconds)
         return new Response('<Response></Response>', {
             status: 200,
             headers: { 'Content-Type': 'text/xml' }

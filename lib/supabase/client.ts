@@ -201,6 +201,8 @@ export async function getTenantByPhone(whatsappPhone: string): Promise<{
     userEmail: string
 } | null> {
     const db = getClient()
+    // Twilio sends "whatsapp:+54..." but DB stores "+54..."
+    const normalizedPhone = whatsappPhone.replace(/^whatsapp:/, '')
     
     const { data: user, error } = await db
         .from('users')
@@ -213,7 +215,7 @@ export async function getTenantByPhone(whatsappPhone: string): Promise<{
                 slug
             )
         `)
-        .eq('whatsapp_phone', whatsappPhone)
+        .eq('whatsapp_phone', normalizedPhone)
         .single()
 
     if (error || !user) {
