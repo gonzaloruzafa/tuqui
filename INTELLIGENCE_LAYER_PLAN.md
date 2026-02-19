@@ -1,12 +1,13 @@
 # TUQUI INTELLIGENCE LAYER — Curious Analyst Agent
 
-> **Última actualización:** 2026-02-18  
+> **Última actualización:** 2026-02-19  
 > **Principio:** La inteligencia está en el LLM, no en el código  
 > **Referencia:** TUQUI_REFACTOR_PLAN.md § F7.6  
 > **Depende de:** F5 (PWA + Push) ya implementado — el delivery incluye push notification  
 > **Modelos:** gemini-2.5-flash (investigator + synthesizer)  
+> **Estado previo:** ✅ Phase 0 + Security P2 completados, 557 tests, 59 skills, main limpio (c09ba93)
 >
-> ### ⚠️ Notas de reconciliación (2026-02-18)
+> ### ⚠️ Notas de reconciliación (2026-02-19)
 >
 > **user_profiles ya existe** (migration 211 + 213). Schema actual: `display_name`, `role_title`,
 > `area`, `bio`, `interests`. El schema de § 8 propone campos diferentes: `role`, `pain_points[]`,
@@ -16,6 +17,12 @@
 > **Push sender:** El plan referencia `lib/push/sender.ts` que no existe como archivo separado.
 > La funcionalidad existe en `lib/prometeo/notifier.ts` como `sendPushNotification()` (private).
 > **Acción:** En F5, extraer a `lib/push/sender.ts` con exports `sendPushToUser()` y `sendPushToTenant()`.
+>
+> **WhatsApp:** Ahora funcional con Twilio signature validation + phone normalization (Security P2).
+> El webhook está en `/api/webhooks/twilio` con `after()` para Vercel safety.
+>
+> **Skills:** 59 Odoo skills disponibles para el investigator (incluye nuevo `getBelowReorderPoint`).
+> Esto enriquece significativamente lo que el analista curioso puede investigar.
 
 ---
 
