@@ -2,6 +2,7 @@
 
 import React, { memo, useRef, useEffect, useState } from 'react'
 import { Mic, ArrowUp, AudioLines, X, Check } from 'lucide-react'
+import { PushOptIn } from '@/components/PushOptIn'
 
 // Real-time Scrolling Temporal Waveform for Voice Input
 const AudioVisualizer = memo(({ isRecording }: { isRecording: boolean }) => {
@@ -144,6 +145,8 @@ export function ChatFooter({
             <div className="h-8 bg-gradient-to-t from-white to-transparent" />
             <div className="bg-white/80 backdrop-blur-md pb-[env(safe-area-inset-bottom,8px)] px-3 md:px-6 pb-3 md:pb-6 pointer-events-auto">
                 <div className="max-w-3xl mx-auto">
+                    <PushOptIn />
+                    <PushOptIn />
                     {isRecording ? (
                         <div className="w-full bg-gray-50 border border-adhoc-violet/30 rounded-full px-4 py-2 flex items-center gap-3 animate-in fade-in zoom-in duration-300 shadow-sm">
                             <div className="flex-1 flex items-center gap-2 overflow-hidden">
