@@ -17,14 +17,12 @@ const mockLocalStorage = {
 }
 vi.stubGlobal('localStorage', mockLocalStorage)
 
-// Test the localStorage-based state logic directly
 const STORAGE_KEY = 'tuqui_push_optin'
-const SESSION_KEY = 'tuqui_session_count'
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
 interface OptInState {
-    dismissCount: number
     accepted: boolean
-    lastSession: number
+    lastDismissedAt: number | null
 }
 
 function getOptInState(): OptInState {
@@ -32,31 +30,29 @@ function getOptInState(): OptInState {
         const raw = localStorage.getItem(STORAGE_KEY)
         if (raw) return JSON.parse(raw)
     } catch { /* ignore */ }
-    return { dismissCount: 0, accepted: false, lastSession: 0 }
+    return { accepted: false, lastDismissedAt: null }
 }
 
 function saveOptInState(state: OptInState) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
-function getSessionCount(): number {
-    const count = parseInt(localStorage.getItem(SESSION_KEY) || '0', 10) + 1
-    localStorage.setItem(SESSION_KEY, String(count))
-    return count
-}
-
 function shouldShowOptIn(
     isSupported: boolean,
     isSubscribed: boolean,
     permission: string,
+    now = Date.now(),
 ): boolean {
     if (!isSupported || isSubscribed || permission === 'denied') return false
 
     const state = getOptInState()
-    if (state.accepted || state.dismissCount >= 3) return false
+    if (state.accepted) return false
 
-    const session = getSessionCount()
-    return session === 1 || (session - state.lastSession) >= 3
+    // First time: show immediately
+    if (!state.lastDismissedAt) return true
+
+    // Re-show after 7 days
+    return (now - state.lastDismissedAt) >= SEVEN_DAYS_MS
 }
 
 describe('PushOptIn state logic', () => {
@@ -64,7 +60,7 @@ describe('PushOptIn state logic', () => {
         localStorage.clear()
     })
 
-    it('shows on first session when supported and not subscribed', () => {
+    it('shows on first visit when supported and not subscribed', () => {
         expect(shouldShowOptIn(true, false, 'default')).toBe(true)
     })
 
@@ -81,41 +77,35 @@ describe('PushOptIn state logic', () => {
     })
 
     it('does not show when already accepted', () => {
-        saveOptInState({ accepted: true, dismissCount: 0, lastSession: 0 })
+        saveOptInState({ accepted: true, lastDismissedAt: null })
         expect(shouldShowOptIn(true, false, 'default')).toBe(false)
     })
 
-    it('does not show when dismissed 3+ times', () => {
-        saveOptInState({ accepted: false, dismissCount: 3, lastSession: 0 })
-        expect(shouldShowOptIn(true, false, 'default')).toBe(false)
+    it('does not show within 7 days of dismiss', () => {
+        const dismissTime = Date.now()
+        saveOptInState({ accepted: false, lastDismissedAt: dismissTime })
+        // 3 days later → should NOT show
+        expect(shouldShowOptIn(true, false, 'default', dismissTime + 3 * 24 * 60 * 60 * 1000)).toBe(false)
     })
 
-    it('does not show on session 2 if dismissed on session 1', () => {
-        // Session 1: shown, user dismisses
-        getSessionCount() // session = 1
-        saveOptInState({ accepted: false, dismissCount: 1, lastSession: 1 })
+    it('shows again after 7 days since dismiss', () => {
+        const dismissTime = Date.now() - SEVEN_DAYS_MS - 1000
+        saveOptInState({ accepted: false, lastDismissedAt: dismissTime })
+        expect(shouldShowOptIn(true, false, 'default')).toBe(true)
+    })
 
-        // Session 2: should NOT show (only 1 session gap, need 3)
-        const session = getSessionCount() // session = 2
+    it('keeps showing weekly — no max dismiss limit', () => {
+        // Dismissed 10 times, last one was 8 days ago → still shows
+        const dismissTime = Date.now() - 8 * 24 * 60 * 60 * 1000
+        saveOptInState({ accepted: false, lastDismissedAt: dismissTime })
+        expect(shouldShowOptIn(true, false, 'default')).toBe(true)
+    })
+
+    it('dismiss saves timestamp correctly', () => {
+        const now = Date.now()
+        saveOptInState({ accepted: false, lastDismissedAt: now })
         const state = getOptInState()
-        const shouldShow = session === 1 || (session - state.lastSession) >= 3
-        expect(shouldShow).toBe(false)
-    })
-
-    it('shows again after 3 sessions gap', () => {
-        // Dismissed on session 1
-        saveOptInState({ accepted: false, dismissCount: 1, lastSession: 1 })
-        // Simulate sessions 2, 3, 4 passing
-        localStorage.setItem(SESSION_KEY, '3')
-
-        // Session 4: gap = 4 - 1 = 3 ≥ 3 → show
-        const show = shouldShowOptIn(true, false, 'default')
-        expect(show).toBe(true)
-    })
-
-    it('session counter increments correctly', () => {
-        expect(getSessionCount()).toBe(1)
-        expect(getSessionCount()).toBe(2)
-        expect(getSessionCount()).toBe(3)
+        expect(state.lastDismissedAt).toBe(now)
+        expect(state.accepted).toBe(false)
     })
 })

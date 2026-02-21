@@ -1,26 +1,26 @@
 'use client'
 
 /**
- * PushOptIn — Non-intrusive push notification opt-in banner
+ * PushOptIn — Prominent push notification setup step
  *
- * Shows inline above the chat input. Frequency logic:
- * - Shows on first session if not subscribed
- * - Re-shows every 3 sessions if dismissed
- * - Never shows again if accepted or dismissed 3+ times
- * - Never shows if browser doesn't support push
+ * Presented as part of onboarding/setup. Frequency logic:
+ * - Shows immediately on first session if not subscribed
+ * - If dismissed, re-shows after 7 days (weekly)
+ * - Never shows again if accepted or browser denies permission
+ * - No max dismiss limit — keeps asking weekly (it's key for value delivery)
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Bell } from 'lucide-react'
+import { BellRing } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { usePushNotifications } from '@/lib/hooks/use-push-notifications'
 
 const STORAGE_KEY = 'tuqui_push_optin'
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
 interface OptInState {
-    dismissCount: number
     accepted: boolean
-    lastSession: number
+    lastDismissedAt: number | null // timestamp
 }
 
 function getOptInState(): OptInState {
@@ -28,22 +28,13 @@ function getOptInState(): OptInState {
         const raw = localStorage.getItem(STORAGE_KEY)
         if (raw) return JSON.parse(raw)
     } catch { /* ignore */ }
-    return { dismissCount: 0, accepted: false, lastSession: 0 }
+    return { accepted: false, lastDismissedAt: null }
 }
 
 function saveOptInState(state: OptInState) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch { /* ignore */ }
-}
-
-function getSessionCount(): number {
-    try {
-        const key = 'tuqui_session_count'
-        const count = parseInt(localStorage.getItem(key) || '0', 10) + 1
-        localStorage.setItem(key, String(count))
-        return count
-    } catch { return 1 }
 }
 
 interface PushOptInProps {
@@ -63,32 +54,34 @@ export function PushOptIn({ className }: PushOptInProps) {
         }
 
         const state = getOptInState()
-        if (state.accepted || state.dismissCount >= 3) {
+        if (state.accepted) {
             setVisible(false)
             return
         }
 
-        const session = getSessionCount()
-        // Show on first session, then every 3 sessions
-        const shouldShow = session === 1 || (session - state.lastSession) >= 3
-        setVisible(shouldShow)
+        // First time: show immediately
+        if (!state.lastDismissedAt) {
+            setVisible(true)
+            return
+        }
+
+        // Re-show after 7 days since last dismiss
+        const elapsed = Date.now() - state.lastDismissedAt
+        setVisible(elapsed >= SEVEN_DAYS_MS)
     }, [isSupported, isSubscribed, permission])
 
     const handleAccept = useCallback(async () => {
         const success = await subscribe()
         if (success) {
-            saveOptInState({ ...getOptInState(), accepted: true })
+            saveOptInState({ accepted: true, lastDismissedAt: null })
             setVisible(false)
         }
     }, [subscribe])
 
     const handleDismiss = useCallback(() => {
-        const state = getOptInState()
-        const currentSession = parseInt(localStorage.getItem('tuqui_session_count') || '1', 10)
         saveOptInState({
-            ...state,
-            dismissCount: state.dismissCount + 1,
-            lastSession: currentSession,
+            ...getOptInState(),
+            lastDismissedAt: Date.now(),
         })
         setVisible(false)
     }, [])
@@ -96,25 +89,35 @@ export function PushOptIn({ className }: PushOptInProps) {
     if (!visible) return null
 
     return (
-        <div className="flex items-center gap-3 px-4 py-2.5 mx-3 mb-2 rounded-xl bg-adhoc-lavender/20 border border-adhoc-lavender/30 animate-in fade-in slide-in-from-bottom-2">
-            <Bell className="w-4 h-4 text-adhoc-violet shrink-0" />
-            <p className="text-sm text-gray-700 flex-1">
-                Activá notificaciones para recibir novedades
-            </p>
-            <button
-                onClick={handleAccept}
-                disabled={isLoading}
-                className="text-sm font-medium text-adhoc-violet hover:text-adhoc-violet/80 disabled:opacity-50 shrink-0"
-            >
-                {isLoading ? 'Activando...' : 'Activar'}
-            </button>
-            <button
-                onClick={handleDismiss}
-                className="text-gray-400 hover:text-gray-600 shrink-0"
-                aria-label="Cerrar"
-            >
-                <X className="w-4 h-4" />
-            </button>
+        <div className={`rounded-2xl bg-gradient-to-r from-adhoc-violet/10 to-adhoc-lavender/20 border border-adhoc-lavender/40 p-4 mb-3 animate-in fade-in slide-in-from-bottom-3 ${className || ''}`}>
+            <div className="flex items-start gap-3">
+                <div className="p-2 bg-adhoc-violet/10 rounded-xl shrink-0">
+                    <BellRing className="w-5 h-5 text-adhoc-violet" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">
+                        Completá tu configuración
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                        Activá las notificaciones para que Tuqui te avise cuando tenga novedades importantes.
+                    </p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3 ml-11">
+                <button
+                    onClick={handleAccept}
+                    disabled={isLoading}
+                    className="px-4 py-1.5 text-sm font-medium text-white bg-adhoc-violet rounded-full hover:bg-adhoc-violet/90 disabled:opacity-50 transition-all shadow-sm"
+                >
+                    {isLoading ? 'Activando...' : 'Activar notificaciones'}
+                </button>
+                <button
+                    onClick={handleDismiss}
+                    className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                    Ahora no
+                </button>
+            </div>
         </div>
     )
 }
