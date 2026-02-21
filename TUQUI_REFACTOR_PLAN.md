@@ -3,7 +3,7 @@
 > **Filosofía:** Llegar a PMF primero, infraestructura enterprise después  
 > **Principio:** Usuarios pagando > Features perfectas  
 > **Para:** Un founder que necesita validar antes de escalar  
-> **Última actualización:** 2026-02-16
+> **Última actualización:** 2026-02-19
 
 ---
 
@@ -11,13 +11,14 @@
 
 | Campo | Valor |
 |-------|-------|
-| Fases completadas | F0-F4, F7 (RAG), F7.5 (User Profile + Company Discovery), Phase 0 (Hardening) |
-| Branch | `main` (último merge: PR #32 → 51b103c) |
-| Branch activo | `fix/phase0-hardening` (ff80ba3) |
-| Unit tests | 533 passing, 55 archivos (~2s) |
-| Eval baseline | 98.5% (66/67) |
+| Fases completadas | F0-F4, F7, F7.5, Phase 0, Security P2 |
+| Branch | `main` (último merge: PR #34 → c09ba93) |
+| Branch activo | — (limpio, sin PRs abiertos) |
+| Unit tests | 557 passing, 59 archivos |
+| Test files | 71 |
+| Eval baseline | 97.1% (68/70) — los 2 fallos son RAG (0 docs) |
 | Eval cases | 75 (67 originales + 8 quality) |
-| Skills Odoo | 58 (8 nuevos en PR #32) |
+| Skills Odoo | 59 (+1 get_below_reorder_point) |
 | Memory Skills | 2 (recall_memory, save_memory) |
 | Docs en RAG | ⚠️ 0 (crítico) |
 | Master Agents UI | ❌ Solo via SQL |
@@ -25,11 +26,13 @@
 | Pilotos activos | Cedent (demo), Active Learning (pendiente) |
 | Tenant Isolation | ✅ Fix dd4b223 (23 archivos, ~45 queries) |
 | Modelos | gemini-2.5-flash (lightweight), gemini-3-flash-preview (chat main) |
+| WhatsApp | ✅ Twilio signature validation + phone normalization |
+| Security | ✅ AES-256-GCM, DOMPurify, auth TTS, session 1-query |
 
 ### Lo que falta
 
 ```
-Skills Odoo:      ██████████████████████████████████████████████████████████ 58
+Skills Odoo:      ██████████████████████████████████████████████████████████ 59
 Docs RAG:         ⬜ 0
 Master Agents UI: ⬜ No existe
 PWA:              ▓▓▓▓▓▓░░ ~85% backend (falta manifest + icons + wiring)
@@ -55,7 +58,7 @@ Tenés la infraestructura de skills pero no:
 
 - **Antes:** ~400 líneas de keywords hardcodeados. "guita" no matcheaba → agente equivocado.
 - **Ahora:** ~155 líneas. Lee descripciones de DB. Entiende semántica.
-- **Resultado:** 98.5% accuracy en evals.
+- **Resultado:** 97.1% accuracy en evals (68/70).
 
 ### ¿Por qué memory como tool y no siempre inyectado?
 
@@ -83,6 +86,7 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 | F7 | 2-3 días | Master Agents + RAG Centralizado | ✅ Completada |
 | F7.5 | 0.5 días | Company Discovery (Deep Research Odoo) | ✅ Completada (PR #32) |
 | Phase 0 | 0.5 días | Hardening (security + cleanup) | ✅ Completada (ff80ba3) |
+| Security P2 | 0.5 días | Twilio sig, DOMPurify, session opt, webhook move | ✅ Completada (PR #34) |
 | F5 | ~4h | PWA + Push Notifications | 🔜 ~85% backend listo |
 | F7.6 | 2-3 días | Intelligence Layer + Briefings (absorbe F6) | 🔜 Siguiente |
 | F7.7 | 2 días | Google Integration (Calendar + Gmail) | 🔜 Opcional pre-piloto |
@@ -95,7 +99,7 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 ### Orden de ejecución
 
 ```
-✅ F7 → ✅ F7.5 → ✅ Phase 0 → F5 → F7.6 → F7.7 (opcional) → F8 → F9
+✅ F7 → ✅ F7.5 → ✅ Phase 0 → ✅ Security P2 → F5 → F7.6 → F7.7 (opcional) → F8 → F9
 ```
 
 **¿Por qué F5 ahora?** El 85% del backend de push ya existe. Solo faltan manifest + icons + wiring (~4h). F7.6 necesita push como canal de delivery, así que completar F5 primero es prerequisito.
@@ -113,7 +117,7 @@ El LLM es inteligente. Dale buenas descripciones y él decide.
 | User Credentials (F5 viejo) | Overkill para 3 usuarios por tenant |
 | Super Admin UI completa (tenants) | Podés hacer CRUD via SQL |
 | Token limits desde UI | Nadie está en el límite |
-| Seguridad enterprise (AES-256) | No tenés datos sensibles todavía |
+| ~~Seguridad enterprise (AES-256)~~ | ✅ Implementado en Phase 0 + Security P2 |
 | RLS en `company_contexts` | ⚠️ Tabla pública sin RLS. Activar RLS + política `service_role only`. **No tocar antes de demo** — rompe si no tiene la policy correcta |
 | Cleanup secrets en código | `lib/crypto.ts` tiene fallback secret hardcodeado + `encrypt()` es solo base64. `scripts/apply-migration.ts` tiene Supabase URL hardcodeada. `.env` files OK (nunca se commitearon). Odoo key ya fixeada en `a799a45`. |
 
@@ -556,12 +560,37 @@ modelo de negocio, etc. Se guarda en `company_contexts.discovery_profile`.
 
 ### Issues pendientes (para Quality Sweep futuro)
 
-- WhatsApp webhook: sin validación de firma Twilio
+- ~~WhatsApp webhook: sin validación de firma Twilio~~ ✅ Security P2
 - 3 SDKs de Google AI (consolidar a `@ai-sdk/google`)
-- Session callback: 3+ DB queries por request autenticado
-- `dangerouslySetInnerHTML` sin DOMPurify en chat
+- ~~Session callback: 3+ DB queries por request autenticado~~ ✅ Security P2 (1 query)
+- ~~`dangerouslySetInnerHTML` sin DOMPurify en chat~~ ✅ Security P2
 - 0/16 API routes con unit tests
-- Archivos >200 líneas: chat page (661), query-builder (1364), web-search (589)
+- Archivos >200 líneas: chat page (662), query-builder (1364), web-search (589)
+
+---
+
+## ✅ SECURITY P2: HARDENING PARTE 2 (~0.5 días) — COMPLETADA
+
+> **Branch:** `security-hardening-p2` → PR #34 (merged c09ba93). +1933/-589 líneas.  
+> **Objetivo:** Cerrar issues de seguridad pendientes de Phase 0 + fix WhatsApp + nueva skill.
+
+### Fixes aplicados
+
+| Fix | Archivo | Detalle |
+|-----|---------|---------|
+| Twilio signature validation | `app/api/webhooks/twilio/route.ts` | `validateRequest()` en producción, bypass en dev |
+| DOMPurify sanitización | `lib/chat/sanitize.ts` + chat page | `dangerouslySetInnerHTML` ahora sanitiza con DOMPurify |
+| Session optimización | `lib/auth/session.ts` | 3+ DB queries → 1 query con JOIN |
+| Webhook move | `app/api/webhooks/twilio/` | Migrado de `/api/whatsapp/webhook` a ruta canónica |
+| WhatsApp phone normalization | `lib/supabase/client.ts` | Twilio envía `whatsapp:+54...` → strip prefix antes de DB lookup |
+| Fire-and-forget → after() | `app/api/webhooks/twilio/route.ts` | `after()` de Next.js para safety en Vercel serverless |
+| Nueva skill: reorder point | `lib/skills/odoo/get-below-reorder-point.ts` | Productos debajo del punto de pedido (14 tests) |
+
+### Tests agregados
+
+- `tests/unit/twilio-validate.test.ts` — 6 tests: firma válida, inválida, dev skip, etc.
+- `tests/unit/sanitize.test.ts` — 5 tests: XSS, scripts, clean HTML
+- `tests/unit/skills/get-below-reorder-point.test.ts` — 14 tests: validación, filtros, errores
 
 ---
 

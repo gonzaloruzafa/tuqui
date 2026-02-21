@@ -29,6 +29,8 @@ export function useDictation(lang = 'es-AR'): UseDictationReturn {
   const [isSupported, setIsSupported] = useState(false)
   const recognitionRef = useRef<any>(null)
   const transcriptRef = useRef('')
+  const accumulatedRef = useRef('')  // finalized text across restarts
+  const recordingRef = useRef(false) // track recording state for onend handler
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -41,9 +43,11 @@ export function useDictation(lang = 'es-AR'): UseDictationReturn {
 
     setIsSupported(true)
 
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
+
     const rec = new SpeechRecognition()
     rec.lang = lang
-    rec.continuous = true
+    rec.continuous = !isMobile      // mobile: false to avoid duplication
     rec.interimResults = true
 
     rec.onresult = (event: any) => {
@@ -57,23 +61,38 @@ export function useDictation(lang = 'es-AR'): UseDictationReturn {
           interimText += result[0].transcript
         }
       }
-      const full = (finalText + interimText).trim()
+      // On mobile (non-continuous), finalized text resets per segment
+      // so we accumulate across restarts
+      const full = (accumulatedRef.current + finalText + interimText).trim()
       setTranscript(full)
       transcriptRef.current = full
+
+      // When a segment finalizes on mobile, save it to accumulated
+      if (isMobile && finalText) {
+        accumulatedRef.current = (accumulatedRef.current + finalText).trim() + ' '
+      }
     }
 
     rec.onerror = (event: any) => {
+      // 'no-speech' is normal on mobile when user pauses — don't stop
+      if (event.error === 'no-speech') return
       console.error('[Dictation] Error:', event.error)
       setIsRecording(false)
+      recordingRef.current = false
     }
 
     rec.onend = () => {
-      // On mobile, recognition may auto-stop. Don't clear transcript.
+      // On mobile, recognition auto-stops after each phrase.
+      // Restart if still recording.
+      if (recordingRef.current && isMobile) {
+        try { rec.start() } catch { /* ignore */ }
+      }
     }
 
     recognitionRef.current = rec
 
     return () => {
+      recordingRef.current = false
       try { rec.stop() } catch {}
     }
   }, [lang])
@@ -84,10 +103,12 @@ export function useDictation(lang = 'es-AR'): UseDictationReturn {
 
     setTranscript('')
     transcriptRef.current = ''
+    accumulatedRef.current = ''
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach(track => track.stop())
+      recordingRef.current = true
       rec.start()
       setIsRecording(true)
     } catch (err) {
@@ -98,19 +119,23 @@ export function useDictation(lang = 'es-AR'): UseDictationReturn {
   const cancel = useCallback(() => {
     const rec = recognitionRef.current
     if (!rec) return
+    recordingRef.current = false
     rec.stop()
     setTranscript('')
     transcriptRef.current = ''
+    accumulatedRef.current = ''
     setIsRecording(false)
   }, [])
 
   const confirm = useCallback(() => {
     const rec = recognitionRef.current
+    recordingRef.current = false
     if (rec) rec.stop()
 
     const final = transcriptRef.current.trim()
     setTranscript('')
     transcriptRef.current = ''
+    accumulatedRef.current = ''
     setIsRecording(false)
     return final
   }, [])

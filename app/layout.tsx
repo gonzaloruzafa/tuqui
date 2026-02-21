@@ -37,15 +37,22 @@ export const viewport: Viewport = {
     initialScale: 1,
     viewportFit: 'cover',
     interactiveWidget: 'resizes-content',
+    themeColor: '#7C6CD8',
 }
 
 export const metadata: Metadata = {
     title: 'Tuqui',
     description: 'Tu asistente de negocio con IA',
+    manifest: '/manifest.json',
     icons: {
-        icon: '/favicon.png',
+        icon: '/icons/icon-192.png',
         shortcut: '/favicon.png',
-        apple: '/favicon.png',
+        apple: '/icons/apple-touch-icon.png',
+    },
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'Tuqui',
     },
 }
 

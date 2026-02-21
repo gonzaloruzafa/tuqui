@@ -896,6 +896,12 @@ d975e90 feat: add delete agent functionality for custom agents
 > **Prerequisito:** ✅ Tenant isolation fix (dd4b223) — todos los queries ya tienen `.eq('tenant_id')`. Migrar a per-user es agregar `.eq('user_id')` encima.
 > **Ver también:** `TENANT_MANAGEMENT_PLAN.md` para el plan de Super Admin UI (solapamiento parcial con F5.4)
 
+> **Decisión de diseño (2026-02-20):** Split admin/usuario.
+> - **Admin** configura URL y DB en `tenant_settings` (una vez para todo el tenant).
+> - **Usuario** solo configura su API key personal (un campo, una vez en su vida).
+> - Odoo maneja los permisos internamente → no duplicar lógica.
+> - El mismo patrón aplica a Gmail, Google Calendar, Drive, Slack, etc.
+
 ### ¿Por qué es importante?
 
 **Modelo actual (por tenant):**
@@ -916,49 +922,83 @@ Tenant "Cedent"
 
 ### Implementación
 
-#### 5.1: Tabla `user_credentials`
+#### 5.1: Tablas
 
 ```sql
 -- supabase/migrations/500_user_credentials.sql
-CREATE TABLE IF NOT EXISTS user_credentials (
+
+-- Admin configura la conexión del tenant (URL + DB, una vez)
+ALTER TABLE tenant_settings
+  ADD COLUMN IF NOT EXISTS odoo_url TEXT,
+  ADD COLUMN IF NOT EXISTS odoo_db  TEXT;
+
+-- Usuario configura solo su API key personal
+CREATE TABLE IF NOT EXISTS user_integrations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   
-  integration_type TEXT NOT NULL,  -- 'odoo', 'gmail', 'calendar', 'meli'
-  
-  -- Credenciales (encriptadas en producción)
-  config JSONB DEFAULT '{}',
-  -- Odoo: { url, db, user, password }
-  -- Gmail: { oauth_token, refresh_token }
-  -- MeLi: { access_token, seller_id }
+  provider TEXT NOT NULL,  -- 'odoo' | 'gmail' | 'calendar' | 'drive' | 'meli'
+  api_key  TEXT NOT NULL,  -- encriptada con Supabase Vault
   
   is_active BOOLEAN DEFAULT true,
-  last_verified_at TIMESTAMPTZ,
-  
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
   
-  UNIQUE(user_id, integration_type)
+  UNIQUE(user_id, tenant_id, provider)
 );
 ```
 
 #### 5.2: UI para configurar conexiones
 
+**Admin** (`/admin/settings/connections`):
 ```
-/settings/connections
-├── 🔗 Odoo
-│   └── [Conectar mi cuenta de Odoo]
-│       ├── URL: _______________
-│       ├── Base de datos: _______________
-│       ├── Usuario: _______________
-│       └── Contraseña: _______________
-│
-├── 📧 Gmail
-│   └── [Autorizar con Google] → OAuth flow
-│
-├── 🛒 MercadoLibre
-│   └── [Conectar mi cuenta] → OAuth flow
+├── 🔗 Odoo (configuración del tenant)
+│   ├── URL: https://miempresa.odoo.com
+│   └── Base de datos: miempresa
+```
+
+**Usuario** (`/settings/connections` o modal inline en el chat):
+```
+├── 🔗 Odoo → [un solo campo: API key] + [📹 ver video 45s]
+├── 📧 Gmail → [Autorizar con Google] → OAuth
+├── 📅 Calendar → [Autorizar con Google] → OAuth
+├── 🗂️ Drive → [Autorizar con Google] → OAuth
+├── 🛒 MercadoLibre → [Conectar mi cuenta] → OAuth
+```
+
+#### 5.6: Onboarding sin fricción (modal inline)
+
+```
+Usuario hace su primera pregunta sobre Odoo
+→ Chat intercepta antes de llamar al skill
+→ Muestra modal:
+
+┌─────────────────────────────────────────────┐
+│  🔗 Conectá tu Odoo para responder esto     │
+│                                             │
+│  [campo: pegá tu API key]                   │
+│                                             │
+│  📹 ¿No sabés cómo sacarla? Ver video (45s) │
+│     → abre Loom embebido:                   │
+│       1. Odoo > Settings > API Keys         │
+│       2. New → nombre "Tuqui" → Copiar      │
+│     → link directo a {odoo_url}/odoo/settings│
+│                                             │
+│  [Conectar →]              (5 segundos)     │
+└─────────────────────────────────────────────┘
+
+Conectado → transparente, ni lo ve
+Key inválida/expirada → "Tu conexión expiró, renovála" + mismo modal
+```
+
+```
+components/integrations/
+├── ConnectProviderModal.tsx  # Modal genérico reutilizable por provider
+└── IntegrationRequired.tsx  # Wrapper que intercepta en el chat
+
+lib/integrations/
+├── user-integrations.ts      # CRUD de keys en DB
+└── providers.ts              # Config por provider (instrucciones, video url)
 ```
 
 #### 5.3: Modificar skills para usar credenciales del usuario
@@ -1038,10 +1078,15 @@ ALTER TABLE users ADD COLUMN is_super_admin BOOLEAN DEFAULT false;
 
 ### Checklist F5
 
-- [ ] Migration `500_user_credentials.sql`
-- [ ] UI `/settings/connections` para usuario
+- [ ] Migration `500_user_credentials.sql` (tenant_settings + user_integrations)
+- [ ] UI `/admin/settings/connections` para admin (odoo_url + odoo_db)
+- [ ] Componente `ConnectProviderModal.tsx` con campo API key + link video
+- [ ] Componente `IntegrationRequired.tsx` que intercepta en el chat
+- [ ] UI `/settings/connections` para usuario (ver/gestionar sus keys)
 - [ ] Refactorear `createSkillContext` para usar `userId`
-- [ ] Actualizar todos los skills para manejar error de "no configurado"
+- [ ] Actualizar skills de Odoo para leer api_key de `user_integrations`
+- [ ] Actualizar todos los skills para manejar error de "no configurado" → mostrar modal
+- [ ] Grabar video Loom 45s de cómo sacar API key en Odoo
 - [ ] Migration `is_super_admin`
 - [ ] UI `/admin/tenants` para super-admin
 - [ ] Flujo de invitación funcionando

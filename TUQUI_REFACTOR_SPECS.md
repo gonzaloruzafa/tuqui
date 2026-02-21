@@ -3,8 +3,9 @@
 > Código de referencia para implementación de F5-F7.  
 > El plan estratégico está en `TUQUI_REFACTOR_PLAN.md`.  
 > Intelligence layer spec: `INTELLIGENCE_LAYER_PLAN.md`  
-> **Orden de ejecución: ✅ F7 → ✅ F7.5 → ✅ Phase 0 → F5 → F7.6 → F7.7**  
-> Última actualización: 2026-02-18
+> **Orden de ejecución: ✅ F7 → ✅ F7.5 → ✅ Phase 0 → ✅ Security P2 → F5 → F7.6 → F7.7**  
+> Última actualización: 2026-02-19  
+> Estado: main limpio (c09ba93), 557 tests, 59 skills, 0 PRs abiertos
 
 ### Convención de migrations
 
@@ -820,12 +821,17 @@ export async function getPlatformAdmin() {
 
 ## F5: PWA + PUSH NOTIFICATIONS
 
-> **Estado:** ~85% del backend ya implementado.  
-> **Ya existe:** sw.js, use-push-notifications hook, push/subscribe API, NotificationBell,  
-> push sender en notifier.ts, push_subscriptions table, VAPID keys, web-push dep.  
-> **Falta:** manifest.json + icons, meta tags en layout, SW registration wiring,  
-> PushNotificationToggle standalone, extraer sendPushToUser/sendPushToTenant.  
-> **Estimación restante:** ~4h (no 1.5 días).
+> **Estado:** ~85% del backend ya implementado. Solo falta el PWA shell + push opt-in UI.  
+> **Ya existe:** sw.js (push+click handlers), use-push-notifications hook (subscribe/unsubscribe),  
+> push/subscribe API (POST+DELETE), sendPushNotification en notifier.ts, push_subscriptions table  
+> con RLS, VAPID keys en .env, web-push dep, NotificationBell (in-app inbox).  
+> **Falta (preciso):**  
+> - `public/manifest.json` + icons (192, 512, badge-72) → no installable sin esto  
+> - `<link rel="manifest">` + `theme-color` meta en layout.tsx  
+> - `PushNotificationToggle` standalone (NotificationBell es inbox, no opt-in)  
+> - Extraer `sendPushToUser`/`sendPushToTenant` de prometeo/notifier.ts a lib/push/sender.ts  
+> - SW registration eager (hoy solo se registra cuando monta el hook)  
+> **Estimación restante:** ~3-4h.
 
 ### 5.1: PWA Base (~2h)
 

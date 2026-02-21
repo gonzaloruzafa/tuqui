@@ -14,6 +14,7 @@ module.exports = {
                     coral: '#FF7348',
                     mustard: '#FEA912',
                     white: '#FFFFFF',
+                    beige: '#E9E5DF',
                 }
             },
             fontFamily: {
