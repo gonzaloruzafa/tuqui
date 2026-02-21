@@ -84,11 +84,11 @@ export function PushOptIn({ className }: PushOptInProps) {
 
     const handleDismiss = useCallback(() => {
         const state = getOptInState()
-        const session = getSessionCount()
+        const currentSession = parseInt(localStorage.getItem('tuqui_session_count') || '1', 10)
         saveOptInState({
             ...state,
             dismissCount: state.dismissCount + 1,
-            lastSession: session,
+            lastSession: currentSession,
         })
         setVisible(false)
     }, [])

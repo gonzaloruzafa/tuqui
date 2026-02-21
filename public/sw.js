@@ -17,8 +17,8 @@ self.addEventListener('push', (event) => {
   let data = {
     title: 'Tuqui',
     body: 'Tienes una nueva notificación',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-72.png',
     tag: 'tuqui-notification',
     data: {}
   };
